@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { AxiError } from "axi-sdk-js";
-import { chartFlagSpec } from "../../src/cli/schema";
+import { chartFlagSpec } from "../../src/cli/intake";
 import { chartCommand, chartUsage } from "../../src/commands/chart";
 
 const TAMPA_ARGS = [

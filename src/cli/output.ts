@@ -184,48 +184,39 @@ function echoBirth(
 
 /** Deep output module: encapsulates JSON projection, precision rounding,
  *  birth parameter echoing, and diagnostic message formatting. */
-export class AstrologicalFormatter {
-	format(chart: LumenChart, request: NatalRequest): ChartOutput {
-		const projected = project(chart);
-
-		const help: string[] = [];
-		if (chart.houseSystem !== chart.houseSystemRequested) {
-			help.push(
-				`House system "${chart.houseSystemRequested}" fell back to "${chart.houseSystem}" (undefined above the polar circle)`,
-			);
-		}
-		if (chart.unavailable.length > 0) {
-			help.push(
-				`Bodies omitted (outside fitted ephemeris range): ${chart.unavailable.join(", ")}`,
-			);
-		}
-		if (request.birth.status !== "ok") {
-			help.push(
-				`Timezone resolution provenance status: ${request.birth.status}`,
-			);
-		}
-
-		const aspects = projected.aspects;
-		return {
-			chart: { ...projected, birth: echoBirth(request.birth, request.options) },
-			summary: {
-				bodies: Object.keys(projected.bodies).length,
-				aspects: aspects.length,
-				applying: aspects.filter((a) => a.phase === "applying").length,
-				separating: aspects.filter((a) => a.phase === "separating").length,
-				exact: aspects.filter((a) => a.phase === "exact").length,
-			},
-			...(help.length > 0 ? { help } : {}),
-		};
-	}
-}
-
-/** Formats a calculated chart and request parameters into the canonical JSON
- *  output projection and summary for Axi CLI consumption. */
 export function formatChart(
 	chart: LumenChart,
 	request: NatalRequest,
 ): ChartOutput {
-	const defaultFormatter = new AstrologicalFormatter();
-	return defaultFormatter.format(chart, request);
+	const projected = project(chart);
+
+	const help: string[] = [];
+	if (chart.houseSystem !== chart.houseSystemRequested) {
+		help.push(
+			`House system "${chart.houseSystemRequested}" fell back to "${chart.houseSystem}" (undefined above the polar circle)`,
+		);
+	}
+	if (chart.unavailable.length > 0) {
+		help.push(
+			`Bodies omitted (outside fitted ephemeris range): ${chart.unavailable.join(", ")}`,
+		);
+	}
+	if (request.birth.status !== "ok") {
+		help.push(
+			`Timezone resolution provenance status: ${request.birth.status}`,
+		);
+	}
+
+	const aspects = projected.aspects;
+	return {
+		chart: { ...projected, birth: echoBirth(request.birth, request.options) },
+		summary: {
+			bodies: Object.keys(projected.bodies).length,
+			aspects: aspects.length,
+			applying: aspects.filter((a) => a.phase === "applying").length,
+			separating: aspects.filter((a) => a.phase === "separating").length,
+			exact: aspects.filter((a) => a.phase === "exact").length,
+		},
+		...(help.length > 0 ? { help } : {}),
+	};
 }

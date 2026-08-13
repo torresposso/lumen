@@ -179,12 +179,4 @@ describe("formatChart", () => {
 			"Bodies omitted (outside fitted ephemeris range): chiron",
 		]);
 	});
-
-	test("AstrologicalFormatter provides object-oriented projection seam", () => {
-		const { AstrologicalFormatter } = require("../../src/cli/output");
-		const formatter = new AstrologicalFormatter();
-		const out = formatter.format(chart(), request);
-		expect(out.summary.bodies).toBeDefined();
-		expect(out.chart.meta.houseSystem).toBe("placidus");
-	});
 });
