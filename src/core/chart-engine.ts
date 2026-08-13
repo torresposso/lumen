@@ -1,5 +1,16 @@
-import type { AspectPhase, ChartBody, HouseSystem, Zodiac } from "caelus";
-import type { BirthStatus, ChartRequestOptions, NatalRequest, ResolvedBirth } from "../cli/intake";
+import type {
+	AspectPhase,
+	Chart,
+	ChartBody,
+	HouseSystem,
+	Zodiac,
+} from "caelus";
+import type {
+	BirthStatus,
+	ChartRequestOptions,
+	NatalRequest,
+	ResolvedBirth,
+} from "../cli/intake";
 import { toDraconicChart } from "./draconic";
 import { CaelusEphemeris, type Ephemeris } from "./ephemeris";
 import {
@@ -14,7 +25,6 @@ import {
 	type LotsResult,
 } from "./extensions";
 import { normalizeLongitude, roundPrecision as round, signOf } from "./zodiac";
-
 
 export type { EclipseInfo, EclipsesResult, FixedStarMatch, LotsResult };
 
@@ -54,6 +64,19 @@ export interface Projection {
 	lots?: LotsResult;
 	stars?: FixedStarMatch[];
 	evolutionary?: EvolutionaryResult;
+	draconic?: DraconicProjection;
+}
+
+export interface DraconicProjection {
+	nodeUsed: "true_node" | "mean_node";
+	bodies: Partial<Record<string, ChartBody>>;
+	angles: {
+		asc: LonProjection;
+		mc: LonProjection;
+		vertex: LonProjection;
+		eastPoint: LonProjection;
+	};
+	cusps: LonProjection[];
 }
 
 export interface BirthEcho {
@@ -88,7 +111,15 @@ export type LumenChart = import("caelus").Chart & {
 	lots?: LotsResult;
 	stars?: FixedStarMatch[];
 	evolutionary?: EvolutionaryResult;
+	draconic?: DraconicChart;
 };
+
+export interface DraconicChart {
+	nodeUsed: "true_node" | "mean_node";
+	bodies: Chart["bodies"];
+	angles: Chart["angles"];
+	cusps: number[];
+}
 
 /** Node ids to drop from the chart per `--node` selection. The engine always
  *  computes both nodes; this module owns the selection policy so the chart
@@ -98,8 +129,6 @@ const DROPPED_BY_NODE: Record<NatalRequest["options"]["node"], string[]> = {
 	mean: ["true_node"],
 	true: ["mean_node"],
 };
-
-
 
 function renderLon(input: number | { lon: number }): LonProjection {
 	const rawLon = typeof input === "number" ? input : input.lon;
@@ -113,9 +142,11 @@ function renderLon(input: number | { lon: number }): LonProjection {
 	return { lon: round(lon), sign, signDeg };
 }
 
-function project(chart: LumenChart): Projection {
+function projectBodies(
+	source: Chart["bodies"],
+): Partial<Record<string, ChartBody>> {
 	const bodies: Partial<Record<string, ChartBody>> = {};
-	for (const [id, body] of Object.entries(chart.bodies)) {
+	for (const [id, body] of Object.entries(source)) {
 		if (body === undefined) continue;
 		bodies[id] = {
 			lon: round(body.lon),
@@ -131,6 +162,29 @@ function project(chart: LumenChart): Projection {
 			dignities: body.dignities,
 		};
 	}
+	return bodies;
+}
+
+function projectAngles(angles: Chart["angles"]): Projection["angles"] {
+	return {
+		asc: renderLon(angles.asc),
+		mc: renderLon(angles.mc),
+		vertex: renderLon(angles.vertex),
+		eastPoint: renderLon(angles.eastPoint),
+	};
+}
+
+function projectDraconic(draconic: DraconicChart): DraconicProjection {
+	return {
+		nodeUsed: draconic.nodeUsed,
+		bodies: projectBodies(draconic.bodies),
+		angles: projectAngles(draconic.angles),
+		cusps: draconic.cusps.map((c) => renderLon(c)),
+	};
+}
+
+function project(chart: LumenChart): Projection {
+	const bodies = projectBodies(chart.bodies);
 
 	const aspects = chart.aspects.map((a) => ({
 		a: a.a,
@@ -150,18 +204,14 @@ function project(chart: LumenChart): Projection {
 			unavailable: chart.unavailable,
 		},
 		bodies,
-		angles: {
-			asc: renderLon(chart.angles.asc),
-			mc: renderLon(chart.angles.mc),
-			vertex: renderLon(chart.angles.vertex),
-			eastPoint: renderLon(chart.angles.eastPoint),
-		},
+		angles: projectAngles(chart.angles),
 		cusps: chart.cusps.map((c) => renderLon(c)),
 		aspects,
 		...(chart.eclipses ? { eclipses: chart.eclipses } : {}),
 		...(chart.lots ? { lots: chart.lots } : {}),
 		...(chart.stars ? { stars: chart.stars } : {}),
 		...(chart.evolutionary ? { evolutionary: chart.evolutionary } : {}),
+		...(chart.draconic ? { draconic: projectDraconic(chart.draconic) } : {}),
 	};
 }
 
@@ -194,18 +244,31 @@ export class AstrologicalAnalysis {
 		ephemeris: Ephemeris,
 	): LumenChart {
 		const { birth, options } = request;
-		let result = applyExtensions(ephemeris, chart, birth, options);
-
-		if (options.draconic) {
-			result = toDraconicChart(result, options.node);
-		}
+		const result = applyExtensions(ephemeris, chart, birth, options);
 
 		if (options.evolutionary) {
 			result.evolutionary = computeEvolutionaryReading(result);
 		}
 
+		if (options.draconic) {
+			const nodeUsed: DraconicChart["nodeUsed"] =
+				options.node === "mean" || result.bodies.true_node === undefined
+					? "mean_node"
+					: "true_node";
+			const draconic = toDraconicChart(result, options.node);
+			result.draconic = {
+				nodeUsed,
+				bodies: draconic.bodies,
+				angles: draconic.angles,
+				cusps: draconic.cusps,
+			};
+		}
+
 		for (const dropped of DROPPED_BY_NODE[options.node]) {
 			delete result.bodies[dropped];
+			if (result.draconic !== undefined) {
+				delete result.draconic.bodies[dropped];
+			}
 		}
 
 		return result;
@@ -233,7 +296,11 @@ export class AstrologicalEngine {
 			},
 		);
 
-		const analyzedChart = AstrologicalAnalysis.analyze(rawChart, request, this.ephemeris);
+		const analyzedChart = AstrologicalAnalysis.analyze(
+			rawChart,
+			request,
+			this.ephemeris,
+		);
 		const projected = project(analyzedChart);
 
 		const help: string[] = [];
@@ -267,4 +334,3 @@ export class AstrologicalEngine {
 		};
 	}
 }
-

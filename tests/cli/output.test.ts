@@ -199,4 +199,3 @@ describe("AstrologicalEngine Output Projection", () => {
 		]);
 	});
 });
-

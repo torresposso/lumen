@@ -8,7 +8,6 @@ import {
 	signOf,
 } from "./zodiac";
 
-
 export interface SkippedStep {
 	body: string;
 	aspect: string;
@@ -89,7 +88,6 @@ const MAJOR_ASPECTS = [
 ];
 
 function getSolLunaPhase(sunLon: number, moonLon: number): SolLunaPhase {
-
 	const angle = round4(normalizeLongitude(moonLon - sunLon));
 	let name = "New";
 	if (angle >= 45 && angle < 90) name = "Crescent";
@@ -168,8 +166,6 @@ export function computeEvolutionaryReading(
 				}
 			}
 		}
-
-
 
 		polarityPoint = {
 			lon: round4(pppLon),
@@ -292,4 +288,3 @@ export function computeEvolutionaryReading(
 }
 
 export { computeEvolutionaryReading as computeEvolutionary };
-

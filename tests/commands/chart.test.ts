@@ -47,13 +47,19 @@ describe("chartCommand", () => {
 		)) as {
 			chart: {
 				birth: { requested: { draconic: boolean } };
-				bodies: { true_node: { sign: string; lon: number } };
+				bodies: { true_node: { sign: string } };
+				draconic: {
+					nodeUsed: string;
+					bodies: { true_node: { sign: string; lon: number } };
+				};
 			};
 		};
 
 		expect(result.chart.birth.requested.draconic).toBe(true);
-		expect(result.chart.bodies.true_node.sign).toBe("Aries");
-		expect(result.chart.bodies.true_node.lon).toBeCloseTo(0, 4);
+		expect(result.chart.bodies.true_node.sign).toBe("Aquarius");
+		expect(result.chart.draconic.nodeUsed).toBe("true_node");
+		expect(result.chart.draconic.bodies.true_node.sign).toBe("Aries");
+		expect(result.chart.draconic.bodies.true_node.lon).toBeCloseTo(0, 4);
 	});
 
 	test("computes evolutionary features (--eclipses --lots --stars)", async () => {

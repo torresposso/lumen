@@ -48,9 +48,9 @@ describe("resolveNatalRequest", () => {
 				lon: "0",
 			});
 
-			expect(parseWith(birthSchema, feb("2001", "2"), birthSuggestions).day).toBe(
-				2,
-			);
+			expect(
+				parseWith(birthSchema, feb("2001", "2"), birthSuggestions).day,
+			).toBe(2);
 			expect(
 				parseWith(birthSchema, feb("2001", "28"), birthSuggestions).day,
 			).toBe(28);

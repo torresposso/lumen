@@ -69,14 +69,20 @@ describe("AstrologicalEngine", () => {
 		expect(reading.chart.bodies.mean_lilith).toBeDefined();
 	});
 
-	test("computes a draconic chart by shifting longitudes to align North Node to 0 Aries", () => {
+	test("keeps the natal chart and exposes the draconic projection as a separate section", () => {
 		const draconicReading = engine.compute({
 			...request,
 			options: { ...request.options, draconic: true },
 		});
-		expect(draconicReading.chart.bodies.true_node?.lon).toBeCloseTo(0, 4);
-		expect(draconicReading.chart.bodies.true_node?.sign).toBe("Aries");
-		expect(draconicReading.chart.bodies.true_node?.signDeg).toBeCloseTo(0, 4);
+
+		expect(draconicReading.chart.bodies.true_node?.sign).toBe("Aquarius");
+
+		const draconic = draconicReading.chart.draconic;
+		expect(draconic).toBeDefined();
+		expect(draconic?.nodeUsed).toBe("true_node");
+		expect(draconic?.bodies.true_node?.lon).toBeCloseTo(0, 4);
+		expect(draconic?.bodies.true_node?.sign).toBe("Aries");
+		expect(draconic?.bodies.true_node?.signDeg).toBeCloseTo(0, 4);
 	});
 
 	test("computes evolutionary features (--eclipses, --lots, --stars)", () => {
@@ -224,4 +230,3 @@ describe("AstrologicalEngine", () => {
 		expect(reading.chart.stars).toEqual([]);
 	});
 });
-

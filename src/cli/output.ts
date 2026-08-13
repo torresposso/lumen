@@ -12,4 +12,3 @@ export type ChartOutput = AstrologicalReading;
 export function formatChart(reading: AstrologicalReading): AstrologicalReading {
 	return reading;
 }
-

@@ -1,6 +1,9 @@
 import type { AxiCliCommand } from "axi-sdk-js";
 import { resolveNatalRequestFromArgs } from "../cli/intake";
-import { AstrologicalEngine, type AstrologicalReading } from "../core/chart-engine";
+import {
+	AstrologicalEngine,
+	type AstrologicalReading,
+} from "../core/chart-engine";
 
 export const chartUsage = [
 	'lumen chart --when 1981-01-26T00:50 --place "Magangué, Colombia"',
@@ -24,9 +27,9 @@ export const chartUsage = [
 	"  --evolutionary                             Include Jeffrey Wolf Green evolutionary triad & skipped steps",
 ].join("\n");
 
-export const chartCommand: AxiCliCommand<
-	string | AstrologicalReading
-> = async (args) => {
+export const chartCommand: AxiCliCommand<string | AstrologicalReading> = async (
+	args,
+) => {
 	const result = await resolveNatalRequestFromArgs(args);
 
 	if (result.kind === "help") {
@@ -36,4 +39,3 @@ export const chartCommand: AxiCliCommand<
 	const engine = new AstrologicalEngine();
 	return engine.compute(result.request);
 };
-

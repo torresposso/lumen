@@ -107,7 +107,13 @@ describe("computeEvolutionaryReading", () => {
 		const evo = computeEvolutionaryReading(
 			input({
 				...natal,
-				true_node: body({ lon: 30, speed: 0, sign: "Taurus", signDeg: 0, house: 2 }),
+				true_node: body({
+					lon: 30,
+					speed: 0,
+					sign: "Taurus",
+					signDeg: 0,
+					house: 2,
+				}),
 				sun: body({ lon: 0, sign: "Aries", signDeg: 0, house: 1 }),
 				moon: body({ lon: 45, sign: "Taurus", signDeg: 15, house: 2 }),
 			}),
@@ -119,4 +125,3 @@ describe("computeEvolutionaryReading", () => {
 		expect(evo.solLunaPhase?.angle).toBe(45);
 	});
 });
-
