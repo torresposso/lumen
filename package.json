@@ -1,0 +1,28 @@
+{
+	"name": "lumen",
+	"version": "0.1.0",
+	"type": "module",
+	"bin": {
+		"lumen": "./bin/lumen.ts"
+	},
+	"scripts": {
+		"start": "bun run bin/lumen.ts",
+		"test": "bun test",
+		"check": "biome check .",
+		"format": "biome format --write .",
+		"build": "bun build --compile bin/lumen.ts --outfile dist/lumen"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.5.8",
+		"@types/bun": "latest"
+	},
+	"peerDependencies": {
+		"typescript": "^5"
+	},
+	"dependencies": {
+		"axi-sdk-js": "^0.1.10",
+		"caelus": "^0.23.0",
+		"caelus-birth": "^0.23.0",
+		"zod": "^4.4.3"
+	}
+}
