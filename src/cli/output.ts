@@ -29,6 +29,21 @@ interface AspectProjection {
 	strength: number;
 }
 
+export interface BodyProjection {
+	id: string;
+	lon: number;
+	sign: string;
+	signDeg: number;
+	house: number;
+	retrograde: boolean;
+	speed: number;
+	lat: number;
+	dist: number | null;
+	ra: number;
+	dec: number;
+	dignities: string[];
+}
+
 export interface Projection {
 	meta: {
 		jdUt: number;

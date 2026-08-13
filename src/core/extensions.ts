@@ -78,11 +78,11 @@ export function applyExtensions<T extends Chart>(
 				);
 			}
 			return {
-				tMax,
+				tMax: Number(tMax.toFixed(4)),
 				type,
-				lon: sun.lon,
+				lon: Number(sun.lon.toFixed(4)),
 				sign: sun.sign,
-				signDeg: sun.signDeg,
+				signDeg: Number(sun.signDeg.toFixed(4)),
 				house: houseOf(chart.cusps, sun.lon),
 			};
 		};
@@ -101,9 +101,9 @@ export function applyExtensions<T extends Chart>(
 		const chartLots = ephemeris.lots(birth.jdUt, birth.lat, birth.lon);
 
 		const formatLot = (lon: number): LotInfo => ({
-			lon,
+			lon: Number(lon.toFixed(4)),
 			sign: signOf(lon),
-			signDeg: lon % 30,
+			signDeg: Number((lon % 30).toFixed(4)),
 			house: houseOf(chart.cusps, lon),
 		});
 

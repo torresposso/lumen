@@ -1,5 +1,10 @@
-import type { Chart } from "caelus";
-import { angularDistance, houseOf, type LotInfo, signOf } from "./zodiac";
+import {
+	angularDistance,
+	houseOf,
+	type LotInfo,
+	normalizeLongitude,
+	signOf,
+} from "./zodiac";
 
 export interface SkippedStep {
 	body: string;
@@ -57,6 +62,10 @@ const SIGN_RULERS: Record<string, string> = {
 	Pisces: "neptune",
 };
 
+function round4(val: number): number {
+	return Number(val.toFixed(4));
+}
+
 /** Trace dispositor chain for a given body up to maxDepth steps. */
 function buildDispositorChain(
 	bodies: Chart["bodies"],
@@ -99,11 +108,11 @@ export function computeEvolutionaryReading(
 	let polarityPoint: LotInfo | undefined;
 
 	if (pluto) {
-		const pppLon = (pluto.lon + 180) % 360;
+		const pppLon = normalizeLongitude(pluto.lon + 180);
 		polarityPoint = {
-			lon: pppLon,
+			lon: round4(pppLon),
 			sign: signOf(pppLon),
-			signDeg: pppLon % 30,
+			signDeg: round4(pppLon % 30),
 			house: houseOf(cusps, pppLon),
 		};
 	}
@@ -112,12 +121,12 @@ export function computeEvolutionaryReading(
 	let southNode: (LotInfo & { ruler?: string }) | undefined;
 
 	if (northNode) {
-		const snLon = (northNode.lon + 180) % 360;
+		const snLon = normalizeLongitude(northNode.lon + 180);
 		const snSign = signOf(snLon);
 		southNode = {
-			lon: snLon,
+			lon: round4(snLon),
 			sign: snSign,
-			signDeg: snLon % 30,
+			signDeg: round4(snLon % 30),
 			house: houseOf(cusps, snLon),
 			ruler: SIGN_RULERS[snSign],
 		};
@@ -146,7 +155,7 @@ export function computeEvolutionaryReading(
 							body: bodyId,
 							aspect: "square",
 							target: target.id,
-							orb: Number(orb.toFixed(4)),
+							orb: round4(orb),
 						});
 					}
 				}
@@ -160,9 +169,9 @@ export function computeEvolutionaryReading(
 		let mid = (pluto.lon + northNode.lon) / 2;
 		if (diff > 180) mid = (mid + 180) % 360;
 		plutoNorthNodeMidpoint = {
-			lon: Number(mid.toFixed(4)),
+			lon: round4(mid),
 			sign: signOf(mid),
-			signDeg: Number((mid % 30).toFixed(4)),
+			signDeg: round4(mid % 30),
 			house: houseOf(cusps, mid),
 		};
 	}
@@ -177,9 +186,9 @@ export function computeEvolutionaryReading(
 	return {
 		pluto: pluto
 			? {
-					lon: pluto.lon,
+					lon: round4(pluto.lon),
 					sign: pluto.sign,
-					signDeg: pluto.signDeg,
+					signDeg: round4(pluto.signDeg),
 					house: pluto.house,
 					retrograde: pluto.retrograde,
 				}
@@ -189,7 +198,7 @@ export function computeEvolutionaryReading(
 			northNode: northNode
 				? {
 						sign: northNode.sign,
-						signDeg: northNode.signDeg,
+						signDeg: round4(northNode.signDeg),
 						house: northNode.house,
 						ruler: SIGN_RULERS[northNode.sign],
 					}
