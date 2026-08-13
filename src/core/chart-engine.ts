@@ -47,12 +47,12 @@ export class AstrologicalAnalysis {
 			result = toDraconicChart(result, options.node);
 		}
 
-		for (const dropped of DROPPED_BY_NODE[options.node]) {
-			delete result.bodies[dropped];
-		}
-
 		if (options.evolutionary) {
 			result.evolutionary = computeEvolutionaryReading(result);
+		}
+
+		for (const dropped of DROPPED_BY_NODE[options.node]) {
+			delete result.bodies[dropped];
 		}
 
 		return result;
