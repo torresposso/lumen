@@ -13,7 +13,8 @@ import {
 	type FixedStarMatch,
 	type LotsResult,
 } from "./extensions";
-import { normalizeLongitude, signOf } from "./zodiac";
+import { normalizeLongitude, roundPrecision as round, signOf } from "./zodiac";
+
 
 export type { EclipseInfo, EclipsesResult, FixedStarMatch, LotsResult };
 
@@ -98,9 +99,7 @@ const DROPPED_BY_NODE: Record<NatalRequest["options"]["node"], string[]> = {
 	true: ["mean_node"],
 };
 
-function round(value: number, digits = 4): number {
-	return Number(value.toFixed(digits));
-}
+
 
 function renderLon(input: number | { lon: number }): LonProjection {
 	const rawLon = typeof input === "number" ? input : input.lon;

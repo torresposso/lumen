@@ -4,8 +4,10 @@ import {
 	houseOf,
 	type LotInfo,
 	normalizeLongitude,
+	roundPrecision as round4,
 	signOf,
 } from "./zodiac";
+
 
 export interface SkippedStep {
 	body: string;
@@ -86,11 +88,8 @@ const MAJOR_ASPECTS = [
 	{ name: "opposition", target: 180, orb: 8 },
 ];
 
-function round4(val: number): number {
-	return Number(val.toFixed(4));
-}
-
 function getSolLunaPhase(sunLon: number, moonLon: number): SolLunaPhase {
+
 	const angle = round4(normalizeLongitude(moonLon - sunLon));
 	let name = "New";
 	if (angle >= 45 && angle < 90) name = "Crescent";

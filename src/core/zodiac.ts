@@ -73,3 +73,9 @@ export function houseOf(cusps: number[], lon: number): number {
 	}
 	return 1;
 }
+
+/** Rounds a numeric value to a fixed number of decimal digits (default 4). */
+export function roundPrecision(val: number, digits = 4): number {
+	return Number(val.toFixed(digits));
+}
+
