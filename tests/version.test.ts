@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { tryFastPath } from "axi-sdk-js/fast-path";
-import { VERSION } from "./version";
+import { VERSION } from "../src/version";
 
 function run(argv: string[]): { handled: boolean; output: string } {
 	let output = "";

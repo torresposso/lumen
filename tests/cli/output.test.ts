@@ -1,15 +1,15 @@
 import { describe, expect, test } from "bun:test";
 import type { Chart, ChartBody } from "caelus";
 import { BODIES } from "caelus";
-import type { NatalRequest } from "./intake";
-import { echoBirth, project, renderChart } from "./output";
+import type { NatalRequest } from "../../src/cli/intake";
+import { formatChart } from "../../src/cli/output";
 
 const request: NatalRequest = {
 	birth: {
 		jdUt: 2448053.2708,
 		lat: 27.95,
 		lon: -82.46,
-		local: { year: 1990, month: 6, day: 10, hour: 14, minute: 30, second: 0 },
+		local: { year: 1990, month: 6, day: 10, hour: 14, minute: 30 },
 		zone: "America/New_York",
 		offsetMinutes: -240,
 		dst: true,
@@ -21,6 +21,11 @@ const request: NatalRequest = {
 		node: "both",
 		bodies: ["mean_lilith"],
 		topocentric: false,
+		draconic: false,
+		eclipses: false,
+		lots: false,
+		stars: false,
+		evolutionary: false,
 	},
 };
 
@@ -45,20 +50,14 @@ type ChartOverrides = Omit<Partial<Chart>, "bodies"> & {
 	bodies?: Record<string, ChartBody | undefined>;
 };
 
-/** Typed fixture builder: fills every default body so tests construct real
- *  `Chart` values through the interface — no per-test casts. */
 function chart(overrides: ChartOverrides = {}): Chart {
 	const defaults = Object.fromEntries(BODIES.map((id) => [id, body()]));
+	const { bodies: overrideBodies, ...rest } = overrides;
 	return {
 		jdUt: 2448053.2708,
 		zodiac: "tropical",
 		houseSystem: "placidus",
 		houseSystemRequested: "placidus",
-		bodies: {
-			...defaults,
-			chiron: undefined,
-			...overrides.bodies,
-		} as Chart["bodies"],
 		unavailable: [],
 		angles: {
 			asc: 100.123456,
@@ -77,13 +76,18 @@ function chart(overrides: ChartOverrides = {}): Chart {
 				strength: 0.876543,
 			},
 		],
-		...overrides,
+		...rest,
+		bodies: {
+			...defaults,
+			chiron: undefined,
+			...(overrideBodies ?? {}),
+		} as Chart["bodies"],
 	} as Chart;
 }
 
-describe("project", () => {
-	test("projects bodies with rounding and drops undefined bodies", () => {
-		const out = project(
+describe("formatChart", () => {
+	test("formats chart output with rounded projections and summary counts", () => {
+		const out = formatChart(
 			chart({
 				bodies: {
 					sun: body({
@@ -98,9 +102,10 @@ describe("project", () => {
 					chiron: undefined,
 				},
 			}),
+			request,
 		);
 
-		const sun = out.bodies.sun as {
+		const sun = out.chart.bodies.sun as {
 			lon: number;
 			sign: string;
 			signDeg: number;
@@ -112,24 +117,20 @@ describe("project", () => {
 		expect(sun.signDeg).toBe(19.6113);
 		expect(sun.house).toBe(9);
 		expect(sun.dist).toBe(1.0153);
-		expect(out.bodies.chiron).toBeUndefined();
-	});
+		expect(out.chart.bodies.chiron).toBeUndefined();
 
-	test("projects angles, cusps and aspects", () => {
-		const out = project(chart());
-
-		expect(out.angles.asc).toEqual({
+		expect(out.chart.angles.asc).toEqual({
 			lon: 100.1235,
 			sign: "Cancer",
 			signDeg: 10.1235,
 		});
-		expect(out.cusps).toHaveLength(3);
-		expect(out.cusps[0]).toEqual({
+		expect(out.chart.cusps).toHaveLength(3);
+		expect(out.chart.cusps[0]).toEqual({
 			lon: 100.123,
 			sign: "Cancer",
 			signDeg: 10.123,
 		});
-		expect(out.aspects[0]).toEqual({
+		expect(out.chart.aspects[0]).toEqual({
 			a: "sun",
 			b: "moon",
 			aspect: "trine",
@@ -137,34 +138,14 @@ describe("project", () => {
 			phase: "applying",
 			strength: 0.877,
 		});
-	});
-
-	test("maps cusp longitudes onto signs at the boundaries", () => {
-		const out = project(chart({ cusps: [0, 30, 360] }));
-		expect(out.cusps.map((c) => c.sign)).toEqual(["Aries", "Taurus", "Aries"]);
-		expect(out.cusps.map((c) => c.signDeg)).toEqual([0, 0, 0]);
-	});
-});
-
-describe("echoBirth", () => {
-	test("echoes the resolved birth and a copy of the requested options", () => {
-		const out = echoBirth(request.birth, request.options);
-
-		expect(out.year).toBe(1990);
-		expect(out.zone).toBe("America/New_York");
-		expect(out.status).toBe("ok");
-		expect(out.requested).toEqual(request.options);
-	});
-});
-
-describe("renderChart", () => {
-	test("composes projection, echo and summary counts", () => {
-		const out = renderChart(chart(), request);
 
 		expect(out.chart.birth.year).toBe(1990);
+		expect(out.chart.birth.zone).toBe("America/New_York");
+		expect(out.chart.birth.status).toBe("ok");
 		expect(out.chart.birth.requested).toEqual(request.options);
+
 		expect(out.summary).toEqual({
-			bodies: BODIES.length - 1, // chiron is undefined in the fixture and dropped
+			bodies: BODIES.length - 1,
 			aspects: 1,
 			applying: 1,
 			separating: 0,
@@ -173,8 +154,18 @@ describe("renderChart", () => {
 		expect(out.help).toBeUndefined();
 	});
 
-	test("reports the house fallback and unavailable bodies as help", () => {
-		const out = renderChart(
+	test("maps cusp longitudes onto signs at boundaries", () => {
+		const out = formatChart(chart({ cusps: [0, 30, 360] }), request);
+		expect(out.chart.cusps.map((c) => c.sign)).toEqual([
+			"Aries",
+			"Taurus",
+			"Aries",
+		]);
+		expect(out.chart.cusps.map((c) => c.signDeg)).toEqual([0, 0, 0]);
+	});
+
+	test("reports house fallback and unavailable bodies in help", () => {
+		const out = formatChart(
 			chart({
 				houseSystem: "whole_sign",
 				houseSystemRequested: "placidus",
@@ -187,5 +178,13 @@ describe("renderChart", () => {
 			'House system "placidus" fell back to "whole_sign" (undefined above the polar circle)',
 			"Bodies omitted (outside fitted ephemeris range): chiron",
 		]);
+	});
+
+	test("AstrologicalFormatter provides object-oriented projection seam", () => {
+		const { AstrologicalFormatter } = require("../../src/cli/output");
+		const formatter = new AstrologicalFormatter();
+		const out = formatter.format(chart(), request);
+		expect(out.summary.bodies).toBeDefined();
+		expect(out.chart.meta.houseSystem).toBe("placidus");
 	});
 });

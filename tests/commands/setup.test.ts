@@ -1,7 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { resolveExecPath, setupCommand } from "./cli";
+import { resolveExecPath, setupCommand } from "../../src/commands/setup";
 
-/** Runs `fn` with `process.argv[1]` replaced by `value`, restoring it afterwards. */
 function withArgv1<T>(value: string, fn: () => T): T {
 	const originalArgv = process.argv;
 	try {
@@ -37,8 +36,6 @@ describe("setupCommand", () => {
 
 	test("returns error and help when run from unbuilt source script", async () => {
 		const res = await setupCommand(["hooks"]);
-		// Since we're running tests via bun run / bun test (not standalone lumen binary),
-		// shouldInstallHooksForNodeAxiExecPath evaluates to false or checks binary policy.
 		expect(res).toHaveProperty("error");
 	});
 });

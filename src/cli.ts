@@ -1,12 +1,7 @@
-import {
-	installSessionStartHooks,
-	runAxiCli,
-	shouldInstallHooksForNodeAxiExecPath,
-} from "axi-sdk-js";
+import { runAxiCli } from "axi-sdk-js";
 import { chartCommand, chartUsage } from "./commands/chart";
+import { setupCommand, setupUsage } from "./commands/setup";
 import { VERSION } from "./version";
-
-const HOOK_POLICY = { marker: "lumen", binaryNames: ["lumen"] };
 
 const topLevelHelp = [
 	"Comandos:",
@@ -14,33 +9,6 @@ const topLevelHelp = [
 	"  setup   Instala/actualiza la integración de sesión (hooks + plugin OpenCode)",
 	"  update  Revisa/instala la última versión",
 ].join("\n");
-
-export function resolveExecPath(): string {
-	const argv1 = process.argv[1] ?? "";
-	return argv1.startsWith("/$bunfs/") ? process.execPath : argv1;
-}
-
-export async function setupCommand(
-	args: string[],
-): Promise<Record<string, unknown>> {
-	if (args[0] !== "hooks") {
-		return {
-			error: "Unknown setup command",
-			help: ["Run `lumen setup hooks`"],
-		};
-	}
-
-	const execPath = resolveExecPath();
-	if (!shouldInstallHooksForNodeAxiExecPath(execPath, HOOK_POLICY)) {
-		return {
-			error: "Cannot install session hooks from this executable",
-			help: ["Run `bun run build`, then `./dist/lumen setup hooks`"],
-		};
-	}
-
-	installSessionStartHooks({ ...HOOK_POLICY, execPath });
-	return { setup: "hooks installed or already up to date" };
-}
 
 export async function main(): Promise<void> {
 	await runAxiCli({
@@ -55,6 +23,9 @@ export async function main(): Promise<void> {
 		getCommandHelp: (command) => {
 			if (command === "chart") {
 				return chartUsage;
+			}
+			if (command === "setup") {
+				return setupUsage;
 			}
 			return undefined;
 		},

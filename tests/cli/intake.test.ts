@@ -1,7 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { AxiError } from "axi-sdk-js";
 import type { GeocodeResult, Geocoder } from "caelus-birth/geocode";
-import { resolveNatalRequest } from "./intake";
+import {
+	resolveNatalRequest,
+	resolveNatalRequestFromArgs,
+} from "../../src/cli/intake";
 
 function fakeGeocoder(results: GeocodeResult[]): Geocoder {
 	return {
@@ -35,18 +38,17 @@ describe("resolveNatalRequest", () => {
 				day: 10,
 				hour: 14,
 				minute: 30,
-				second: 0,
 			});
 		});
 
-		test("folds seconds into Julian Day", async () => {
-			const req = await resolveNatalRequest(
-				{ ...TAMPA, second: "45" },
-				new Set(),
-				fakeGeocoder([]),
-			);
-			expect(req.birth.local.second).toBe(45);
-			expect(req.birth.jdUt).toBeCloseTo(2448053.2708 + 45 / 86400, 4);
+		test("rejects an unknown IANA timezone with a specific error", async () => {
+			await expect(
+				resolveNatalRequest(
+					{ ...TAMPA, zone: "America/FakeCity" },
+					new Set(),
+					fakeGeocoder([]),
+				),
+			).rejects.toThrow('Invalid timezone: "America/FakeCity"');
 		});
 
 		test("parses ISO --when date string", async () => {
@@ -81,7 +83,6 @@ describe("resolveNatalRequest", () => {
 			);
 			expect(req.birth.local.hour).toBe(0);
 			expect(req.birth.local.minute).toBe(0);
-			expect(req.birth.local.second).toBe(0);
 		});
 
 		test("rejects combining --when with individual clock flags", async () => {
@@ -140,6 +141,8 @@ describe("resolveNatalRequest", () => {
 					name: "Magangué, Bolívar, Colombia",
 					lat: 9.24,
 					lon: -74.75,
+					country: "Colombia",
+					admin1: "Bolívar",
 					timezone: "America/Bogota",
 				},
 			]);
@@ -188,18 +191,47 @@ describe("resolveNatalRequest", () => {
 			const req = await resolveNatalRequest(
 				{
 					...TAMPA,
-					"house-system": "whole sign",
-					zodiac: "sidereal:lahiri",
-					bodies: " mean_lilith,true_lilith, ",
+					"house-system": "whole-sign",
+					bodies: "mean_lilith, true_lilith",
 				},
 				new Set(["topocentric"]),
 				fakeGeocoder([]),
 			);
-
 			expect(req.options.houseSystem).toBe("whole_sign");
-			expect(req.options.zodiac).toBe("sidereal:lahiri");
+			expect(req.options.zodiac).toBe("tropical");
 			expect(req.options.bodies).toEqual(["mean_lilith", "true_lilith"]);
 			expect(req.options.topocentric).toBe(true);
+		});
+
+		test("parses --draconic flag", async () => {
+			const req = await resolveNatalRequest(
+				TAMPA,
+				new Set(["draconic"]),
+				fakeGeocoder([]),
+			);
+			expect(req.options.draconic).toBe(true);
+		});
+
+		test("parses evolutionary flags (--eclipses, --lots, --stars, --evolutionary)", async () => {
+			const req = await resolveNatalRequest(
+				TAMPA,
+				new Set(["eclipses", "lots", "stars", "evolutionary"]),
+				fakeGeocoder([]),
+			);
+			expect(req.options.eclipses).toBe(true);
+			expect(req.options.lots).toBe(true);
+			expect(req.options.stars).toBe(true);
+			expect(req.options.evolutionary).toBe(true);
+		});
+
+		test("rejects non-tropical zodiac values", async () => {
+			await expect(
+				resolveNatalRequest(
+					{ ...TAMPA, zodiac: "sidereal:lahiri" },
+					new Set(),
+					fakeGeocoder([]),
+				),
+			).rejects.toThrow(AxiError);
 		});
 
 		test("rejects unknown house system", async () => {
@@ -210,41 +242,6 @@ describe("resolveNatalRequest", () => {
 					fakeGeocoder([]),
 				),
 			).rejects.toThrow(AxiError);
-		});
-
-		test("rejects malformed zodiac string", async () => {
-			await expect(
-				resolveNatalRequest(
-					{ ...TAMPA, zodiac: "sidereal" },
-					new Set(),
-					fakeGeocoder([]),
-				),
-			).rejects.toThrow(AxiError);
-		});
-
-		test("accepts star-anchored ayanamsas", async () => {
-			const req = await resolveNatalRequest(
-				{ ...TAMPA, zodiac: "sidereal:galcent_0sag" },
-				new Set(),
-				fakeGeocoder([]),
-			);
-			expect(req.options.zodiac).toBe("sidereal:galcent_0sag");
-		});
-
-		test("rejects unknown sidereal ayanamsa with suggestions", async () => {
-			try {
-				await resolveNatalRequest(
-					{ ...TAMPA, zodiac: "sidereal:foo" },
-					new Set(),
-					fakeGeocoder([]),
-				);
-				expect.unreachable();
-			} catch (error) {
-				expect(error).toBeInstanceOf(AxiError);
-				const axi = error as AxiError;
-				expect(axi.code).toBe("INVALID_VALUE");
-				expect(axi.suggestions[0]).toContain("lahiri");
-			}
 		});
 
 		test("rejects unknown extra body with suggestions", async () => {
@@ -272,6 +269,34 @@ describe("resolveNatalRequest", () => {
 					fakeGeocoder([]),
 				),
 			).rejects.toThrow(AxiError);
+		});
+
+		test("resolveNatalRequestFromArgs parses raw argv array and returns request", async () => {
+			const res = await resolveNatalRequestFromArgs(
+				[
+					"--when",
+					"1981-01-26T00:50",
+					"--lat",
+					"27.95",
+					"--lon",
+					"-82.46",
+					"--evolutionary",
+				],
+				fakeGeocoder([]),
+			);
+			expect(res.kind).toBe("request");
+			if (res.kind === "request") {
+				expect(res.request.birth.local.year).toBe(1981);
+				expect(res.request.options.evolutionary).toBe(true);
+			}
+		});
+
+		test("resolveNatalRequestFromArgs handles --help flag", async () => {
+			const res = await resolveNatalRequestFromArgs(
+				["--help"],
+				fakeGeocoder([]),
+			);
+			expect(res.kind).toBe("help");
 		});
 	});
 });
