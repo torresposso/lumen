@@ -34,6 +34,15 @@ The assembled output of the `--evolutionary` flag: Pluto's placement and Polarit
 **Pluto Polarity Point**:
 The point diametrically opposite Pluto (Pluto longitude + 180°), representing the evolutionary direction the soul is moving toward.
 
+**Pluto Polarity Point aspects**:
+Major planetary aspects (orb ≤ 5°) formed directly to the Pluto Polarity Point, identifying specific psychological archetypes accelerating or facilitating evolutionary growth.
+
+**Node motion status**:
+The motion state of the lunar node axis (`retrograde`, `direct`, or `stationary`), where stationary nodes mark pivotal karmic turning-point incarnations.
+
+**Sol-Luna phase mechanics**:
+The angular phase relationship between the Sun and Moon divided into 8 evolutionary phase archetypes (New, Crescent, First Quarter, Gibbous, Full, Disseminating, Last Quarter, Balsamic).
+
 **South Node**:
 The point diametrically opposite the North Node (North Node longitude + 180°), representing the soul's past-life default patterns. Derived, not read directly from the ephemeris.
 _Avoid_: descending node, Ketu
@@ -59,3 +68,4 @@ _Avoid_: Arabic parts
 
 **Fixed stars**:
 Major star alignments (orb ≤ 1.5°) with natal body positions.
+

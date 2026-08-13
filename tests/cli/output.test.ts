@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type { Chart, ChartBody } from "caelus";
 import { BODIES } from "caelus";
 import type { NatalRequest } from "../../src/cli/intake";
-import { formatChart } from "../../src/cli/output";
+import { AstrologicalEngine } from "../../src/core/chart-engine";
 
 const request: NatalRequest = {
 	birth: {
@@ -50,10 +50,10 @@ type ChartOverrides = Omit<Partial<Chart>, "bodies"> & {
 	bodies?: Record<string, ChartBody | undefined>;
 };
 
-function chart(overrides: ChartOverrides = {}): Chart {
+function createMockEphemeris(chartOverrides: ChartOverrides = {}) {
 	const defaults = Object.fromEntries(BODIES.map((id) => [id, body()]));
-	const { bodies: overrideBodies, ...rest } = overrides;
-	return {
+	const { bodies: overrideBodies, ...rest } = chartOverrides;
+	const mockChart = {
 		jdUt: 2448053.2708,
 		zodiac: "tropical",
 		houseSystem: "placidus",
@@ -83,27 +83,45 @@ function chart(overrides: ChartOverrides = {}): Chart {
 			...(overrideBodies ?? {}),
 		} as Chart["bodies"],
 	} as Chart;
+
+	return {
+		chartAt: () => mockChart,
+		solarEclipses: () => [],
+		lunarEclipses: () => [],
+		lots: () => ({
+			day: true,
+			fortune: 0,
+			spirit: 0,
+			eros: 0,
+			necessity: 0,
+			courage: 0,
+			victory: 0,
+			nemesis: 0,
+		}),
+		starLongitude: () => 0,
+		fixedStars: () => ({}),
+	};
 }
 
-describe("formatChart", () => {
+describe("AstrologicalEngine Output Projection", () => {
 	test("formats chart output with rounded projections and summary counts", () => {
-		const out = formatChart(
-			chart({
-				bodies: {
-					sun: body({
-						lon: 79.611345,
-						sign: "Gemini",
-						signDeg: 19.611345,
-						dist: 1.01531234,
-						ra: 78.6998123,
-						dec: 23.0353123,
-						house: 9,
-					}),
-					chiron: undefined,
-				},
-			}),
-			request,
-		);
+		const mockEphemeris = createMockEphemeris({
+			bodies: {
+				sun: body({
+					lon: 79.611345,
+					sign: "Gemini",
+					signDeg: 19.611345,
+					dist: 1.01531234,
+					ra: 78.6998123,
+					dec: 23.0353123,
+					house: 9,
+				}),
+				chiron: undefined,
+			},
+		});
+
+		const engine = new AstrologicalEngine(mockEphemeris);
+		const out = engine.compute(request);
 
 		const sun = out.chart.bodies.sun as {
 			lon: number;
@@ -155,7 +173,9 @@ describe("formatChart", () => {
 	});
 
 	test("maps cusp longitudes onto signs at boundaries", () => {
-		const out = formatChart(chart({ cusps: [0, 30, 360] }), request);
+		const mockEphemeris = createMockEphemeris({ cusps: [0, 30, 360] });
+		const engine = new AstrologicalEngine(mockEphemeris);
+		const out = engine.compute(request);
 		expect(out.chart.cusps.map((c) => c.sign)).toEqual([
 			"Aries",
 			"Taurus",
@@ -165,14 +185,13 @@ describe("formatChart", () => {
 	});
 
 	test("reports house fallback and unavailable bodies in help", () => {
-		const out = formatChart(
-			chart({
-				houseSystem: "whole_sign",
-				houseSystemRequested: "placidus",
-				unavailable: ["chiron"],
-			}),
-			request,
-		);
+		const mockEphemeris = createMockEphemeris({
+			houseSystem: "whole_sign",
+			houseSystemRequested: "placidus",
+			unavailable: ["chiron"],
+		});
+		const engine = new AstrologicalEngine(mockEphemeris);
+		const out = engine.compute(request);
 
 		expect(out.help).toEqual([
 			'House system "placidus" fell back to "whole_sign" (undefined above the polar circle)',
@@ -180,3 +199,4 @@ describe("formatChart", () => {
 		]);
 	});
 });
+

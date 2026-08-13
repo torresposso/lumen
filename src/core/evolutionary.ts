@@ -1,3 +1,4 @@
+import type { Chart } from "caelus";
 import {
 	angularDistance,
 	houseOf,
@@ -19,6 +20,17 @@ export interface DispositorStep {
 	ruler: string;
 }
 
+export interface PPPAspect {
+	body: string;
+	aspect: string;
+	orb: number;
+}
+
+export interface SolLunaPhase {
+	name: string;
+	angle: number;
+}
+
 export interface EvolutionaryResult {
 	pluto?: {
 		lon: number;
@@ -27,7 +39,9 @@ export interface EvolutionaryResult {
 		house: number;
 		retrograde: boolean;
 	};
-	polarityPoint?: LotInfo;
+	polarityPoint?: LotInfo & {
+		aspects?: PPPAspect[];
+	};
 	nodes: {
 		northNode?: {
 			sign: string;
@@ -36,10 +50,12 @@ export interface EvolutionaryResult {
 			ruler?: string;
 		};
 		southNode?: LotInfo & { ruler?: string };
+		motionStatus?: "retrograde" | "direct" | "stationary";
 	};
 	skippedSteps: SkippedStep[];
 	plutoNorthNodeMidpoint?: LotInfo;
 	dispositorChains?: Record<string, DispositorStep[]>;
+	solLunaPhase?: SolLunaPhase;
 }
 
 export interface EvolutionaryInput {
@@ -62,8 +78,30 @@ const SIGN_RULERS: Record<string, string> = {
 	Pisces: "neptune",
 };
 
+const MAJOR_ASPECTS = [
+	{ name: "conjunction", target: 0, orb: 8 },
+	{ name: "sextile", target: 60, orb: 5 },
+	{ name: "square", target: 90, orb: 5 },
+	{ name: "trine", target: 120, orb: 5 },
+	{ name: "opposition", target: 180, orb: 8 },
+];
+
 function round4(val: number): number {
 	return Number(val.toFixed(4));
+}
+
+function getSolLunaPhase(sunLon: number, moonLon: number): SolLunaPhase {
+	const angle = round4(normalizeLongitude(moonLon - sunLon));
+	let name = "New";
+	if (angle >= 45 && angle < 90) name = "Crescent";
+	else if (angle >= 90 && angle < 135) name = "First Quarter";
+	else if (angle >= 135 && angle < 180) name = "Gibbous";
+	else if (angle >= 180 && angle < 225) name = "Full";
+	else if (angle >= 225 && angle < 270) name = "Disseminating";
+	else if (angle >= 270 && angle < 315) name = "Last Quarter";
+	else if (angle >= 315) name = "Balsamic";
+
+	return { name, angle };
 }
 
 /** Trace dispositor chain for a given body up to maxDepth steps. */
@@ -105,20 +143,47 @@ export function computeEvolutionaryReading(
 ): EvolutionaryResult {
 	const { bodies, cusps } = chart;
 	const pluto = bodies.pluto;
-	let polarityPoint: LotInfo | undefined;
+	let polarityPoint: (LotInfo & { aspects?: PPPAspect[] }) | undefined;
 
 	if (pluto) {
 		const pppLon = normalizeLongitude(pluto.lon + 180);
+		const pppAspects: PPPAspect[] = [];
+
+		for (const [bodyId, body] of Object.entries(bodies)) {
+			if (
+				body &&
+				bodyId !== "pluto" &&
+				bodyId !== "true_node" &&
+				bodyId !== "mean_node"
+			) {
+				const dist = angularDistance(body.lon, pppLon);
+				for (const asp of MAJOR_ASPECTS) {
+					const diff = Math.abs(dist - asp.target);
+					if (diff <= 5.0) {
+						pppAspects.push({
+							body: bodyId,
+							aspect: asp.name,
+							orb: round4(diff),
+						});
+					}
+				}
+			}
+		}
+
+
+
 		polarityPoint = {
 			lon: round4(pppLon),
 			sign: signOf(pppLon),
 			signDeg: round4(pppLon % 30),
 			house: houseOf(cusps, pppLon),
+			...(pppAspects.length > 0 ? { aspects: pppAspects } : {}),
 		};
 	}
 
 	const northNode = bodies.true_node ?? bodies.mean_node;
 	let southNode: (LotInfo & { ruler?: string }) | undefined;
+	let nodeMotionStatus: "retrograde" | "direct" | "stationary" | undefined;
 
 	if (northNode) {
 		const snLon = normalizeLongitude(northNode.lon + 180);
@@ -130,6 +195,15 @@ export function computeEvolutionaryReading(
 			house: houseOf(cusps, snLon),
 			ruler: SIGN_RULERS[snSign],
 		};
+
+		const absSpeed = Math.abs(northNode.speed);
+		if (absSpeed < 0.005) {
+			nodeMotionStatus = "stationary";
+		} else if (northNode.speed < 0) {
+			nodeMotionStatus = "retrograde";
+		} else {
+			nodeMotionStatus = "direct";
+		}
 	}
 
 	const skippedSteps: SkippedStep[] = [];
@@ -183,6 +257,11 @@ export function computeEvolutionaryReading(
 		}
 	}
 
+	let solLunaPhase: SolLunaPhase | undefined;
+	if (bodies.sun && bodies.moon) {
+		solLunaPhase = getSolLunaPhase(bodies.sun.lon, bodies.moon.lon);
+	}
+
 	return {
 		pluto: pluto
 			? {
@@ -204,11 +283,14 @@ export function computeEvolutionaryReading(
 					}
 				: undefined,
 			southNode,
+			motionStatus: nodeMotionStatus,
 		},
 		skippedSteps,
 		plutoNorthNodeMidpoint,
 		dispositorChains,
+		solLunaPhase,
 	};
 }
 
 export { computeEvolutionaryReading as computeEvolutionary };
+

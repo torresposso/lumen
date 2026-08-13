@@ -84,4 +84,39 @@ describe("computeEvolutionaryReading", () => {
 			{ body: "pluto", sign: "Scorpio", ruler: "pluto" },
 		]);
 	});
+
+	test("evaluates aspects to the Pluto Polarity Point (PPP)", () => {
+		// Pluto at 210° Scorpio -> PPP at 30° Taurus. Sun at 30° Taurus (conjunction orb 0).
+		const evo = computeEvolutionaryReading(
+			input({
+				...natal,
+				sun: body({ lon: 30, sign: "Taurus", signDeg: 0, house: 2 }),
+			}),
+		);
+
+		expect(evo.polarityPoint?.aspects).toBeDefined();
+		expect(evo.polarityPoint?.aspects).toContainEqual({
+			body: "sun",
+			aspect: "conjunction",
+			orb: 0,
+		});
+	});
+
+	test("evaluates Node Motion Status and Sol-Luna Phase Mechanics", () => {
+		// Sun at 0° Aries, Moon at 45° Taurus -> Semi-sextile/crescent angle (45°) -> Crescent phase
+		const evo = computeEvolutionaryReading(
+			input({
+				...natal,
+				true_node: body({ lon: 30, speed: 0, sign: "Taurus", signDeg: 0, house: 2 }),
+				sun: body({ lon: 0, sign: "Aries", signDeg: 0, house: 1 }),
+				moon: body({ lon: 45, sign: "Taurus", signDeg: 15, house: 2 }),
+			}),
+		);
+
+		expect(evo.nodes.motionStatus).toBe("stationary");
+		expect(evo.solLunaPhase).toBeDefined();
+		expect(evo.solLunaPhase?.name).toBe("Crescent");
+		expect(evo.solLunaPhase?.angle).toBe(45);
+	});
 });
+

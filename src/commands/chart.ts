@@ -1,7 +1,6 @@
 import type { AxiCliCommand } from "axi-sdk-js";
 import { resolveNatalRequestFromArgs } from "../cli/intake";
-import { formatChart } from "../cli/output";
-import { computeChart } from "../core/chart-engine";
+import { AstrologicalEngine, type AstrologicalReading } from "../core/chart-engine";
 
 export const chartUsage = [
 	'lumen chart --when 1981-01-26T00:50 --place "Magangué, Colombia"',
@@ -26,7 +25,7 @@ export const chartUsage = [
 ].join("\n");
 
 export const chartCommand: AxiCliCommand<
-	string | import("../cli/output").ChartOutput
+	string | AstrologicalReading
 > = async (args) => {
 	const result = await resolveNatalRequestFromArgs(args);
 
@@ -34,6 +33,7 @@ export const chartCommand: AxiCliCommand<
 		return chartUsage;
 	}
 
-	const chart = computeChart(result.request);
-	return formatChart(chart, result.request);
+	const engine = new AstrologicalEngine();
+	return engine.compute(result.request);
 };
+
