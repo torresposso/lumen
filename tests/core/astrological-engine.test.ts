@@ -229,4 +229,24 @@ describe("AstrologicalEngine", () => {
 		expect(reading.chart.lots?.fortune.lon).toBe(234);
 		expect(reading.chart.stars).toEqual([]);
 	});
+
+	test("detects aspect patterns and computes chartSignature and interpretationContext", () => {
+		const reading = engine.compute({
+			...request,
+			options: { ...request.options, evolutionary: true },
+		});
+
+		expect(reading.chart.signature).toBeDefined();
+		expect(reading.chart.signature?.hemispheres).toBeDefined();
+		expect(reading.chart.signature?.quadrants).toBeDefined();
+		expect(reading.chart.signature?.elements).toBeDefined();
+		expect(reading.chart.signature?.modalities).toBeDefined();
+
+		expect(Array.isArray(reading.chart.patterns)).toBe(true);
+		expect(Array.isArray(reading.chart.declinationAspects)).toBe(true);
+
+		expect(reading.interpretationContext).toBeDefined();
+		expect(Array.isArray(reading.interpretationContext?.atoms)).toBe(true);
+		expect(reading.interpretationContext?.atoms.length).toBeGreaterThan(0);
+	});
 });

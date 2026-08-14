@@ -32,6 +32,11 @@ export function angularDistance(lonA: number, lonB: number): number {
 	return diff;
 }
 
+/** Computes the direct counterclockwise angular distance from lonFrom to lonTo in degrees [0, 360). */
+export function angularDistanceDirect(lonFrom: number, lonTo: number): number {
+	return normalizeLongitude(lonTo - lonFrom);
+}
+
 /** Evaluates whether two celestial longitudes fall within a specified max orb distance. */
 export function isOrbWithin(
 	lonA: number,
@@ -132,5 +137,42 @@ export function findAspect(
 			};
 		}
 	}
+	return undefined;
+}
+
+/** Result of matching celestial declinations for parallel or contraparallel aspects. */
+export interface DeclinationAspectMatch {
+	aspect: "parallel" | "contraparallel";
+	orb: number;
+}
+
+/** Evaluates whether two celestial declinations form a parallel or contraparallel aspect.
+ *  - Parallel: Same side of celestial equator (same sign), difference <= maxOrb.
+ *  - Contraparallel: Opposite sides (opposite signs), absolute difference <= maxOrb. */
+export function findDeclinationAspect(
+	decA: number,
+	decB: number,
+	maxOrb = 1.2,
+): DeclinationAspectMatch | undefined {
+	const isSameHemisphere = (decA >= 0 && decB >= 0) || (decA <= 0 && decB <= 0);
+
+	if (isSameHemisphere) {
+		const diff = Math.abs(decA - decB);
+		if (diff <= maxOrb) {
+			return {
+				aspect: "parallel",
+				orb: roundPrecision(diff),
+			};
+		}
+	} else {
+		const diff = Math.abs(Math.abs(decA) - Math.abs(decB));
+		if (diff <= maxOrb) {
+			return {
+				aspect: "contraparallel",
+				orb: roundPrecision(diff),
+			};
+		}
+	}
+
 	return undefined;
 }

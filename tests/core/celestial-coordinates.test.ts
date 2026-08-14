@@ -1,7 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import {
 	angularDistance,
+	angularDistanceDirect,
 	findAspect,
+	findDeclinationAspect,
 	houseOf,
 	isOrbWithin,
 	normalizeLongitude,
@@ -61,6 +63,13 @@ describe("celestial coordinates & zodiac math", () => {
 		expect(angularDistance(15, 105)).toBe(90);
 	});
 
+	test("angularDistanceDirect calculates direct counterclockwise arc in [0, 360)", () => {
+		expect(angularDistanceDirect(10, 350)).toBe(340);
+		expect(angularDistanceDirect(350, 10)).toBe(20);
+		expect(angularDistanceDirect(100, 100)).toBe(0);
+		expect(angularDistanceDirect(10, 100)).toBe(90);
+	});
+
 	test("isOrbWithin evaluates orb limits accurately", () => {
 		expect(isOrbWithin(10, 350, 20)).toBe(true);
 		expect(isOrbWithin(10, 350, 15)).toBe(false);
@@ -91,5 +100,25 @@ describe("celestial coordinates & zodiac math", () => {
 			orb: 1,
 		});
 		expect(findAspect(10, 140, aspects)).toBeUndefined();
+	});
+
+	test("findDeclinationAspect detects parallel and contraparallel aspects", () => {
+		// Parallel (both positive or both negative, same declination within orb)
+		const pMatch = findDeclinationAspect(22.5, 23.1, 1.2);
+		expect(pMatch).toEqual({
+			aspect: "parallel",
+			orb: 0.6,
+		});
+
+		// Contraparallel (one positive, one negative, opposite declination within orb)
+		const cpMatch = findDeclinationAspect(18.2, -18.7, 1.2);
+		expect(cpMatch).toEqual({
+			aspect: "contraparallel",
+			orb: 0.5,
+		});
+
+		// Out of orb
+		expect(findDeclinationAspect(15.0, -18.0, 1.2)).toBeUndefined();
+		expect(findDeclinationAspect(10.0, 13.0, 1.2)).toBeUndefined();
 	});
 });

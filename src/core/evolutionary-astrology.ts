@@ -1,6 +1,8 @@
 import type { Chart } from "caelus";
 import {
 	type AspectDef,
+	angularDistance,
+	angularDistanceDirect,
 	findAspect,
 	normalizeLongitude,
 	type ProjectedEclipticPoint,
@@ -15,6 +17,7 @@ export interface SkippedStep {
 	aspect: string;
 	target: string;
 	orb: number;
+	resolutionNode?: "north_node" | "south_node";
 }
 
 /** Step in a planetary dispositor chain, tracing the root psychological and soul drivers. */
@@ -45,9 +48,11 @@ export interface EvolutionaryResult {
 		signDeg: number;
 		house: number;
 		retrograde: boolean;
+		nodalConjunction?: "north_node" | "south_node";
 	};
 	polarityPoint?: ProjectedEclipticPoint & {
 		aspects?: PPPAspect[];
+		isOperative?: boolean;
 	};
 	nodes: {
 		northNode?: {
@@ -155,8 +160,42 @@ export function computeEvolutionaryReading(
 ): EvolutionaryResult {
 	const { bodies, cusps } = chart;
 	const pluto = bodies.pluto;
+	const northNode = bodies.true_node ?? bodies.mean_node;
+	let southNode: (ProjectedEclipticPoint & { ruler?: string }) | undefined;
+	let nodeMotionStatus: "retrograde" | "direct" | "stationary" | undefined;
+
+	if (northNode) {
+		const snLon = normalizeLongitude(northNode.lon + 180);
+		const snPoint = projectPoint(snLon, cusps);
+		southNode = {
+			...snPoint,
+			ruler: SIGN_RULERS[snPoint.sign],
+		};
+
+		const absSpeed = Math.abs(northNode.speed);
+		if (absSpeed < 0.005) {
+			nodeMotionStatus = "stationary";
+		} else if (northNode.speed < 0) {
+			nodeMotionStatus = "retrograde";
+		} else {
+			nodeMotionStatus = "direct";
+		}
+	}
+
+	let plutoNodalConjunction: "north_node" | "south_node" | undefined;
+	if (pluto && northNode && southNode) {
+		if (angularDistance(pluto.lon, southNode.lon) <= 10) {
+			plutoNodalConjunction = "south_node";
+		} else if (angularDistance(pluto.lon, northNode.lon) <= 10) {
+			plutoNodalConjunction = "north_node";
+		}
+	}
+
 	let polarityPoint:
-		| (ProjectedEclipticPoint & { aspects?: PPPAspect[] })
+		| (ProjectedEclipticPoint & {
+				aspects?: PPPAspect[];
+				isOperative?: boolean;
+		  })
 		| undefined;
 
 	if (pluto) {
@@ -185,29 +224,8 @@ export function computeEvolutionaryReading(
 		polarityPoint = {
 			...point,
 			...(pppAspects.length > 0 ? { aspects: pppAspects } : {}),
+			...(plutoNodalConjunction === "south_node" ? { isOperative: true } : {}),
 		};
-	}
-
-	const northNode = bodies.true_node ?? bodies.mean_node;
-	let southNode: (ProjectedEclipticPoint & { ruler?: string }) | undefined;
-	let nodeMotionStatus: "retrograde" | "direct" | "stationary" | undefined;
-
-	if (northNode) {
-		const snLon = normalizeLongitude(northNode.lon + 180);
-		const snPoint = projectPoint(snLon, cusps);
-		southNode = {
-			...snPoint,
-			ruler: SIGN_RULERS[snPoint.sign],
-		};
-
-		const absSpeed = Math.abs(northNode.speed);
-		if (absSpeed < 0.005) {
-			nodeMotionStatus = "stationary";
-		} else if (northNode.speed < 0) {
-			nodeMotionStatus = "retrograde";
-		} else {
-			nodeMotionStatus = "direct";
-		}
 	}
 
 	const skippedSteps: SkippedStep[] = [];
@@ -228,11 +246,22 @@ export function computeEvolutionaryReading(
 				if (target.lon !== undefined) {
 					const match = findAspect(body.lon, target.lon, SKIPPED_STEP_ASPECT);
 					if (match) {
+						let resolutionNode: "north_node" | "south_node" | undefined;
+						if (southNode && northNode) {
+							const dSN = angularDistanceDirect(southNode.lon, body.lon);
+							const isRetro = body.retrograde || body.speed < 0;
+							if (!isRetro) {
+								resolutionNode = dSN < 180 ? "north_node" : "south_node";
+							} else {
+								resolutionNode = dSN < 180 ? "south_node" : "north_node";
+							}
+						}
 						skippedSteps.push({
 							body: bodyId,
 							aspect: match.aspect,
 							target: target.id,
 							orb: match.orb,
+							...(resolutionNode ? { resolutionNode } : {}),
 						});
 					}
 				}
@@ -268,6 +297,9 @@ export function computeEvolutionaryReading(
 					signDeg: round4(pluto.signDeg),
 					house: pluto.house,
 					retrograde: pluto.retrograde,
+					...(plutoNodalConjunction
+						? { nodalConjunction: plutoNodalConjunction }
+						: {}),
 				}
 			: undefined,
 		polarityPoint,
