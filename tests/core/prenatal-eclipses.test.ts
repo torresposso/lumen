@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import type { Chart, ChartBody } from "caelus";
 import { BODIES } from "caelus";
-import type { ResolvedBirth } from "../../src/cli/intake";
-import { computePrenatalEclipses } from "../../src/core/eclipses";
-import { CaelusEphemeris } from "../../src/core/ephemeris";
+import type { ResolvedBirth } from "../../src/cli/natal-intake";
+import { CaelusEphemeris } from "../../src/core/ephemeris-gateway";
+import { computePrenatalEclipses } from "../../src/core/prenatal-eclipses";
 
 const birth: ResolvedBirth = {
 	jdUt: 2448053.2708,

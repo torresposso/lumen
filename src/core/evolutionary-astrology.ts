@@ -2,12 +2,14 @@ import type { Chart } from "caelus";
 import {
 	type AspectDef,
 	findAspect,
-	type LotInfo,
 	normalizeLongitude,
+	type ProjectedEclipticPoint,
 	projectPoint,
 	roundPrecision as round4,
-} from "./zodiac";
+} from "./celestial-coordinates";
 
+/** Represents a karmic Skipped Step: a planetary archetype that forms a square (90° ± 5°)
+ *  to the Nodal Axis or Pluto, indicating unresolved evolutionary blocks from prior lives. */
 export interface SkippedStep {
 	body: string;
 	aspect: string;
@@ -15,23 +17,27 @@ export interface SkippedStep {
 	orb: number;
 }
 
+/** Step in a planetary dispositor chain, tracing the root psychological and soul drivers. */
 export interface DispositorStep {
 	body: string;
 	sign: string;
 	ruler: string;
 }
 
+/** Aspect formed directly to the Pluto Polarity Point (PPP). */
 export interface PPPAspect {
 	body: string;
 	aspect: string;
 	orb: number;
 }
 
+/** The Sol-Luna evolutionary phase relationship divided into the 8 archetypal soul phases. */
 export interface SolLunaPhase {
 	name: string;
 	angle: number;
 }
 
+/** The complete Jeffrey Wolf Green Evolutionary Astrology (JWGEA) reading result. */
 export interface EvolutionaryResult {
 	pluto?: {
 		lon: number;
@@ -40,7 +46,7 @@ export interface EvolutionaryResult {
 		house: number;
 		retrograde: boolean;
 	};
-	polarityPoint?: LotInfo & {
+	polarityPoint?: ProjectedEclipticPoint & {
 		aspects?: PPPAspect[];
 	};
 	nodes: {
@@ -50,11 +56,11 @@ export interface EvolutionaryResult {
 			house: number;
 			ruler?: string;
 		};
-		southNode?: LotInfo & { ruler?: string };
+		southNode?: ProjectedEclipticPoint & { ruler?: string };
 		motionStatus?: "retrograde" | "direct" | "stationary";
 	};
 	skippedSteps: SkippedStep[];
-	plutoNorthNodeMidpoint?: LotInfo;
+	plutoNorthNodeMidpoint?: ProjectedEclipticPoint;
 	dispositorChains?: Record<string, DispositorStep[]>;
 	solLunaPhase?: SolLunaPhase;
 }
@@ -64,6 +70,7 @@ export interface EvolutionaryInput {
 	cusps: number[];
 }
 
+/** Modern / Evolutionary planetary sign rulership matrix (JWGEA). */
 const SIGN_RULERS: Record<string, string> = {
 	Aries: "mars",
 	Taurus: "venus",
@@ -79,6 +86,7 @@ const SIGN_RULERS: Record<string, string> = {
 	Pisces: "neptune",
 };
 
+/** Major planetary aspects evaluated for the Pluto Polarity Point (orb ≤ 5°). */
 const PPP_MAJOR_ASPECTS: AspectDef[] = [
 	{ name: "conjunction", target: 0, orb: 5 },
 	{ name: "sextile", target: 60, orb: 5 },
@@ -87,10 +95,12 @@ const PPP_MAJOR_ASPECTS: AspectDef[] = [
 	{ name: "opposition", target: 180, orb: 5 },
 ];
 
+/** Skipped step square aspect definition (90° ± 5°). */
 const SKIPPED_STEP_ASPECT: AspectDef[] = [
 	{ name: "square", target: 90, orb: 5 },
 ];
 
+/** Determines the Sol-Luna evolutionary phase archetype based on angular separation. */
 function getSolLunaPhase(sunLon: number, moonLon: number): SolLunaPhase {
 	const angle = round4(normalizeLongitude(moonLon - sunLon));
 	let name = "New";
@@ -105,7 +115,7 @@ function getSolLunaPhase(sunLon: number, moonLon: number): SolLunaPhase {
 	return { name, angle };
 }
 
-/** Trace dispositor chain for a given body up to maxDepth steps. */
+/** Traces the planetary dispositor chain for a given body up to maxDepth steps. */
 function buildDispositorChain(
 	bodies: Chart["bodies"],
 	startBodyId: string,
@@ -136,15 +146,18 @@ function buildDispositorChain(
 	return chain;
 }
 
-/** Compute the Jeffrey Wolf Green evolutionary reading directly from a chart:
- *  Pluto's placement and Polarity Point, the lunar-node axis with rulers, Skipped
- *  Steps, the Pluto–North Node Midpoint, and the Pluto/Chiron dispositor chains. */
+/** Computes the Jeffrey Wolf Green Evolutionary Astrology reading directly from a chart:
+ *  Pluto's soul placement and Polarity Point (evolutionary direction), the Nodal Axis
+ *  with its planetary rulers, Skipped Steps (karmic squares), the Pluto–North Node Midpoint,
+ *  Sol-Luna Phase Mechanics, and the Pluto/Chiron dispositor chains. */
 export function computeEvolutionaryReading(
 	chart: EvolutionaryInput | Chart,
 ): EvolutionaryResult {
 	const { bodies, cusps } = chart;
 	const pluto = bodies.pluto;
-	let polarityPoint: (LotInfo & { aspects?: PPPAspect[] }) | undefined;
+	let polarityPoint:
+		| (ProjectedEclipticPoint & { aspects?: PPPAspect[] })
+		| undefined;
 
 	if (pluto) {
 		const pppLon = normalizeLongitude(pluto.lon + 180);
@@ -176,7 +189,7 @@ export function computeEvolutionaryReading(
 	}
 
 	const northNode = bodies.true_node ?? bodies.mean_node;
-	let southNode: (LotInfo & { ruler?: string }) | undefined;
+	let southNode: (ProjectedEclipticPoint & { ruler?: string }) | undefined;
 	let nodeMotionStatus: "retrograde" | "direct" | "stationary" | undefined;
 
 	if (northNode) {
@@ -227,7 +240,7 @@ export function computeEvolutionaryReading(
 		}
 	}
 
-	let plutoNorthNodeMidpoint: LotInfo | undefined;
+	let plutoNorthNodeMidpoint: ProjectedEclipticPoint | undefined;
 	if (pluto && northNode) {
 		const diff = Math.abs(pluto.lon - northNode.lon);
 		let mid = (pluto.lon + northNode.lon) / 2;

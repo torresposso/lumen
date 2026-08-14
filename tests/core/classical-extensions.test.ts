@@ -1,12 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import type { Chart, ChartBody } from "caelus";
 import { BODIES } from "caelus";
-import type { ResolvedBirth } from "../../src/cli/intake";
-import { CaelusEphemeris } from "../../src/core/ephemeris";
+import type { ResolvedBirth } from "../../src/cli/natal-intake";
 import {
 	computeFixedStarMatches,
 	computeHermeticLots,
-} from "../../src/core/extensions";
+} from "../../src/core/classical-extensions";
+import { CaelusEphemeris } from "../../src/core/ephemeris-gateway";
 
 const birth: ResolvedBirth = {
 	jdUt: 2448053.2708,

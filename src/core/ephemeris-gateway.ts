@@ -17,7 +17,7 @@ import { embeddedData } from "caelus/data-embedded";
 
 type ChartAtOptions = Parameters<Engine["chartAt"]>[3];
 
-/** Capability seam over the ephemeris engine. Every astrological computation
+/** Capability seam over the ephemeris engine. Every astronomical computation
  *  the chart path needs — the natal chart plus the extension features
  *  (prenatal eclipses, Hermetic Lots, fixed stars) — flows through this one
  *  interface, so a test double can substitute the whole engine. */

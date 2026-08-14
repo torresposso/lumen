@@ -1,15 +1,18 @@
 import { SIGNS } from "caelus";
 
-/** A longitude projected into sign, degree, and (optionally) house. Shared by
- *  the lots and evolutionary features so sign math has one home. */
-export interface LotInfo {
+/** A celestial longitude projected into zodiac sign, sign degree, and 1-based house.
+ *  Serves as the canonical representation for all derived points in the natal matrix. */
+export interface ProjectedEclipticPoint {
 	lon: number;
 	sign: string;
 	signDeg: number;
 	house: number;
 }
 
-/** Normalizes any degree value into the range [0, 360). */
+/** Backward compatibility alias for ProjectedEclipticPoint. */
+export type LotInfo = ProjectedEclipticPoint;
+
+/** Normalizes any ecliptic degree value into the canonical astronomical range [0, 360). */
 export function normalizeLongitude(lon: number): number {
 	let val = lon % 360;
 	if (val < 0) val += 360;
@@ -17,19 +20,19 @@ export function normalizeLongitude(lon: number): number {
 	return val;
 }
 
-/** Shifts a longitude relative to a reference node (e.g. North Node for Draconic). */
+/** Shifts a celestial longitude relative to a reference node (e.g. North Node for Draconic shift). */
 export function shiftLongitude(lon: number, nodeLon: number): number {
 	return normalizeLongitude(lon - nodeLon);
 }
 
-/** Shortest angular distance between two longitudes in degrees (0 to 180). */
+/** Computes the shortest angular separation between two ecliptic longitudes in degrees [0, 180]. */
 export function angularDistance(lonA: number, lonB: number): number {
 	let diff = Math.abs(lonA - lonB);
 	if (diff > 180) diff = 360 - diff;
 	return diff;
 }
 
-/** Evaluates whether two longitudes fall within a specified max orb distance. */
+/** Evaluates whether two celestial longitudes fall within a specified max orb distance. */
 export function isOrbWithin(
 	lonA: number,
 	lonB: number,
@@ -38,7 +41,7 @@ export function isOrbWithin(
 	return angularDistance(lonA, lonB) <= maxOrb;
 }
 
-/** Zodiac sign for a longitude in degrees, normalised to [0, 360). */
+/** Returns the tropical zodiac sign for an ecliptic longitude in degrees. */
 export function signOf(lon: number): string {
 	const norm = normalizeLongitude(lon);
 	const idx = Math.floor(norm / 30) % 12;
@@ -51,7 +54,7 @@ export function signOf(lon: number): string {
 	return sign;
 }
 
-/** 1-based house for a longitude given the chart's twelve cusp longitudes. */
+/** Determines the 1-based astrological house for a longitude given the chart's 12 cusp longitudes. */
 export function houseOf(cusps: number[], lon: number): number {
 	if (!cusps || cusps.length < 12) {
 		throw new Error(
@@ -74,18 +77,18 @@ export function houseOf(cusps: number[], lon: number): number {
 	return 1;
 }
 
-/** Rounds a numeric value to a fixed number of decimal digits (default 4). */
+/** Rounds an astronomical coordinate value to a fixed number of decimal digits (default 4). */
 export function roundPrecision(val: number, digits = 4): number {
 	return Number(val.toFixed(digits));
 }
 
-/** Projects an ecliptic longitude into a canonical point with degree normalization,
- *  sign lookup, 30° boundary handling, precision rounding, and optional house calculation. */
+/** Projects an ecliptic longitude into a canonical ProjectedEclipticPoint with degree normalization,
+ *  sign determination, 30° edge boundary protection, precision rounding, and optional house lookup. */
 export function projectPoint(
 	rawLon: number,
 	cusps?: number[],
 	digits = 4,
-): LotInfo {
+): ProjectedEclipticPoint {
 	const norm = normalizeLongitude(rawLon);
 	const lon = roundPrecision(norm, digits);
 	let signDeg = roundPrecision(norm % 30, digits);
@@ -105,7 +108,7 @@ export interface AspectDef {
 	orb: number;
 }
 
-/** Result of matching an angular distance to an aspect definition. */
+/** Result of matching an angular separation to an aspect definition. */
 export interface AspectMatch {
 	aspect: string;
 	target: number;

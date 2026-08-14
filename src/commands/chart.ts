@@ -1,9 +1,9 @@
 import type { AxiCliCommand } from "axi-sdk-js";
-import { NatalIntake } from "../cli/intake";
+import { NatalIntake } from "../cli/natal-intake";
 import {
 	AstrologicalEngine,
 	type AstrologicalReading,
-} from "../core/chart-engine";
+} from "../core/astrological-engine";
 
 export const chartUsage = NatalIntake.usage;
 

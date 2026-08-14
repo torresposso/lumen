@@ -1,6 +1,6 @@
 import { AxiError } from "axi-sdk-js";
 import type { Chart, ChartBodies } from "caelus";
-import { shiftLongitude, signOf } from "./zodiac";
+import { shiftLongitude, signOf } from "./celestial-coordinates";
 
 export interface DraconicChart {
 	nodeUsed: "true_node" | "mean_node";
@@ -9,9 +9,10 @@ export interface DraconicChart {
 	cusps: number[];
 }
 
-/** Re-projects a natal chart onto the lunar-node zodiac by subtracting the North
- *  Node's longitude from all positions, placing the North Node at 0° Aries.
- *  Returns a complete DraconicChart entity with node provenance and unrequested nodes pruned. */
+/** Re-projects a natal chart onto the lunar-node zodiac (Draconic zodiac) by subtracting
+ *  the North Node's longitude from all positions, placing the North Node at 0° Aries.
+ *  In evolutionary astrology, the Draconic chart reflects the core transpersonal matrix
+ *  of the Soul, operating as a spiritual blueprint beneath the tropical ego structure. */
 export function toDraconicChart(
 	chart: Chart,
 	nodeMode: "both" | "mean" | "true",

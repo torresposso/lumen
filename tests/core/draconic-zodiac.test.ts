@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { Chart } from "caelus";
-import { toDraconicChart } from "../../src/core/draconic";
+import { toDraconicChart } from "../../src/core/draconic-zodiac";
 
 describe("toDraconicChart", () => {
 	test("shifts body, angle, and cusp longitudes relative to North Node", () => {

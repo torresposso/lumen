@@ -1,19 +1,19 @@
 import type { Chart } from "caelus";
-import type { ResolvedBirth } from "../cli/intake";
-import type { Ephemeris } from "./ephemeris";
+import type { ResolvedBirth } from "../cli/natal-intake";
 import {
 	angularDistance,
 	isOrbWithin,
-	type LotInfo,
 	normalizeLongitude,
+	type ProjectedEclipticPoint,
 	projectPoint,
 	roundPrecision,
 	signOf,
-} from "./zodiac";
+} from "./celestial-coordinates";
+import type { Ephemeris } from "./ephemeris-gateway";
 
 export interface LotsResult {
-	spirit: LotInfo;
-	fortune: LotInfo;
+	spirit: ProjectedEclipticPoint;
+	fortune: ProjectedEclipticPoint;
 }
 
 export interface FixedStarMatch {
@@ -23,7 +23,8 @@ export interface FixedStarMatch {
 	sign: string;
 }
 
-/** Computes the classical Hermetic Lots (Lot of Spirit and Lot of Fortune) from Ascendant, Sun, and Moon. */
+/** Computes the classical Hermetic Lots (Lot of Spirit / Daimon and Lot of Fortune / Tyche)
+ *  from Ascendant, Sun, and Moon relative to chart cusps. */
 export function computeHermeticLots(
 	ephemeris: Ephemeris,
 	birth: ResolvedBirth,

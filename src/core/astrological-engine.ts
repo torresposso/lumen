@@ -10,25 +10,26 @@ import type {
 	ChartRequestOptions,
 	NatalRequest,
 	ResolvedBirth,
-} from "../cli/intake";
-import { type DraconicChart, toDraconicChart } from "./draconic";
-import {
-	computePrenatalEclipses,
-	type EclipseInfo,
-	type EclipsesResult,
-} from "./eclipses";
-import { CaelusEphemeris, type Ephemeris } from "./ephemeris";
-import {
-	computeEvolutionaryReading,
-	type EvolutionaryResult,
-} from "./evolutionary";
+} from "../cli/natal-intake";
+import { projectPoint, roundPrecision as round } from "./celestial-coordinates";
+
 import {
 	computeFixedStarMatches,
 	computeHermeticLots,
 	type FixedStarMatch,
 	type LotsResult,
-} from "./extensions";
-import { projectPoint, roundPrecision as round } from "./zodiac";
+} from "./classical-extensions";
+import { type DraconicChart, toDraconicChart } from "./draconic-zodiac";
+import { CaelusEphemeris, type Ephemeris } from "./ephemeris-gateway";
+import {
+	computeEvolutionaryReading,
+	type EvolutionaryResult,
+} from "./evolutionary-astrology";
+import {
+	computePrenatalEclipses,
+	type EclipseInfo,
+	type EclipsesResult,
+} from "./prenatal-eclipses";
 
 export type {
 	DraconicChart,
