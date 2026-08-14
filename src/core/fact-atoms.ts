@@ -1,4 +1,5 @@
 import type { ChartBody } from "caelus";
+import { SIGN_RULERS } from "./celestial-coordinates";
 import type {
 	AspectPattern,
 	ChartSignature,
@@ -13,6 +14,7 @@ export interface InterpretationContext {
 export interface FactAtomsInput {
 	bodies: Partial<Record<string, ChartBody>>;
 	aspects: { a: string; b: string; aspect: string }[];
+	cusps?: { lon: number; sign: string; signDeg: number }[];
 	declinationAspects?: DeclinationAspectProjection[];
 	patterns?: AspectPattern[];
 	signature?: ChartSignature;
@@ -35,6 +37,19 @@ export function generateFactAtoms(
 		}
 	}
 
+	// House Cusps & Lords
+	if (chart.cusps) {
+		chart.cusps.forEach((c, idx) => {
+			const houseNum = idx + 1;
+			const signName = c.sign;
+			atoms.push(`house_${houseNum}_sign_${signName.toLowerCase()}`);
+			const ruler = SIGN_RULERS[signName];
+			if (ruler) {
+				atoms.push(`house_${houseNum}_ruler_${ruler}`);
+			}
+		});
+	}
+
 	// Aspects
 	for (const asp of chart.aspects) {
 		atoms.push(`aspect_${asp.a}_${asp.aspect}_${asp.b}`);
@@ -50,7 +65,16 @@ export function generateFactAtoms(
 	// Patterns
 	if (chart.patterns) {
 		for (const p of chart.patterns) {
-			atoms.push(`pattern_${p.type}${p.apex ? `_apex_${p.apex}` : ""}`);
+			const qualifier = p.sign
+				? `_sign_${p.sign.toLowerCase()}`
+				: p.house
+					? `_house_${p.house}`
+					: p.apex
+						? `_apex_${p.apex}`
+						: p.element
+							? `_element_${p.element}`
+							: "";
+			atoms.push(`pattern_${p.type}${qualifier}`);
 		}
 	}
 
@@ -66,10 +90,13 @@ export function generateFactAtoms(
 		}
 		if (evo.polarityPoint) {
 			atoms.push(
-				`pluto_polarity_point_${evo.polarityPoint.sign.toLowerCase()}_house_${evo.polarityPoint.house}`,
+				`pluto_polarity_point_sign_${evo.polarityPoint.sign.toLowerCase()}`,
 			);
+			atoms.push(`pluto_polarity_point_house_${evo.polarityPoint.house}`);
 			if (evo.polarityPoint.isOperative) {
 				atoms.push("pluto_polarity_point_operative");
+			} else {
+				atoms.push("pluto_polarity_point_inactive");
 			}
 		}
 		if (evo.nodes.northNode) {
@@ -83,10 +110,15 @@ export function generateFactAtoms(
 		if (evo.nodes.motionStatus) {
 			atoms.push(`node_motion_${evo.nodes.motionStatus}`);
 		}
+		// Consolidated per-body skipped steps
+		const seenSkippedBodies = new Set<string>();
 		for (const step of evo.skippedSteps) {
-			atoms.push(
-				`skipped_step_${step.body}_squares_${step.target}${step.resolutionNode ? `_resolves_${step.resolutionNode}` : ""}`,
-			);
+			if (!seenSkippedBodies.has(step.body)) {
+				seenSkippedBodies.add(step.body);
+				atoms.push(
+					`skipped_step_${step.body}${step.resolutionNode ? `_resolves_${step.resolutionNode}` : ""}`,
+				);
+			}
 		}
 		if (evo.solLunaPhase) {
 			atoms.push(
@@ -123,3 +155,4 @@ export function generateFactAtoms(
 
 	return { atoms };
 }
+

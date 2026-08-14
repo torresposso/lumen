@@ -33,20 +33,29 @@ describe("fact-atoms", () => {
 
 		const aspects = [{ a: "sun", b: "mercury", aspect: "conjunction" }];
 		const patterns = [
-			{ type: "stellium" as const, bodies: ["sun", "mercury", "venus"] },
+			{
+				type: "stellium" as const,
+				bodies: ["sun", "mercury", "venus"],
+				sign: "Aries",
+			},
 		];
+
+		const cusps = [{ lon: 15, sign: "Aries", signDeg: 15 }];
 
 		const context = generateFactAtoms({
 			bodies,
 			aspects,
 			patterns,
+			cusps,
 		});
 
 		expect(context.atoms).toContain("sun_sign_aries");
 		expect(context.atoms).toContain("sun_house_1");
 		expect(context.atoms).toContain("mercury_retrograde");
 		expect(context.atoms).toContain("aspect_sun_conjunction_mercury");
-		expect(context.atoms).toContain("pattern_stellium");
+		expect(context.atoms).toContain("pattern_stellium_sign_aries");
+		expect(context.atoms).toContain("house_1_sign_aries");
+		expect(context.atoms).toContain("house_1_ruler_mars");
 	});
 
 	it("generates evolutionary and dominant fact atoms", () => {
@@ -61,6 +70,13 @@ describe("fact-atoms", () => {
 					house: 8,
 					retrograde: true,
 					nodalConjunction: "south_node",
+				},
+				polarityPoint: {
+					lon: 40,
+					sign: "Taurus",
+					signDeg: 10,
+					house: 2,
+					isOperative: true,
 				},
 				nodes: {
 					northNode: { sign: "Taurus", signDeg: 15, house: 2, ruler: "venus" },
@@ -77,7 +93,14 @@ describe("fact-atoms", () => {
 					{
 						body: "mars",
 						aspect: "square",
-						target: "pluto",
+						target: "north_node",
+						orb: 1.2,
+						resolutionNode: "north_node",
+					},
+					{
+						body: "mars",
+						aspect: "square",
+						target: "south_node",
 						orb: 1.2,
 						resolutionNode: "north_node",
 					},
@@ -95,12 +118,16 @@ describe("fact-atoms", () => {
 		expect(context.atoms).toContain("pluto_sign_scorpio");
 		expect(context.atoms).toContain("pluto_house_8");
 		expect(context.atoms).toContain("pluto_conjunct_south_node");
+		expect(context.atoms).toContain("pluto_polarity_point_sign_taurus");
+		expect(context.atoms).toContain("pluto_polarity_point_house_2");
+		expect(context.atoms).toContain("pluto_polarity_point_operative");
 		expect(context.atoms).toContain("node_motion_stationary");
 		expect(context.atoms).toContain(
-			"skipped_step_mars_squares_pluto_resolves_north_node",
+			"skipped_step_mars_resolves_north_node",
 		);
 		expect(context.atoms).toContain("sol_luna_phase_full");
 		expect(context.atoms).toContain("dominant_element_fire");
 		expect(context.atoms).toContain("dominant_hemisphere_eastern");
 	});
 });
+

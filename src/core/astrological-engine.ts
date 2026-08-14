@@ -93,9 +93,19 @@ export interface Projection {
 	draconic?: DraconicProjection;
 }
 
+export interface DraconicBodyProjection {
+	lon: number;
+	sign: string;
+	signDeg: number;
+	house: number;
+	retrograde: boolean;
+	speed: number;
+	dignities: string[];
+}
+
 export interface DraconicProjection {
 	nodeUsed: "true_node" | "mean_node";
-	bodies: Partial<Record<string, ChartBody>>;
+	bodies: Partial<Record<string, DraconicBodyProjection>>;
 	angles: {
 		asc: LonProjection;
 		mc: LonProjection;
@@ -171,6 +181,25 @@ function projectBodies(
 	return bodies;
 }
 
+function projectDraconicBodies(
+	source: Chart["bodies"],
+): Partial<Record<string, DraconicBodyProjection>> {
+	const bodies: Partial<Record<string, DraconicBodyProjection>> = {};
+	for (const [id, body] of Object.entries(source)) {
+		if (body === undefined) continue;
+		bodies[id] = {
+			lon: round(body.lon),
+			sign: body.sign,
+			signDeg: round(body.signDeg),
+			house: body.house,
+			retrograde: body.retrograde,
+			speed: round(body.speed, 6),
+			dignities: body.dignities,
+		};
+	}
+	return bodies;
+}
+
 function projectAngles(angles: Chart["angles"]): Projection["angles"] {
 	return {
 		asc: renderLon(angles.asc),
@@ -183,7 +212,7 @@ function projectAngles(angles: Chart["angles"]): Projection["angles"] {
 function projectDraconic(draconic: DraconicChart): DraconicProjection {
 	return {
 		nodeUsed: draconic.nodeUsed,
-		bodies: projectBodies(draconic.bodies),
+		bodies: projectDraconicBodies(draconic.bodies),
 		angles: projectAngles(draconic.angles),
 		cusps: draconic.cusps.map((c) => renderLon(c)),
 	};

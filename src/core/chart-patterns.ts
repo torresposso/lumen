@@ -24,6 +24,8 @@ export interface AspectPattern {
 		| "stellium";
 	bodies: string[];
 	apex?: string;
+	sign?: string;
+	house?: number;
 	element?: "fire" | "earth" | "air" | "water";
 	modality?: "cardinal" | "fixed" | "mutable";
 }
@@ -197,6 +199,7 @@ export function detectAspectPatterns(
 			patterns.push({
 				type: "stellium",
 				bodies: members,
+				sign,
 				element: SIGN_ELEMENTS[sign],
 				modality: SIGN_MODALITIES[sign],
 			});

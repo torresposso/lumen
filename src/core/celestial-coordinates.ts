@@ -176,3 +176,19 @@ export function findDeclinationAspect(
 
 	return undefined;
 }
+
+/** Standard planetary sign rulership mapping (modern / evolutionary). */
+export const SIGN_RULERS: Record<string, string> = {
+	Aries: "mars",
+	Taurus: "venus",
+	Gemini: "mercury",
+	Cancer: "moon",
+	Leo: "sun",
+	Virgo: "mercury",
+	Libra: "venus",
+	Scorpio: "pluto",
+	Sagittarius: "jupiter",
+	Capricorn: "saturn",
+	Aquarius: "uranus",
+	Pisces: "neptune",
+};
