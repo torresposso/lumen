@@ -50,6 +50,7 @@ describe("toDraconicChart", () => {
 
 		const draconic = toDraconicChart(inputChart, "true");
 
+		expect(draconic.nodeUsed).toBe("true_node");
 		expect(draconic.bodies.true_node?.lon).toBe(0);
 		expect(draconic.bodies.true_node?.sign).toBe("Aries");
 

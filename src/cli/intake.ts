@@ -6,8 +6,8 @@ import {
 	HOUSE_SYSTEMS,
 	type HouseSystem,
 	normalizeHouseSystem,
-	type Zodiac,
 } from "caelus";
+
 import { toUT, type UTResult } from "caelus-birth";
 import { type Geocoder, openMeteoGeocoder } from "caelus-birth/geocode";
 import { z } from "zod";

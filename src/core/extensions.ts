@@ -4,10 +4,11 @@ import type { ChartRequestOptions, ResolvedBirth } from "../cli/intake";
 import type { Ephemeris } from "./ephemeris";
 import {
 	angularDistance,
-	houseOf,
 	isOrbWithin,
 	type LotInfo,
 	normalizeLongitude,
+	projectPoint,
+	roundPrecision,
 	signOf,
 } from "./zodiac";
 
@@ -77,13 +78,14 @@ export function applyExtensions<T extends Chart>(
 					"INVALID_VALUE",
 				);
 			}
+			const point = projectPoint(sun.lon, chart.cusps);
 			return {
-				tMax: Number(tMax.toFixed(4)),
+				tMax: roundPrecision(tMax),
 				type,
-				lon: Number(sun.lon.toFixed(4)),
-				sign: sun.sign,
-				signDeg: Number(sun.signDeg.toFixed(4)),
-				house: houseOf(chart.cusps, sun.lon),
+				lon: point.lon,
+				sign: point.sign,
+				signDeg: point.signDeg,
+				house: point.house,
 			};
 		};
 
@@ -100,16 +102,9 @@ export function applyExtensions<T extends Chart>(
 	if (options.lots) {
 		const chartLots = ephemeris.lots(birth.jdUt, birth.lat, birth.lon);
 
-		const formatLot = (lon: number): LotInfo => ({
-			lon: Number(lon.toFixed(4)),
-			sign: signOf(lon),
-			signDeg: Number((lon % 30).toFixed(4)),
-			house: houseOf(chart.cusps, lon),
-		});
-
 		result.lots = {
-			spirit: formatLot(chartLots.spirit),
-			fortune: formatLot(chartLots.fortune),
+			spirit: projectPoint(chartLots.spirit, chart.cusps),
+			fortune: projectPoint(chartLots.fortune, chart.cusps),
 		};
 	}
 
@@ -129,7 +124,7 @@ export function applyExtensions<T extends Chart>(
 					matches.push({
 						star: starName,
 						body: bodyId,
-						orb: Number(diff.toFixed(4)),
+						orb: roundPrecision(diff),
 						sign: signOf(starLon),
 					});
 				}

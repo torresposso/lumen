@@ -78,3 +78,22 @@ export function houseOf(cusps: number[], lon: number): number {
 export function roundPrecision(val: number, digits = 4): number {
 	return Number(val.toFixed(digits));
 }
+
+/** Projects an ecliptic longitude into a canonical point with degree normalization,
+ *  sign lookup, 30° boundary handling, precision rounding, and optional house calculation. */
+export function projectPoint(
+	rawLon: number,
+	cusps?: number[],
+	digits = 4,
+): LotInfo {
+	const norm = normalizeLongitude(rawLon);
+	const lon = roundPrecision(norm, digits);
+	let signDeg = roundPrecision(norm % 30, digits);
+	let sign = signOf(norm);
+	if (signDeg >= 30) {
+		signDeg = 0;
+		sign = signOf((norm + 30) % 360);
+	}
+	const house = cusps && cusps.length >= 12 ? houseOf(cusps, norm) : 1;
+	return { lon, sign, signDeg, house };
+}

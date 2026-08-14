@@ -11,7 +11,7 @@ import type {
 	NatalRequest,
 	ResolvedBirth,
 } from "../cli/intake";
-import { toDraconicChart } from "./draconic";
+import { type DraconicChart, toDraconicChart } from "./draconic";
 import { CaelusEphemeris, type Ephemeris } from "./ephemeris";
 import {
 	computeEvolutionaryReading,
@@ -24,9 +24,15 @@ import {
 	type FixedStarMatch,
 	type LotsResult,
 } from "./extensions";
-import { normalizeLongitude, roundPrecision as round, signOf } from "./zodiac";
+import { projectPoint, roundPrecision as round } from "./zodiac";
 
-export type { EclipseInfo, EclipsesResult, FixedStarMatch, LotsResult };
+export type {
+	DraconicChart,
+	EclipseInfo,
+	EclipsesResult,
+	FixedStarMatch,
+	LotsResult,
+};
 
 export interface LonProjection {
 	lon: number;
@@ -114,13 +120,6 @@ export type LumenChart = import("caelus").Chart & {
 	draconic?: DraconicChart;
 };
 
-export interface DraconicChart {
-	nodeUsed: "true_node" | "mean_node";
-	bodies: Chart["bodies"];
-	angles: Chart["angles"];
-	cusps: number[];
-}
-
 /** Node ids to drop from the chart per `--node` selection. The engine always
  *  computes both nodes; this module owns the selection policy so the chart
  *  that leaves the seam is already final. */
@@ -132,14 +131,8 @@ const DROPPED_BY_NODE: Record<NatalRequest["options"]["node"], string[]> = {
 
 function renderLon(input: number | { lon: number }): LonProjection {
 	const rawLon = typeof input === "number" ? input : input.lon;
-	const lon = normalizeLongitude(rawLon);
-	let signDeg = round(lon % 30);
-	let sign = signOf(lon);
-	if (signDeg >= 30) {
-		signDeg = 0;
-		sign = signOf((lon + 30) % 360);
-	}
-	return { lon: round(lon), sign, signDeg };
+	const { lon, sign, signDeg } = projectPoint(rawLon);
+	return { lon, sign, signDeg };
 }
 
 function projectBodies(
@@ -235,44 +228,27 @@ function echoBirth(
 	};
 }
 
-/** Facade module for astrological feature analysis (Draconic shifts,
- *  Hermetic Lots, prenatal eclipses, fixed stars, and evolutionary readings). */
-export class AstrologicalAnalysis {
-	static analyze(
-		chart: LumenChart,
-		request: NatalRequest,
-		ephemeris: Ephemeris,
-	): LumenChart {
-		const { birth, options } = request;
-		const result = applyExtensions(ephemeris, chart, birth, options);
+function analyzeChart(
+	chart: LumenChart,
+	request: NatalRequest,
+	ephemeris: Ephemeris,
+): LumenChart {
+	const { birth, options } = request;
+	const result = applyExtensions(ephemeris, chart, birth, options);
 
-		if (options.evolutionary) {
-			result.evolutionary = computeEvolutionaryReading(result);
-		}
-
-		if (options.draconic) {
-			const nodeUsed: DraconicChart["nodeUsed"] =
-				options.node === "mean" || result.bodies.true_node === undefined
-					? "mean_node"
-					: "true_node";
-			const draconic = toDraconicChart(result, options.node);
-			result.draconic = {
-				nodeUsed,
-				bodies: draconic.bodies,
-				angles: draconic.angles,
-				cusps: draconic.cusps,
-			};
-		}
-
-		for (const dropped of DROPPED_BY_NODE[options.node]) {
-			delete result.bodies[dropped];
-			if (result.draconic !== undefined) {
-				delete result.draconic.bodies[dropped];
-			}
-		}
-
-		return result;
+	if (options.evolutionary) {
+		result.evolutionary = computeEvolutionaryReading(result);
 	}
+
+	if (options.draconic) {
+		result.draconic = toDraconicChart(result, options.node);
+	}
+
+	for (const dropped of DROPPED_BY_NODE[options.node]) {
+		delete result.bodies[dropped];
+	}
+
+	return result;
 }
 
 export class AstrologicalEngine {
@@ -296,11 +272,7 @@ export class AstrologicalEngine {
 			},
 		);
 
-		const analyzedChart = AstrologicalAnalysis.analyze(
-			rawChart,
-			request,
-			this.ephemeris,
-		);
+		const analyzedChart = analyzeChart(rawChart, request, this.ephemeris);
 		const projected = project(analyzedChart);
 
 		const help: string[] = [];

@@ -60,4 +60,21 @@ describe("zodiac math", () => {
 		expect(isOrbWithin(10, 350, 20)).toBe(true);
 		expect(isOrbWithin(10, 350, 15)).toBe(false);
 	});
+
+	test("projectPoint normalizes, rounds, finds sign, degree, and house", () => {
+		const { projectPoint } = require("../../src/core/zodiac");
+		const cusps = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];
+		const pt = projectPoint(79.611345, cusps);
+		expect(pt).toEqual({
+			lon: 79.6113,
+			sign: "Gemini",
+			signDeg: 19.6113,
+			house: 3,
+		});
+
+		// 30° edge boundary condition
+		const edge = projectPoint(29.999999, cusps);
+		expect(edge.sign).toBe("Taurus");
+		expect(edge.signDeg).toBe(0);
+	});
 });

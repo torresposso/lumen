@@ -1,11 +1,10 @@
 import type { Chart } from "caelus";
 import {
 	angularDistance,
-	houseOf,
 	type LotInfo,
 	normalizeLongitude,
+	projectPoint,
 	roundPrecision as round4,
-	signOf,
 } from "./zodiac";
 
 export interface SkippedStep {
@@ -167,11 +166,9 @@ export function computeEvolutionaryReading(
 			}
 		}
 
+		const point = projectPoint(pppLon, cusps);
 		polarityPoint = {
-			lon: round4(pppLon),
-			sign: signOf(pppLon),
-			signDeg: round4(pppLon % 30),
-			house: houseOf(cusps, pppLon),
+			...point,
 			...(pppAspects.length > 0 ? { aspects: pppAspects } : {}),
 		};
 	}
@@ -182,13 +179,10 @@ export function computeEvolutionaryReading(
 
 	if (northNode) {
 		const snLon = normalizeLongitude(northNode.lon + 180);
-		const snSign = signOf(snLon);
+		const snPoint = projectPoint(snLon, cusps);
 		southNode = {
-			lon: round4(snLon),
-			sign: snSign,
-			signDeg: round4(snLon % 30),
-			house: houseOf(cusps, snLon),
-			ruler: SIGN_RULERS[snSign],
+			...snPoint,
+			ruler: SIGN_RULERS[snPoint.sign],
 		};
 
 		const absSpeed = Math.abs(northNode.speed);
@@ -237,12 +231,7 @@ export function computeEvolutionaryReading(
 		const diff = Math.abs(pluto.lon - northNode.lon);
 		let mid = (pluto.lon + northNode.lon) / 2;
 		if (diff > 180) mid = (mid + 180) % 360;
-		plutoNorthNodeMidpoint = {
-			lon: round4(mid),
-			sign: signOf(mid),
-			signDeg: round4(mid % 30),
-			house: houseOf(cusps, mid),
-		};
+		plutoNorthNodeMidpoint = projectPoint(mid, cusps);
 	}
 
 	const dispositorChains: Record<string, DispositorStep[]> = {};
