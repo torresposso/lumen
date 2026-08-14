@@ -1,6 +1,7 @@
 import type { Chart } from "caelus";
 import {
-	angularDistance,
+	type AspectDef,
+	findAspect,
 	type LotInfo,
 	normalizeLongitude,
 	projectPoint,
@@ -78,12 +79,16 @@ const SIGN_RULERS: Record<string, string> = {
 	Pisces: "neptune",
 };
 
-const MAJOR_ASPECTS = [
-	{ name: "conjunction", target: 0, orb: 8 },
+const PPP_MAJOR_ASPECTS: AspectDef[] = [
+	{ name: "conjunction", target: 0, orb: 5 },
 	{ name: "sextile", target: 60, orb: 5 },
 	{ name: "square", target: 90, orb: 5 },
 	{ name: "trine", target: 120, orb: 5 },
-	{ name: "opposition", target: 180, orb: 8 },
+	{ name: "opposition", target: 180, orb: 5 },
+];
+
+const SKIPPED_STEP_ASPECT: AspectDef[] = [
+	{ name: "square", target: 90, orb: 5 },
 ];
 
 function getSolLunaPhase(sunLon: number, moonLon: number): SolLunaPhase {
@@ -152,16 +157,13 @@ export function computeEvolutionaryReading(
 				bodyId !== "true_node" &&
 				bodyId !== "mean_node"
 			) {
-				const dist = angularDistance(body.lon, pppLon);
-				for (const asp of MAJOR_ASPECTS) {
-					const diff = Math.abs(dist - asp.target);
-					if (diff <= 5.0) {
-						pppAspects.push({
-							body: bodyId,
-							aspect: asp.name,
-							orb: round4(diff),
-						});
-					}
+				const match = findAspect(body.lon, pppLon, PPP_MAJOR_ASPECTS);
+				if (match) {
+					pppAspects.push({
+						body: bodyId,
+						aspect: match.aspect,
+						orb: match.orb,
+					});
 				}
 			}
 		}
@@ -211,14 +213,13 @@ export function computeEvolutionaryReading(
 		) {
 			for (const target of targets) {
 				if (target.lon !== undefined) {
-					const diff = angularDistance(body.lon, target.lon);
-					const orb = Math.abs(diff - 90);
-					if (orb <= 5.0) {
+					const match = findAspect(body.lon, target.lon, SKIPPED_STEP_ASPECT);
+					if (match) {
 						skippedSteps.push({
 							body: bodyId,
-							aspect: "square",
+							aspect: match.aspect,
 							target: target.id,
-							orb: round4(orb),
+							orb: match.orb,
 						});
 					}
 				}

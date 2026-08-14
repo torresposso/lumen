@@ -563,3 +563,32 @@ export async function resolveNatalRequestFromArgs(
 	);
 	return { kind: "request", request };
 }
+
+/** Facade for natal chart input validation, geocoding, timezone resolution,
+ *  and command-line argument processing. */
+export const NatalIntake = {
+	flagSpec: chartFlagSpec,
+	usage: chartUsage,
+
+	/** Parses raw CLI arguments into a validated NatalRequest or help signal. */
+	async process(
+		args: string[],
+		geocoder: Geocoder = openMeteoGeocoder,
+	): Promise<IntakeResult> {
+		return resolveNatalRequestFromArgs(args, geocoder);
+	},
+
+	/** Resolves validated birth data and chart options from parsed key-value inputs and flags. */
+	async resolve(
+		values: Record<string, string>,
+		flags: Set<string>,
+		geocoder: Geocoder = openMeteoGeocoder,
+	): Promise<NatalRequest> {
+		return resolveNatalRequest(values, flags, geocoder);
+	},
+
+	/** Direct validation helper for birth data parameters. */
+	validateBirth(values: Record<string, unknown>): ResolvedBirth {
+		return resolveBirth(values);
+	},
+} as const;

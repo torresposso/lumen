@@ -2,11 +2,8 @@ import { describe, expect, test } from "bun:test";
 import type { Chart, ChartBody } from "caelus";
 import { BODIES } from "caelus";
 import type { ResolvedBirth } from "../../src/cli/intake";
+import { computePrenatalEclipses } from "../../src/core/eclipses";
 import { CaelusEphemeris } from "../../src/core/ephemeris";
-import {
-	computeFixedStarMatches,
-	computeHermeticLots,
-} from "../../src/core/extensions";
 
 const birth: ResolvedBirth = {
 	jdUt: 2448053.2708,
@@ -50,31 +47,23 @@ function chart(): Chart {
 	};
 }
 
-describe("classical extension calculators", () => {
+describe("computePrenatalEclipses", () => {
 	const ephemeris = new CaelusEphemeris();
 	const baseChart = chart();
 
-	test("computes Hermetic Lots when requested", () => {
-		const lots = computeHermeticLots(ephemeris, birth, baseChart.cusps);
-		expect(lots).toBeDefined();
-		expect(typeof lots.spirit.lon).toBe("number");
-		expect(typeof lots.spirit.sign).toBe("string");
-		expect(typeof lots.spirit.house).toBe("number");
-		expect(typeof lots.fortune.lon).toBe("number");
-		expect(typeof lots.fortune.sign).toBe("string");
-		expect(typeof lots.fortune.house).toBe("number");
-	});
-
-	test("computes fixed star matches when requested", () => {
-		const stars = computeFixedStarMatches(ephemeris, birth, baseChart.bodies);
-		expect(stars).toBeDefined();
-		expect(Array.isArray(stars)).toBe(true);
-		if (stars.length > 0) {
-			const match = stars[0];
-			expect(match).toHaveProperty("star");
-			expect(match).toHaveProperty("body");
-			expect(match).toHaveProperty("orb");
-			expect(match).toHaveProperty("sign");
+	test("computes prenatal solar and lunar eclipses preceding birth", () => {
+		const eclipses = computePrenatalEclipses(
+			ephemeris,
+			birth,
+			baseChart.cusps,
+			"placidus",
+		);
+		expect(eclipses).toBeDefined();
+		expect(eclipses.solar).toBeDefined();
+		expect(eclipses.lunar).toBeDefined();
+		if (eclipses.solar) {
+			expect(eclipses.solar.house).toBeGreaterThanOrEqual(1);
+			expect(eclipses.solar.house).toBeLessThanOrEqual(12);
 		}
 	});
 });

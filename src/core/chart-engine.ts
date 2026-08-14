@@ -12,6 +12,11 @@ import type {
 	ResolvedBirth,
 } from "../cli/intake";
 import { type DraconicChart, toDraconicChart } from "./draconic";
+import {
+	computePrenatalEclipses,
+	type EclipseInfo,
+	type EclipsesResult,
+} from "./eclipses";
 import { CaelusEphemeris, type Ephemeris } from "./ephemeris";
 import {
 	computeEvolutionaryReading,
@@ -20,9 +25,6 @@ import {
 import {
 	computeFixedStarMatches,
 	computeHermeticLots,
-	computePrenatalEclipses,
-	type EclipseInfo,
-	type EclipsesResult,
 	type FixedStarMatch,
 	type LotsResult,
 } from "./extensions";

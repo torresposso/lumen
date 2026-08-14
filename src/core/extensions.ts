@@ -1,5 +1,4 @@
-import { AxiError } from "axi-sdk-js";
-import type { Chart, HouseSystem } from "caelus";
+import type { Chart } from "caelus";
 import type { ResolvedBirth } from "../cli/intake";
 import type { Ephemeris } from "./ephemeris";
 import {
@@ -11,20 +10,6 @@ import {
 	roundPrecision,
 	signOf,
 } from "./zodiac";
-
-export interface EclipseInfo {
-	tMax: number;
-	type: string;
-	lon: number;
-	sign: string;
-	signDeg: number;
-	house: number;
-}
-
-export interface EclipsesResult {
-	solar?: EclipseInfo;
-	lunar?: EclipseInfo;
-}
 
 export interface LotsResult {
 	spirit: LotInfo;
@@ -38,56 +23,7 @@ export interface FixedStarMatch {
 	sign: string;
 }
 
-/** Computes the prenatal solar and lunar eclipses occurring within 200 days prior to birth. */
-export function computePrenatalEclipses(
-	ephemeris: Ephemeris,
-	birth: ResolvedBirth,
-	cusps: number[],
-	houseSystem: HouseSystem,
-): EclipsesResult {
-	const jdStart = birth.jdUt - 200;
-	const jdEnd = birth.jdUt;
-	const sEclipses = ephemeris.solarEclipses(jdStart, jdEnd);
-	const lEclipses = ephemeris.lunarEclipses(jdStart, jdEnd);
-
-	const lastSolar =
-		sEclipses.length > 0 ? sEclipses[sEclipses.length - 1] : undefined;
-	const lastLunar =
-		lEclipses.length > 0 ? lEclipses[lEclipses.length - 1] : undefined;
-
-	const formatEclipse = (tMax: number, type: string): EclipseInfo => {
-		const pos = ephemeris.chartAt(tMax, birth.lat, birth.lon, {
-			houseSystem,
-		});
-		const sun = pos.bodies.sun;
-		if (!sun) {
-			throw new AxiError(
-				"Sun position unavailable for eclipse calculation",
-				"INVALID_VALUE",
-			);
-		}
-		const point = projectPoint(sun.lon, cusps);
-		return {
-			tMax: roundPrecision(tMax),
-			type,
-			lon: point.lon,
-			sign: point.sign,
-			signDeg: point.signDeg,
-			house: point.house,
-		};
-	};
-
-	return {
-		solar: lastSolar
-			? formatEclipse(lastSolar.tMax, lastSolar.type)
-			: undefined,
-		lunar: lastLunar
-			? formatEclipse(lastLunar.tMax, lastLunar.type)
-			: undefined,
-	};
-}
-
-/** Computes the Hermetic Lots (Lot of Spirit and Lot of Fortune) from Ascendant, Sun, and Moon. */
+/** Computes the classical Hermetic Lots (Lot of Spirit and Lot of Fortune) from Ascendant, Sun, and Moon. */
 export function computeHermeticLots(
 	ephemeris: Ephemeris,
 	birth: ResolvedBirth,
@@ -100,7 +36,7 @@ export function computeHermeticLots(
 	};
 }
 
-/** Evaluates major fixed-star conjunctions (orb <= 1.5°) against chart bodies. */
+/** Evaluates major fixed-star conjunctions (orb <= 1.5°) against natal body positions. */
 export function computeFixedStarMatches(
 	ephemeris: Ephemeris,
 	birth: ResolvedBirth,

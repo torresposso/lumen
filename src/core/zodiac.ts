@@ -97,3 +97,37 @@ export function projectPoint(
 	const house = cusps && cusps.length >= 12 ? houseOf(cusps, norm) : 1;
 	return { lon, sign, signDeg, house };
 }
+
+/** Aspect definition with name, target angle, and maximum orb in degrees. */
+export interface AspectDef {
+	name: string;
+	target: number;
+	orb: number;
+}
+
+/** Result of matching an angular distance to an aspect definition. */
+export interface AspectMatch {
+	aspect: string;
+	target: number;
+	orb: number;
+}
+
+/** Evaluates whether two longitudes form an aspect from a given list of aspect definitions. */
+export function findAspect(
+	lonA: number,
+	lonB: number,
+	aspects: readonly AspectDef[],
+): AspectMatch | undefined {
+	const dist = angularDistance(lonA, lonB);
+	for (const asp of aspects) {
+		const diff = Math.abs(dist - asp.target);
+		if (diff <= asp.orb) {
+			return {
+				aspect: asp.name,
+				target: asp.target,
+				orb: roundPrecision(diff),
+			};
+		}
+	}
+	return undefined;
+}
