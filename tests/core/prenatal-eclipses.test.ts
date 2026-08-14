@@ -65,5 +65,14 @@ describe("computePrenatalEclipses", () => {
 			expect(eclipses.solar.house).toBeGreaterThanOrEqual(1);
 			expect(eclipses.solar.house).toBeLessThanOrEqual(12);
 		}
+		if (eclipses.lunar) {
+			expect(eclipses.lunar.house).toBeGreaterThanOrEqual(1);
+			expect(eclipses.lunar.house).toBeLessThanOrEqual(12);
+			// In a lunar eclipse, Moon is ~180° away from Sun
+			if (eclipses.solar) {
+				// Solar eclipse was Jan 1990 (Cap), Lunar eclipse Feb 1990 (Leo)
+				expect(eclipses.lunar.sign).not.toBe(eclipses.solar.sign);
+			}
+		}
 	});
 });

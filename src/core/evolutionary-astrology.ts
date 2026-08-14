@@ -40,6 +40,14 @@ export interface SolLunaPhase {
 	angle: number;
 }
 
+export interface NodalRulerPlacement {
+	body: string;
+	sign: string;
+	signDeg: number;
+	house: number;
+	retrograde: boolean;
+}
+
 /** The complete Jeffrey Wolf Green Evolutionary Astrology (JWGEA) reading result. */
 export interface EvolutionaryResult {
 	pluto?: {
@@ -60,8 +68,12 @@ export interface EvolutionaryResult {
 			signDeg: number;
 			house: number;
 			ruler?: string;
+			rulerPlacement?: NodalRulerPlacement;
 		};
-		southNode?: ProjectedEclipticPoint & { ruler?: string };
+		southNode?: ProjectedEclipticPoint & {
+			ruler?: string;
+			rulerPlacement?: NodalRulerPlacement;
+		};
 		motionStatus?: "retrograde" | "direct" | "stationary";
 	};
 	skippedSteps: SkippedStep[];
@@ -289,6 +301,24 @@ export function computeEvolutionaryReading(
 		solLunaPhase = getSolLunaPhase(bodies.sun.lon, bodies.moon.lon);
 	}
 
+	const getRulerPlacement = (
+		rulerId?: string,
+	): NodalRulerPlacement | undefined => {
+		if (!rulerId) return undefined;
+		const b = bodies[rulerId as keyof typeof bodies];
+		if (!b) return undefined;
+		return {
+			body: rulerId,
+			sign: b.sign,
+			signDeg: round4(b.signDeg),
+			house: b.house,
+			retrograde: b.retrograde,
+		};
+	};
+
+	const nnRuler = northNode ? SIGN_RULERS[northNode.sign] : undefined;
+	const snRuler = southNode ? SIGN_RULERS[southNode.sign] : undefined;
+
 	return {
 		pluto: pluto
 			? {
@@ -302,17 +332,33 @@ export function computeEvolutionaryReading(
 						: {}),
 				}
 			: undefined,
-		polarityPoint,
+		polarityPoint:
+			plutoNodalConjunction === "north_node"
+				? undefined
+				: {
+						...polarityPoint,
+						isOperative:
+							plutoNodalConjunction === "south_node"
+								? true
+								: (polarityPoint?.isOperative ?? true),
+					},
 		nodes: {
 			northNode: northNode
 				? {
 						sign: northNode.sign,
 						signDeg: round4(northNode.signDeg),
 						house: northNode.house,
-						ruler: SIGN_RULERS[northNode.sign],
+						ruler: nnRuler,
+						rulerPlacement: getRulerPlacement(nnRuler),
 					}
 				: undefined,
-			southNode,
+			southNode: southNode
+				? {
+						...southNode,
+						ruler: snRuler,
+						rulerPlacement: getRulerPlacement(snRuler),
+					}
+				: undefined,
 			motionStatus: nodeMotionStatus,
 		},
 		skippedSteps,

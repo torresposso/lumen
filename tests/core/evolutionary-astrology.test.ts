@@ -178,5 +178,21 @@ describe("computeEvolutionaryReading", () => {
 
 		expect(evo.pluto?.nodalConjunction).toBe("south_node");
 		expect(evo.polarityPoint?.isOperative).toBe(true);
+		expect(evo.nodes.northNode?.ruler).toBe("venus");
+		expect(evo.nodes.southNode?.ruler).toBe("pluto");
+		expect(evo.nodes.southNode?.rulerPlacement?.house).toBe(8);
+	});
+
+	test("deactivates PPP when Pluto is conjunct the North Node", () => {
+		// Pluto at 30° Taurus, NN at 30° Taurus -> Pluto conjunct NN
+		const evo = computeEvolutionaryReading(
+			input({
+				pluto: body({ lon: 30, sign: "Taurus", signDeg: 0, house: 2 }),
+				true_node: body({ lon: 30, sign: "Taurus", signDeg: 0, house: 2 }),
+			}),
+		);
+
+		expect(evo.pluto?.nodalConjunction).toBe("north_node");
+		expect(evo.polarityPoint).toBeUndefined();
 	});
 });

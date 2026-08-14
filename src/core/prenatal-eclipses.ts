@@ -37,18 +37,22 @@ export function computePrenatalEclipses(
 	const lastLunar =
 		lEclipses.length > 0 ? lEclipses[lEclipses.length - 1] : undefined;
 
-	const formatEclipse = (tMax: number, type: string): EclipseInfo => {
+	const formatEclipse = (
+		tMax: number,
+		type: string,
+		isLunar = false,
+	): EclipseInfo => {
 		const pos = ephemeris.chartAt(tMax, birth.lat, birth.lon, {
 			houseSystem,
 		});
-		const sun = pos.bodies.sun;
-		if (!sun) {
+		const targetBody = isLunar ? pos.bodies.moon : pos.bodies.sun;
+		if (!targetBody) {
 			throw new AxiError(
-				"Sun position unavailable for eclipse calculation",
+				`${isLunar ? "Moon" : "Sun"} position unavailable for eclipse calculation`,
 				"INVALID_VALUE",
 			);
 		}
-		const point = projectPoint(sun.lon, cusps);
+		const point = projectPoint(targetBody.lon, cusps);
 		return {
 			tMax: roundPrecision(tMax),
 			type,
@@ -61,10 +65,10 @@ export function computePrenatalEclipses(
 
 	return {
 		solar: lastSolar
-			? formatEclipse(lastSolar.tMax, lastSolar.type)
+			? formatEclipse(lastSolar.tMax, lastSolar.type, false)
 			: undefined,
 		lunar: lastLunar
-			? formatEclipse(lastLunar.tMax, lastLunar.type)
+			? formatEclipse(lastLunar.tMax, lastLunar.type, true)
 			: undefined,
 	};
 }

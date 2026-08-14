@@ -29,16 +29,19 @@ _Avoid_: soul chart
 ### Evolutionary astrology (Jeffrey Wolf Green)
 
 **Evolutionary reading**:
-The assembled output of the `--evolutionary` flag: Pluto's placement and Polarity Point, the lunar-node axis with its rulers, Skipped Steps, the Pluto–North Node Midpoint, and the Pluto/Chiron dispositor chains.
+The assembled output of the `--evolutionary` flag: Pluto's placement and Polarity Point, the lunar-node axis with its planetary rulers and their natal house/sign placements, Skipped Steps, the Pluto–North Node Midpoint, and the Pluto/Chiron dispositor chains.
 
 **Pluto Polarity Point**:
-The point diametrically opposite Pluto (Pluto longitude + 180°), representing the evolutionary direction the soul is moving toward.
+The point diametrically opposite Pluto (Pluto longitude + 180°), representing the evolutionary direction the soul is moving toward. Deactivated when Pluto is conjunct the North Node (as evolution channels directly through the North Node and its ruler).
 
 **Pluto Polarity Point aspects**:
 Major planetary aspects (orb ≤ 5°) formed directly to the Pluto Polarity Point, identifying specific psychological archetypes accelerating or facilitating evolutionary growth.
 
 **Node motion status**:
 The motion state of the lunar node axis (`retrograde`, `direct`, or `stationary`), where stationary nodes mark pivotal karmic turning-point incarnations.
+
+**Nodal ruler placements**:
+The exact natal sign, degree, house, and motion state of the planetary rulers of both the North Node and South Node, describing how past karmic memory and future evolutionary intentions are materialized.
 
 **Sol-Luna phase mechanics**:
 The angular phase relationship between the Sun and Moon divided into 8 evolutionary phase archetypes (New, Crescent, First Quarter, Gibbous, Full, Disseminating, Last Quarter, Balsamic).
@@ -57,7 +60,7 @@ The sequence of planetary sign rulers traced from a body to its final dispositor
 The midpoint calculated between Pluto and the North Node, marking the integration channel between the soul's primary desire and its future evolutionary direction.
 
 **Prenatal eclipses**:
-The solar and lunar eclipses immediately preceding birth, marking the soul's evolutionary intentions for the current life.
+The solar eclipse (projecting the Sun) and lunar eclipse (projecting the Moon) immediately preceding birth, marking the soul's evolutionary intentions for the current life.
 _Avoid_: prenatal lunation
 
 ### Classical extensions
