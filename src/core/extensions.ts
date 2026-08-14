@@ -1,6 +1,6 @@
 import { AxiError } from "axi-sdk-js";
-import type { Chart } from "caelus";
-import type { ChartRequestOptions, ResolvedBirth } from "../cli/intake";
+import type { Chart, HouseSystem } from "caelus";
+import type { ResolvedBirth } from "../cli/intake";
 import type { Ephemeris } from "./ephemeris";
 import {
 	angularDistance,
@@ -38,101 +38,93 @@ export interface FixedStarMatch {
 	sign: string;
 }
 
-/** Evaluates optional chart features (prenatal solar & lunar eclipses, Hermetic
- *  Lots, and Fixed Star conjunctions) based on request flags. */
-export function applyExtensions<T extends Chart>(
+/** Computes the prenatal solar and lunar eclipses occurring within 200 days prior to birth. */
+export function computePrenatalEclipses(
 	ephemeris: Ephemeris,
-	chart: T,
 	birth: ResolvedBirth,
-	options: ChartRequestOptions,
-): T & {
-	eclipses?: EclipsesResult;
-	lots?: LotsResult;
-	stars?: FixedStarMatch[];
-} {
-	const result = { ...chart } as T & {
-		eclipses?: EclipsesResult;
-		lots?: LotsResult;
-		stars?: FixedStarMatch[];
+	cusps: number[],
+	houseSystem: HouseSystem,
+): EclipsesResult {
+	const jdStart = birth.jdUt - 200;
+	const jdEnd = birth.jdUt;
+	const sEclipses = ephemeris.solarEclipses(jdStart, jdEnd);
+	const lEclipses = ephemeris.lunarEclipses(jdStart, jdEnd);
+
+	const lastSolar =
+		sEclipses.length > 0 ? sEclipses[sEclipses.length - 1] : undefined;
+	const lastLunar =
+		lEclipses.length > 0 ? lEclipses[lEclipses.length - 1] : undefined;
+
+	const formatEclipse = (tMax: number, type: string): EclipseInfo => {
+		const pos = ephemeris.chartAt(tMax, birth.lat, birth.lon, {
+			houseSystem,
+		});
+		const sun = pos.bodies.sun;
+		if (!sun) {
+			throw new AxiError(
+				"Sun position unavailable for eclipse calculation",
+				"INVALID_VALUE",
+			);
+		}
+		const point = projectPoint(sun.lon, cusps);
+		return {
+			tMax: roundPrecision(tMax),
+			type,
+			lon: point.lon,
+			sign: point.sign,
+			signDeg: point.signDeg,
+			house: point.house,
+		};
 	};
 
-	if (options.eclipses) {
-		const jdStart = birth.jdUt - 200;
-		const jdEnd = birth.jdUt;
-		const sEclipses = ephemeris.solarEclipses(jdStart, jdEnd);
-		const lEclipses = ephemeris.lunarEclipses(jdStart, jdEnd);
+	return {
+		solar: lastSolar
+			? formatEclipse(lastSolar.tMax, lastSolar.type)
+			: undefined,
+		lunar: lastLunar
+			? formatEclipse(lastLunar.tMax, lastLunar.type)
+			: undefined,
+	};
+}
 
-		const lastSolar =
-			sEclipses.length > 0 ? sEclipses[sEclipses.length - 1] : undefined;
-		const lastLunar =
-			lEclipses.length > 0 ? lEclipses[lEclipses.length - 1] : undefined;
+/** Computes the Hermetic Lots (Lot of Spirit and Lot of Fortune) from Ascendant, Sun, and Moon. */
+export function computeHermeticLots(
+	ephemeris: Ephemeris,
+	birth: ResolvedBirth,
+	cusps: number[],
+): LotsResult {
+	const chartLots = ephemeris.lots(birth.jdUt, birth.lat, birth.lon);
+	return {
+		spirit: projectPoint(chartLots.spirit, cusps),
+		fortune: projectPoint(chartLots.fortune, cusps),
+	};
+}
 
-		const formatEclipse = (tMax: number, type: string): EclipseInfo => {
-			const pos = ephemeris.chartAt(tMax, birth.lat, birth.lon, {
-				houseSystem: options.houseSystem,
-			});
-			const sun = pos.bodies.sun;
-			if (!sun) {
-				throw new AxiError(
-					"Sun position unavailable for eclipse calculation",
-					"INVALID_VALUE",
-				);
-			}
-			const point = projectPoint(sun.lon, chart.cusps);
-			return {
-				tMax: roundPrecision(tMax),
-				type,
-				lon: point.lon,
-				sign: point.sign,
-				signDeg: point.signDeg,
-				house: point.house,
-			};
-		};
+/** Evaluates major fixed-star conjunctions (orb <= 1.5°) against chart bodies. */
+export function computeFixedStarMatches(
+	ephemeris: Ephemeris,
+	birth: ResolvedBirth,
+	bodies: Chart["bodies"],
+): FixedStarMatch[] {
+	const matches: FixedStarMatch[] = [];
 
-		result.eclipses = {
-			solar: lastSolar
-				? formatEclipse(lastSolar.tMax, lastSolar.type)
-				: undefined,
-			lunar: lastLunar
-				? formatEclipse(lastLunar.tMax, lastLunar.type)
-				: undefined,
-		};
-	}
+	for (const [starName, starEntry] of Object.entries(ephemeris.fixedStars())) {
+		const starLon = normalizeLongitude(
+			ephemeris.starLongitude(starEntry, birth.jdUt),
+		);
 
-	if (options.lots) {
-		const chartLots = ephemeris.lots(birth.jdUt, birth.lat, birth.lon);
-
-		result.lots = {
-			spirit: projectPoint(chartLots.spirit, chart.cusps),
-			fortune: projectPoint(chartLots.fortune, chart.cusps),
-		};
-	}
-
-	if (options.stars) {
-		const matches: FixedStarMatch[] = [];
-
-		for (const [starName, starEntry] of Object.entries(
-			ephemeris.fixedStars(),
-		)) {
-			const starLon = normalizeLongitude(
-				ephemeris.starLongitude(starEntry, birth.jdUt),
-			);
-
-			for (const [bodyId, body] of Object.entries(chart.bodies)) {
-				if (body && isOrbWithin(body.lon, starLon, 1.5)) {
-					const diff = angularDistance(body.lon, starLon);
-					matches.push({
-						star: starName,
-						body: bodyId,
-						orb: roundPrecision(diff),
-						sign: signOf(starLon),
-					});
-				}
+		for (const [bodyId, body] of Object.entries(bodies)) {
+			if (body && isOrbWithin(body.lon, starLon, 1.5)) {
+				const diff = angularDistance(body.lon, starLon);
+				matches.push({
+					star: starName,
+					body: bodyId,
+					orb: roundPrecision(diff),
+					sign: signOf(starLon),
+				});
 			}
 		}
-
-		result.stars = matches;
 	}
 
-	return result;
+	return matches;
 }

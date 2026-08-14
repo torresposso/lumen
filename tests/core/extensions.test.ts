@@ -1,9 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import type { Chart, ChartBody } from "caelus";
 import { BODIES } from "caelus";
-import type { ChartRequestOptions, ResolvedBirth } from "../../src/cli/intake";
+import type { ResolvedBirth } from "../../src/cli/intake";
 import { CaelusEphemeris } from "../../src/core/ephemeris";
-import { applyExtensions } from "../../src/core/extensions";
+import {
+	computeFixedStarMatches,
+	computeHermeticLots,
+	computePrenatalEclipses,
+} from "../../src/core/extensions";
 
 const birth: ResolvedBirth = {
 	jdUt: 2448053.2708,
@@ -14,19 +18,6 @@ const birth: ResolvedBirth = {
 	offsetMinutes: -240,
 	dst: true,
 	status: "ok",
-};
-
-const baseOptions: ChartRequestOptions = {
-	houseSystem: "placidus",
-	zodiac: "tropical",
-	node: "both",
-	bodies: [],
-	topocentric: false,
-	draconic: false,
-	eclipses: false,
-	lots: false,
-	stars: false,
-	evolutionary: false,
 };
 
 function body(): ChartBody {
@@ -60,53 +51,43 @@ function chart(): Chart {
 	};
 }
 
-describe("applyExtensions", () => {
+describe("pure extension calculators", () => {
 	const ephemeris = new CaelusEphemeris();
-
-	test("does not add extensions when options are false", () => {
-		const res = applyExtensions(ephemeris, chart(), birth, baseOptions);
-		expect(res.eclipses).toBeUndefined();
-		expect(res.lots).toBeUndefined();
-		expect(res.stars).toBeUndefined();
-	});
+	const baseChart = chart();
 
 	test("computes prenatal eclipses when requested", () => {
-		const res = applyExtensions(ephemeris, chart(), birth, {
-			...baseOptions,
-			eclipses: true,
-		});
-		expect(res.eclipses).toBeDefined();
-		expect(res.eclipses?.solar).toBeDefined();
-		expect(res.eclipses?.lunar).toBeDefined();
-		if (res.eclipses?.solar) {
-			expect(res.eclipses.solar.house).toBeGreaterThanOrEqual(1);
-			expect(res.eclipses.solar.house).toBeLessThanOrEqual(12);
+		const eclipses = computePrenatalEclipses(
+			ephemeris,
+			birth,
+			baseChart.cusps,
+			"placidus",
+		);
+		expect(eclipses).toBeDefined();
+		expect(eclipses.solar).toBeDefined();
+		expect(eclipses.lunar).toBeDefined();
+		if (eclipses.solar) {
+			expect(eclipses.solar.house).toBeGreaterThanOrEqual(1);
+			expect(eclipses.solar.house).toBeLessThanOrEqual(12);
 		}
 	});
 
 	test("computes Hermetic Lots when requested", () => {
-		const res = applyExtensions(ephemeris, chart(), birth, {
-			...baseOptions,
-			lots: true,
-		});
-		expect(res.lots).toBeDefined();
-		expect(typeof res.lots?.spirit.lon).toBe("number");
-		expect(typeof res.lots?.spirit.sign).toBe("string");
-		expect(typeof res.lots?.spirit.house).toBe("number");
-		expect(typeof res.lots?.fortune.lon).toBe("number");
-		expect(typeof res.lots?.fortune.sign).toBe("string");
-		expect(typeof res.lots?.fortune.house).toBe("number");
+		const lots = computeHermeticLots(ephemeris, birth, baseChart.cusps);
+		expect(lots).toBeDefined();
+		expect(typeof lots.spirit.lon).toBe("number");
+		expect(typeof lots.spirit.sign).toBe("string");
+		expect(typeof lots.spirit.house).toBe("number");
+		expect(typeof lots.fortune.lon).toBe("number");
+		expect(typeof lots.fortune.sign).toBe("string");
+		expect(typeof lots.fortune.house).toBe("number");
 	});
 
 	test("computes fixed star matches when requested", () => {
-		const res = applyExtensions(ephemeris, chart(), birth, {
-			...baseOptions,
-			stars: true,
-		});
-		expect(res.stars).toBeDefined();
-		expect(Array.isArray(res.stars)).toBe(true);
-		if (res.stars && res.stars.length > 0) {
-			const match = res.stars[0];
+		const stars = computeFixedStarMatches(ephemeris, birth, baseChart.bodies);
+		expect(stars).toBeDefined();
+		expect(Array.isArray(stars)).toBe(true);
+		if (stars.length > 0) {
+			const match = stars[0];
 			expect(match).toHaveProperty("star");
 			expect(match).toHaveProperty("body");
 			expect(match).toHaveProperty("orb");

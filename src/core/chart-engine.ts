@@ -18,7 +18,9 @@ import {
 	type EvolutionaryResult,
 } from "./evolutionary";
 import {
-	applyExtensions,
+	computeFixedStarMatches,
+	computeHermeticLots,
+	computePrenatalEclipses,
 	type EclipseInfo,
 	type EclipsesResult,
 	type FixedStarMatch,
@@ -112,14 +114,6 @@ export type AstrologicalReading = {
 	help?: string[];
 };
 
-export type LumenChart = import("caelus").Chart & {
-	eclipses?: EclipsesResult;
-	lots?: LotsResult;
-	stars?: FixedStarMatch[];
-	evolutionary?: EvolutionaryResult;
-	draconic?: DraconicChart;
-};
-
 /** Node ids to drop from the chart per `--node` selection. The engine always
  *  computes both nodes; this module owns the selection policy so the chart
  *  that leaves the seam is already final. */
@@ -176,8 +170,27 @@ function projectDraconic(draconic: DraconicChart): DraconicProjection {
 	};
 }
 
-function project(chart: LumenChart): Projection {
-	const bodies = projectBodies(chart.bodies);
+interface ProjectionInput {
+	chart: Chart;
+	bodies: Chart["bodies"];
+	eclipses?: EclipsesResult;
+	lots?: LotsResult;
+	stars?: FixedStarMatch[];
+	evolutionary?: EvolutionaryResult;
+	draconic?: DraconicChart;
+}
+
+function project(input: ProjectionInput): Projection {
+	const {
+		chart,
+		bodies: rawBodies,
+		eclipses,
+		lots,
+		stars,
+		evolutionary,
+		draconic,
+	} = input;
+	const bodies = projectBodies(rawBodies);
 
 	const aspects = chart.aspects.map((a) => ({
 		a: a.a,
@@ -200,11 +213,11 @@ function project(chart: LumenChart): Projection {
 		angles: projectAngles(chart.angles),
 		cusps: chart.cusps.map((c) => renderLon(c)),
 		aspects,
-		...(chart.eclipses ? { eclipses: chart.eclipses } : {}),
-		...(chart.lots ? { lots: chart.lots } : {}),
-		...(chart.stars ? { stars: chart.stars } : {}),
-		...(chart.evolutionary ? { evolutionary: chart.evolutionary } : {}),
-		...(chart.draconic ? { draconic: projectDraconic(chart.draconic) } : {}),
+		...(eclipses ? { eclipses } : {}),
+		...(lots ? { lots } : {}),
+		...(stars ? { stars } : {}),
+		...(evolutionary ? { evolutionary } : {}),
+		...(draconic ? { draconic: projectDraconic(draconic) } : {}),
 	};
 }
 
@@ -228,29 +241,6 @@ function echoBirth(
 	};
 }
 
-function analyzeChart(
-	chart: LumenChart,
-	request: NatalRequest,
-	ephemeris: Ephemeris,
-): LumenChart {
-	const { birth, options } = request;
-	const result = applyExtensions(ephemeris, chart, birth, options);
-
-	if (options.evolutionary) {
-		result.evolutionary = computeEvolutionaryReading(result);
-	}
-
-	if (options.draconic) {
-		result.draconic = toDraconicChart(result, options.node);
-	}
-
-	for (const dropped of DROPPED_BY_NODE[options.node]) {
-		delete result.bodies[dropped];
-	}
-
-	return result;
-}
-
 export class AstrologicalEngine {
 	private ephemeris: Ephemeris;
 
@@ -260,7 +250,7 @@ export class AstrologicalEngine {
 
 	compute(request: NatalRequest): AstrologicalReading {
 		const { birth, options } = request;
-		const rawChart: LumenChart = this.ephemeris.chartAt(
+		const rawChart: Chart = this.ephemeris.chartAt(
 			birth.jdUt,
 			birth.lat,
 			birth.lon,
@@ -272,18 +262,55 @@ export class AstrologicalEngine {
 			},
 		);
 
-		const analyzedChart = analyzeChart(rawChart, request, this.ephemeris);
-		const projected = project(analyzedChart);
+		const evolutionary = options.evolutionary
+			? computeEvolutionaryReading(rawChart)
+			: undefined;
+
+		const draconic = options.draconic
+			? toDraconicChart(rawChart, options.node)
+			: undefined;
+
+		const eclipses = options.eclipses
+			? computePrenatalEclipses(
+					this.ephemeris,
+					birth,
+					rawChart.cusps,
+					options.houseSystem,
+				)
+			: undefined;
+
+		const lots = options.lots
+			? computeHermeticLots(this.ephemeris, birth, rawChart.cusps)
+			: undefined;
+
+		const stars = options.stars
+			? computeFixedStarMatches(this.ephemeris, birth, rawChart.bodies)
+			: undefined;
+
+		const natalBodies = { ...rawChart.bodies };
+		for (const dropped of DROPPED_BY_NODE[options.node]) {
+			delete natalBodies[dropped];
+		}
+
+		const projected = project({
+			chart: rawChart,
+			bodies: natalBodies,
+			eclipses,
+			lots,
+			stars,
+			evolutionary,
+			draconic,
+		});
 
 		const help: string[] = [];
-		if (analyzedChart.houseSystem !== analyzedChart.houseSystemRequested) {
+		if (rawChart.houseSystem !== rawChart.houseSystemRequested) {
 			help.push(
-				`House system "${analyzedChart.houseSystemRequested}" fell back to "${analyzedChart.houseSystem}" (undefined above the polar circle)`,
+				`House system "${rawChart.houseSystemRequested}" fell back to "${rawChart.houseSystem}" (undefined above the polar circle)`,
 			);
 		}
-		if (analyzedChart.unavailable.length > 0) {
+		if (rawChart.unavailable.length > 0) {
 			help.push(
-				`Bodies omitted (outside fitted ephemeris range): ${analyzedChart.unavailable.join(", ")}`,
+				`Bodies omitted (outside fitted ephemeris range): ${rawChart.unavailable.join(", ")}`,
 			);
 		}
 		if (request.birth.status !== "ok") {
