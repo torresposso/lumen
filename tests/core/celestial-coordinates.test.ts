@@ -91,6 +91,22 @@ describe("celestial coordinates & zodiac math", () => {
 		expect(edge.signDeg).toBe(0);
 	});
 
+	test("projectPoint keeps rounded longitudes normalized at the 0°/360° edge", () => {
+		const cusps = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];
+		expect(projectPoint(359.99999, cusps)).toEqual({
+			lon: 0,
+			sign: "Aries",
+			signDeg: 0,
+			house: 12,
+		});
+		expect(projectPoint(-0.000001, cusps)).toEqual({
+			lon: 0,
+			sign: "Aries",
+			signDeg: 0,
+			house: 12,
+		});
+	});
+
 	test("findAspect detects aspects within orb", () => {
 		const aspects = [{ name: "trine", target: 120, orb: 5 }];
 		const match = findAspect(10, 131, aspects);

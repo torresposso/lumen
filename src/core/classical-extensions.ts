@@ -1,4 +1,4 @@
-import type { Chart } from "caelus";
+import type { Chart, ChartBody } from "caelus";
 import type { ResolvedBirth } from "../cli/natal-intake";
 import {
 	angularDistance,
@@ -23,6 +23,9 @@ export interface FixedStarMatch {
 	sign: string;
 }
 
+const FIXED_STAR_ORB = 1.5;
+const MAJOR_STAR_MAX_MAG = 2.5;
+
 /** Computes the classical Hermetic Lots (Lot of Spirit / Daimon and Lot of Fortune / Tyche)
  *  from Ascendant, Sun, and Moon relative to chart cusps. */
 export function computeHermeticLots(
@@ -37,25 +40,46 @@ export function computeHermeticLots(
 	};
 }
 
-/** Evaluates major fixed-star conjunctions (orb <= 1.5°) against natal body positions. */
+/** Evaluates major fixed-star conjunctions (orb <= 1.5°, magnitude <= 2.5)
+ *  against natal body and angle positions. Results are sorted by orb. */
 export function computeFixedStarMatches(
 	ephemeris: Ephemeris,
 	birth: ResolvedBirth,
-	bodies: Chart["bodies"],
+	bodies: Partial<Record<string, ChartBody>>,
+	angles?: Chart["angles"],
 ): FixedStarMatch[] {
 	const matches: FixedStarMatch[] = [];
+	const targets: Array<{ id: string; lon: number }> = [];
+
+	for (const [bodyId, body] of Object.entries(bodies)) {
+		if (body !== undefined) {
+			targets.push({ id: bodyId, lon: body.lon });
+		}
+	}
+	if (angles !== undefined) {
+		for (const angleId of ["asc", "mc", "vertex", "eastPoint"] as const) {
+			targets.push({ id: angleId, lon: angles[angleId] });
+		}
+	}
 
 	for (const [starName, starEntry] of Object.entries(ephemeris.fixedStars())) {
+		if (
+			typeof starEntry.mag !== "number" ||
+			starEntry.mag > MAJOR_STAR_MAX_MAG
+		) {
+			continue;
+		}
+
 		const starLon = normalizeLongitude(
 			ephemeris.starLongitude(starEntry, birth.jdUt),
 		);
 
-		for (const [bodyId, body] of Object.entries(bodies)) {
-			if (body && isOrbWithin(body.lon, starLon, 1.5)) {
-				const diff = angularDistance(body.lon, starLon);
+		for (const target of targets) {
+			if (isOrbWithin(target.lon, starLon, FIXED_STAR_ORB)) {
+				const diff = angularDistance(target.lon, starLon);
 				matches.push({
 					star: starName,
-					body: bodyId,
+					body: target.id,
 					orb: roundPrecision(diff),
 					sign: signOf(starLon),
 				});
@@ -63,5 +87,10 @@ export function computeFixedStarMatches(
 		}
 	}
 
-	return matches;
+	return matches.sort(
+		(a, b) =>
+			a.orb - b.orb ||
+			a.star.localeCompare(b.star) ||
+			a.body.localeCompare(b.body),
+	);
 }

@@ -1,11 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import type { Chart, ChartBody } from "caelus";
+import type { Chart, ChartBody, StarEntry } from "caelus";
 import { BODIES } from "caelus";
 import type { ResolvedBirth } from "../../src/cli/natal-intake";
 import {
 	computeFixedStarMatches,
 	computeHermeticLots,
 } from "../../src/core/classical-extensions";
+import type { Ephemeris } from "../../src/core/ephemeris-gateway";
 import { CaelusEphemeris } from "../../src/core/ephemeris-gateway";
 
 const birth: ResolvedBirth = {
@@ -76,5 +77,47 @@ describe("classical extension calculators", () => {
 			expect(match).toHaveProperty("orb");
 			expect(match).toHaveProperty("sign");
 		}
+	});
+
+	test("filters fixed stars to major magnitudes and includes angles", () => {
+		const bright: StarEntry = {
+			ra: 0,
+			dec: 0,
+			pmra: 0,
+			pmdec: 0,
+			rv: 0,
+			plx: 0,
+			mag: 1,
+			bayer: "",
+		};
+		const faint: StarEntry = { ...bright, mag: 5 };
+		const mockEphemeris = {
+			chartAt: () => baseChart,
+			solarEclipses: () => [],
+			lunarEclipses: () => [],
+			lots: () => ({
+				day: true,
+				fortune: 0,
+				spirit: 0,
+				eros: 0,
+				necessity: 0,
+				courage: 0,
+				victory: 0,
+				nemesis: 0,
+			}),
+			starLongitude: () => 0,
+			fixedStars: () => ({ Bright: bright, Faint: faint }),
+		} satisfies Ephemeris;
+
+		const stars = computeFixedStarMatches(
+			mockEphemeris,
+			birth,
+			{ sun: body() },
+			{ asc: 0, mc: 90, vertex: 180, eastPoint: 270 },
+		);
+
+		expect(stars.map((s) => s.star)).toEqual(["Bright", "Bright"]);
+		expect(new Set(stars.map((s) => s.body))).toEqual(new Set(["sun", "asc"]));
+		expect(stars.every((s) => s.orb === 0)).toBe(true);
 	});
 });

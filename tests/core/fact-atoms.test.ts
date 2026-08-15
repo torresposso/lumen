@@ -16,6 +16,7 @@ describe("fact-atoms", () => {
 				dist: null,
 				ra: 14,
 				dec: 6,
+				dignities: [],
 			},
 			mercury: {
 				lon: 20,
@@ -28,6 +29,7 @@ describe("fact-atoms", () => {
 				dist: null,
 				ra: 18,
 				dec: 8,
+				dignities: [],
 			},
 		};
 
@@ -37,6 +39,11 @@ describe("fact-atoms", () => {
 				type: "stellium" as const,
 				bodies: ["sun", "mercury", "venus"],
 				sign: "Aries",
+			},
+			{
+				type: "stellium_house" as const,
+				bodies: ["sun", "mercury", "venus"],
+				house: 1,
 			},
 		];
 
@@ -54,6 +61,7 @@ describe("fact-atoms", () => {
 		expect(context.atoms).toContain("mercury_retrograde");
 		expect(context.atoms).toContain("aspect_sun_conjunction_mercury");
 		expect(context.atoms).toContain("pattern_stellium_sign_aries");
+		expect(context.atoms).toContain("pattern_stellium_house_1");
 		expect(context.atoms).toContain("house_1_sign_aries");
 		expect(context.atoms).toContain("house_1_ruler_mars");
 	});
@@ -122,12 +130,9 @@ describe("fact-atoms", () => {
 		expect(context.atoms).toContain("pluto_polarity_point_house_2");
 		expect(context.atoms).toContain("pluto_polarity_point_operative");
 		expect(context.atoms).toContain("node_motion_stationary");
-		expect(context.atoms).toContain(
-			"skipped_step_mars_resolves_north_node",
-		);
+		expect(context.atoms).toContain("skipped_step_mars_resolves_north_node");
 		expect(context.atoms).toContain("sol_luna_phase_full");
 		expect(context.atoms).toContain("dominant_element_fire");
 		expect(context.atoms).toContain("dominant_hemisphere_eastern");
 	});
 });
-

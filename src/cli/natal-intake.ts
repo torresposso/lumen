@@ -166,10 +166,20 @@ interface ParsedArgs {
 	positionals: string[];
 }
 
+function parseBooleanFlag(name: string, raw: string): boolean {
+	const value = raw.trim().toLowerCase();
+	if (value === "true") return true;
+	if (value === "false") return false;
+	throw new AxiError(`Flag --${name} expects true or false`, "INVALID_VALUE", [
+		`Example: --${name}=true`,
+	]);
+}
+
 function parseFlags(args: string[], spec?: FlagSpec): ParsedArgs {
 	const values: Record<string, string> = {};
 	const flags = new Set<string>();
 	const positionals: string[] = [];
+	const booleanNames = spec ? [...spec.boolean, "help"] : [];
 
 	for (let i = 0; i < args.length; i++) {
 		const arg = args[i];
@@ -177,7 +187,15 @@ function parseFlags(args: string[], spec?: FlagSpec): ParsedArgs {
 		if (arg.startsWith("--")) {
 			const eq = arg.indexOf("=");
 			if (eq !== -1) {
-				values[arg.slice(2, eq)] = arg.slice(eq + 1);
+				const name = arg.slice(2, eq);
+				const rawValue = arg.slice(eq + 1);
+				if (booleanNames.includes(name)) {
+					if (parseBooleanFlag(name, rawValue)) {
+						flags.add(name);
+					}
+				} else {
+					values[name] = rawValue;
+				}
 				continue;
 			}
 			const name = arg.slice(2);

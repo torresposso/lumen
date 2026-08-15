@@ -65,6 +65,10 @@ export function generateFactAtoms(
 	// Patterns
 	if (chart.patterns) {
 		for (const p of chart.patterns) {
+			if (p.type === "stellium_house") {
+				atoms.push(`pattern_stellium_house_${p.house ?? p.bodies.join("_")}`);
+				continue;
+			}
 			const qualifier = p.sign
 				? `_sign_${p.sign.toLowerCase()}`
 				: p.house
@@ -155,4 +159,3 @@ export function generateFactAtoms(
 
 	return { atoms };
 }
-

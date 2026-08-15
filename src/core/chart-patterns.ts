@@ -1,4 +1,8 @@
 import type { ChartBody } from "caelus";
+import {
+	type ChartPattern as CaelusChartPattern,
+	detectPatternsIn as detectCaelusPatternsIn,
+} from "caelus";
 import { findDeclinationAspect } from "./celestial-coordinates";
 
 export interface AspectProjectionLike {
@@ -21,13 +25,16 @@ export interface AspectPattern {
 		| "grand_cross"
 		| "yod"
 		| "kite"
-		| "stellium";
+		| "mystic_rectangle"
+		| "stellium"
+		| "stellium_house";
 	bodies: string[];
 	apex?: string;
 	sign?: string;
 	house?: number;
 	element?: "fire" | "earth" | "air" | "water";
 	modality?: "cardinal" | "fixed" | "mutable";
+	orb?: number;
 }
 
 export interface ChartSignature {
@@ -168,129 +175,83 @@ export function computeDeclinationAspects(
 	return results;
 }
 
-/** Detects major geometric aspect patterns (Stelliums, Grand Trines, T-Squares, Yods). */
+/** Detects aspect configurations by delegating to caelus's pattern engine, which
+ *  uses its own aspect set (including quincunx for yods), excludes non-aspectable
+ *  points (nodes and Lilith), reports maximal patterns, and suppresses contained
+ *  sub-patterns. The `aspects` argument is kept for API compatibility. */
 export function detectAspectPatterns(
-	aspects: AspectProjectionLike[],
+	_aspects: AspectProjectionLike[],
 	bodies: Partial<Record<string, ChartBody>>,
 ): AspectPattern[] {
-	const patterns: AspectPattern[] = [];
-
-	const aspectMap = new Map<string, string>();
-	for (const asp of aspects) {
-		aspectMap.set(`${asp.a}-${asp.b}`, asp.aspect);
-		aspectMap.set(`${asp.b}-${asp.a}`, asp.aspect);
-	}
-
-	const hasAspect = (a: string, b: string, asp: string) =>
-		aspectMap.get(`${a}-${b}`) === asp;
-
-	const bodyKeys = Object.keys(bodies).filter((k) => bodies[k] !== undefined);
-
-	// Detect Stelliums (3+ bodies in the same sign)
-	const signGroups: Record<string, string[]> = {};
-	for (const k of bodyKeys) {
-		const b = bodies[k];
-		if (!b) continue;
-		signGroups[b.sign] = signGroups[b.sign] ?? [];
-		signGroups[b.sign].push(k);
-	}
-	for (const [sign, members] of Object.entries(signGroups)) {
-		if (members.length >= 3) {
-			patterns.push({
-				type: "stellium",
-				bodies: members,
-				sign,
-				element: SIGN_ELEMENTS[sign],
-				modality: SIGN_MODALITIES[sign],
-			});
+	const bodyMap: Record<string, { lon: number; house?: number | null }> = {};
+	for (const [id, body] of Object.entries(bodies)) {
+		if (body !== undefined) {
+			bodyMap[id] = { lon: body.lon, house: body.house };
 		}
 	}
 
-	// Detect 3-body aspect patterns: Grand Trine, T-Square, Yod
-	for (let i = 0; i < bodyKeys.length; i++) {
-		for (let j = i + 1; j < bodyKeys.length; j++) {
-			for (let k = j + 1; k < bodyKeys.length; k++) {
-				const a = bodyKeys[i];
-				const b = bodyKeys[j];
-				const c = bodyKeys[k];
-				if (!a || !b || !c) continue;
+	const detected = detectCaelusPatternsIn(bodyMap);
+	const patterns: AspectPattern[] = [];
 
-				// Grand Trine: a-b, b-c, a-c all trine
-				if (
-					hasAspect(a, b, "trine") &&
-					hasAspect(b, c, "trine") &&
-					hasAspect(a, c, "trine")
-				) {
-					const sign = bodies[a]?.sign;
-					patterns.push({
-						type: "grand_trine",
-						bodies: [a, b, c],
-						element: sign ? SIGN_ELEMENTS[sign] : undefined,
-					});
-				}
-
-				// T-Square: opposition + 2 squares to apex
-				if (
-					hasAspect(a, b, "opposition") &&
-					hasAspect(a, c, "square") &&
-					hasAspect(b, c, "square")
-				) {
-					const signC = bodies[c]?.sign;
-					patterns.push({
-						type: "t_square",
-						bodies: [a, b, c],
-						apex: c,
-						modality: signC ? SIGN_MODALITIES[signC] : undefined,
-					});
-				} else if (
-					hasAspect(a, c, "opposition") &&
-					hasAspect(a, b, "square") &&
-					hasAspect(c, b, "square")
-				) {
-					const signB = bodies[b]?.sign;
-					patterns.push({
-						type: "t_square",
-						bodies: [a, c, b],
-						apex: b,
-						modality: signB ? SIGN_MODALITIES[signB] : undefined,
-					});
-				} else if (
-					hasAspect(b, c, "opposition") &&
-					hasAspect(b, a, "square") &&
-					hasAspect(c, a, "square")
-				) {
-					const signA = bodies[a]?.sign;
-					patterns.push({
-						type: "t_square",
-						bodies: [b, c, a],
-						apex: a,
-						modality: signA ? SIGN_MODALITIES[signA] : undefined,
-					});
-				}
-
-				// Yod: sextile + 2 quincunx to apex
-				if (
-					hasAspect(a, b, "sextile") &&
-					hasAspect(a, c, "quincunx") &&
-					hasAspect(b, c, "quincunx")
-				) {
-					patterns.push({ type: "yod", bodies: [a, b, c], apex: c });
-				} else if (
-					hasAspect(a, c, "sextile") &&
-					hasAspect(a, b, "quincunx") &&
-					hasAspect(c, b, "quincunx")
-				) {
-					patterns.push({ type: "yod", bodies: [a, c, b], apex: b });
-				} else if (
-					hasAspect(b, c, "sextile") &&
-					hasAspect(b, a, "quincunx") &&
-					hasAspect(c, a, "quincunx")
-				) {
-					patterns.push({ type: "yod", bodies: [b, c, a], apex: a });
-				}
-			}
+	for (const pattern of detected) {
+		const converted = toAspectPattern(pattern, bodies);
+		if (converted !== undefined) {
+			patterns.push(converted);
 		}
 	}
 
 	return patterns;
+}
+
+function toAspectPattern(
+	pattern: CaelusChartPattern,
+	bodies: Partial<Record<string, ChartBody>>,
+): AspectPattern | undefined {
+	const base = {
+		bodies: pattern.bodies,
+		apex: pattern.apex,
+		sign: pattern.sign,
+		house: pattern.house,
+		orb: pattern.orb,
+	};
+
+	switch (pattern.kind) {
+		case "grand_trine": {
+			const sign = pattern.bodies[0]
+				? bodies[pattern.bodies[0]]?.sign
+				: undefined;
+			return {
+				...base,
+				type: "grand_trine",
+				element: sign ? SIGN_ELEMENTS[sign] : undefined,
+			};
+		}
+		case "t_square": {
+			const apexSign = pattern.apex ? bodies[pattern.apex]?.sign : undefined;
+			return {
+				...base,
+				type: "t_square",
+				modality: apexSign ? SIGN_MODALITIES[apexSign] : undefined,
+			};
+		}
+		case "grand_cross":
+			return { ...base, type: "grand_cross" };
+		case "yod":
+			return { ...base, type: "yod" };
+		case "kite":
+			return { ...base, type: "kite" };
+		case "mystic_rectangle":
+			return { ...base, type: "mystic_rectangle" };
+		case "stellium_sign":
+			return {
+				...base,
+				type: "stellium",
+				element: pattern.sign ? SIGN_ELEMENTS[pattern.sign] : undefined,
+				modality: pattern.sign ? SIGN_MODALITIES[pattern.sign] : undefined,
+			};
+		case "stellium_house":
+			return { ...base, type: "stellium_house" };
+		default:
+			return undefined;
+	}
 }

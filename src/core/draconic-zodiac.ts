@@ -1,10 +1,10 @@
 import { AxiError } from "axi-sdk-js";
-import type { Chart, ChartBodies } from "caelus";
+import type { Chart, ChartBody } from "caelus";
 import { shiftLongitude, signOf } from "./celestial-coordinates";
 
 export interface DraconicChart {
 	nodeUsed: "true_node" | "mean_node";
-	bodies: Chart["bodies"];
+	bodies: Partial<Record<string, ChartBody>>;
 	angles: Chart["angles"];
 	cusps: number[];
 }
@@ -34,7 +34,7 @@ export function toDraconicChart(
 	const nodeLon = nodeBody.lon;
 	const shift = (lon: number): number => shiftLongitude(lon, nodeLon);
 
-	const shiftedBodies: ChartBodies = {};
+	const shiftedBodies: Partial<Record<string, ChartBody>> = {};
 	for (const [id, body] of Object.entries(chart.bodies)) {
 		if (body !== undefined) {
 			const lon = shift(body.lon);

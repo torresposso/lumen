@@ -95,7 +95,7 @@ export function projectPoint(
 	digits = 4,
 ): ProjectedEclipticPoint {
 	const norm = normalizeLongitude(rawLon);
-	const lon = roundPrecision(norm, digits);
+	const lon = normalizeLongitude(roundPrecision(norm, digits));
 	let signDeg = roundPrecision(norm % 30, digits);
 	let sign = signOf(norm);
 	if (signDeg >= 30) {

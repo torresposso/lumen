@@ -58,6 +58,25 @@ describe("computeEvolutionaryReading", () => {
 		expect(evo.nodes.southNode?.ruler).toBe("pluto");
 	});
 
+	test("honors the requested node mode", () => {
+		const evo = computeEvolutionaryReading(
+			input({
+				...natal,
+				mean_node: body({
+					lon: 40,
+					sign: "Taurus",
+					signDeg: 10,
+					house: 2,
+				}),
+			}),
+			"mean",
+		);
+
+		expect(evo.nodes.northNode?.sign).toBe("Taurus");
+		expect(evo.nodes.northNode?.signDeg).toBe(10);
+		expect(evo.nodes.southNode?.lon).toBe(220);
+	});
+
 	test("flags bodies squaring Pluto as skipped steps", () => {
 		const evo = computeEvolutionaryReading(
 			input({

@@ -412,6 +412,48 @@ describe("resolveNatalRequest", () => {
 			}
 		});
 
+		test("resolveNatalRequestFromArgs honors boolean flags passed with =", async () => {
+			const baseArgs = [
+				"--when",
+				"1981-01-26T00:50",
+				"--lat",
+				"9.242",
+				"--lon",
+				"-74.755",
+				"--zone",
+				"America/Bogota",
+			];
+
+			const enabled = await resolveNatalRequestFromArgs([
+				...baseArgs,
+				"--draconic=true",
+			]);
+			expect(enabled.kind).toBe("request");
+			if (enabled.kind === "request") {
+				expect(enabled.request.options.draconic).toBe(true);
+			}
+
+			const disabled = await resolveNatalRequestFromArgs([
+				...baseArgs,
+				"--draconic=false",
+			]);
+			expect(disabled.kind).toBe("request");
+			if (disabled.kind === "request") {
+				expect(disabled.request.options.draconic).toBe(false);
+			}
+		});
+
+		test("resolveNatalRequestFromArgs rejects invalid boolean flag values", async () => {
+			await expect(
+				resolveNatalRequestFromArgs(["--draconic=maybe"]),
+			).rejects.toThrow(/expects true or false/);
+		});
+
+		test("resolveNatalRequestFromArgs handles --help=true", async () => {
+			const res = await resolveNatalRequestFromArgs(["--help=true"]);
+			expect(res.kind).toBe("help");
+		});
+
 		test("resolveNatalRequestFromArgs handles --help flag", async () => {
 			const res = await resolveNatalRequestFromArgs(["--help"]);
 			expect(res.kind).toBe("help");

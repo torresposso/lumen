@@ -169,10 +169,14 @@ function buildDispositorChain(
  *  Sol-Luna Phase Mechanics, and the Pluto/Chiron dispositor chains. */
 export function computeEvolutionaryReading(
 	chart: EvolutionaryInput | Chart,
+	nodeMode: "both" | "mean" | "true" = "both",
 ): EvolutionaryResult {
 	const { bodies, cusps } = chart;
 	const pluto = bodies.pluto;
-	const northNode = bodies.true_node ?? bodies.mean_node;
+	const northNode =
+		nodeMode === "mean"
+			? bodies.mean_node
+			: (bodies.true_node ?? bodies.mean_node);
 	let southNode: (ProjectedEclipticPoint & { ruler?: string }) | undefined;
 	let nodeMotionStatus: "retrograde" | "direct" | "stationary" | undefined;
 
@@ -333,14 +337,14 @@ export function computeEvolutionaryReading(
 				}
 			: undefined,
 		polarityPoint:
-			plutoNodalConjunction === "north_node"
+			plutoNodalConjunction === "north_node" || polarityPoint === undefined
 				? undefined
 				: {
 						...polarityPoint,
 						isOperative:
 							plutoNodalConjunction === "south_node"
 								? true
-								: (polarityPoint?.isOperative ?? true),
+								: (polarityPoint.isOperative ?? true),
 					},
 		nodes: {
 			northNode: northNode

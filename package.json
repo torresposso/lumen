@@ -8,6 +8,7 @@
 	"scripts": {
 		"start": "bun run bin/lumen.ts",
 		"test": "bun test",
+		"typecheck": "tsc --noEmit",
 		"check": "biome check .",
 		"format": "biome format --write .",
 		"build": "bun build --compile bin/lumen.ts --outfile dist/lumen"

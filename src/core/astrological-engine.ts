@@ -182,7 +182,7 @@ function projectBodies(
 }
 
 function projectDraconicBodies(
-	source: Chart["bodies"],
+	source: Partial<Record<string, ChartBody>>,
 ): Partial<Record<string, DraconicBodyProjection>> {
 	const bodies: Partial<Record<string, DraconicBodyProjection>> = {};
 	for (const [id, body] of Object.entries(source)) {
@@ -318,7 +318,7 @@ export class AstrologicalEngine {
 		);
 
 		const evolutionary = options.evolutionary
-			? computeEvolutionaryReading(rawChart)
+			? computeEvolutionaryReading(rawChart, options.node)
 			: undefined;
 
 		const draconic = options.draconic
@@ -331,6 +331,7 @@ export class AstrologicalEngine {
 					birth,
 					rawChart.cusps,
 					options.houseSystem,
+					options.topocentric,
 				)
 			: undefined;
 
@@ -338,14 +339,19 @@ export class AstrologicalEngine {
 			? computeHermeticLots(this.ephemeris, birth, rawChart.cusps)
 			: undefined;
 
-		const stars = options.stars
-			? computeFixedStarMatches(this.ephemeris, birth, rawChart.bodies)
-			: undefined;
-
 		const natalBodies = { ...rawChart.bodies };
 		for (const dropped of DROPPED_BY_NODE[options.node]) {
 			delete natalBodies[dropped];
 		}
+
+		const stars = options.stars
+			? computeFixedStarMatches(
+					this.ephemeris,
+					birth,
+					natalBodies,
+					rawChart.angles,
+				)
+			: undefined;
 
 		const projected = project({
 			chart: rawChart,

@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type { Chart, ChartBody } from "caelus";
 import { BODIES } from "caelus";
 import type { ResolvedBirth } from "../../src/cli/natal-intake";
+import type { Ephemeris } from "../../src/core/ephemeris-gateway";
 import { CaelusEphemeris } from "../../src/core/ephemeris-gateway";
 import { computePrenatalEclipses } from "../../src/core/prenatal-eclipses";
 
@@ -74,5 +75,39 @@ describe("computePrenatalEclipses", () => {
 				expect(eclipses.lunar.sign).not.toBe(eclipses.solar.sign);
 			}
 		}
+	});
+
+	test("searches exactly 180 days before birth", () => {
+		const calls: Array<{ start: number; end: number }> = [];
+		const mockEphemeris = {
+			chartAt: () => baseChart,
+			solarEclipses: (start: number, end: number) => {
+				calls.push({ start, end });
+				return [];
+			},
+			lunarEclipses: () => [],
+			lots: () => ({
+				day: true,
+				fortune: 0,
+				spirit: 0,
+				eros: 0,
+				necessity: 0,
+				courage: 0,
+				victory: 0,
+				nemesis: 0,
+			}),
+			starLongitude: () => 0,
+			fixedStars: () => ({}),
+		} satisfies Ephemeris;
+
+		computePrenatalEclipses(
+			mockEphemeris,
+			birth,
+			baseChart.cusps,
+			"placidus",
+			true,
+		);
+
+		expect(calls).toEqual([{ start: birth.jdUt - 180, end: birth.jdUt }]);
 	});
 });

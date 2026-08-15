@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { NatalRequest } from "../../src/cli/natal-intake";
 import { AstrologicalEngine } from "../../src/core/astrological-engine";
+import type { Ephemeris } from "../../src/core/ephemeris-gateway";
 
 const request: NatalRequest = {
 	birth: {
@@ -59,6 +60,22 @@ describe("AstrologicalEngine", () => {
 		});
 		expect(reading.chart.bodies.true_node).toBeDefined();
 		expect(reading.chart.bodies.mean_node).toBeUndefined();
+	});
+
+	test("uses the selected node for the evolutionary reading", () => {
+		const reading = engine.compute({
+			...request,
+			options: { ...request.options, node: "mean", evolutionary: true },
+		});
+
+		expect(reading.chart.bodies.true_node).toBeUndefined();
+		expect(reading.chart.bodies.mean_node).toBeDefined();
+		expect(reading.chart.evolutionary?.nodes.northNode?.sign).toBe(
+			reading.chart.bodies.mean_node?.sign,
+		);
+		expect(reading.chart.evolutionary?.nodes.northNode?.signDeg).toBe(
+			reading.chart.bodies.mean_node?.signDeg,
+		);
 	});
 
 	test("computes requested extra bodies", () => {
@@ -165,7 +182,7 @@ describe("AstrologicalEngine", () => {
 			}),
 			starLongitude: () => 0,
 			fixedStars: () => ({}),
-		};
+		} as unknown as Ephemeris;
 
 		const customEngine = new AstrologicalEngine(mockEphemeris);
 		const reading = customEngine.compute(request);
@@ -215,7 +232,7 @@ describe("AstrologicalEngine", () => {
 			}),
 			starLongitude: () => 0,
 			fixedStars: () => ({}),
-		};
+		} as unknown as Ephemeris;
 
 		const customEngine = new AstrologicalEngine(mockEphemeris);
 		const reading = customEngine.compute({

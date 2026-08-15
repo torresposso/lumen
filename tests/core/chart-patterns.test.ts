@@ -6,6 +6,23 @@ import {
 	detectAspectPatterns,
 } from "../../src/core/chart-patterns";
 
+function body(overrides: Partial<ChartBody> = {}): ChartBody {
+	return {
+		lon: 0,
+		sign: "Aries",
+		signDeg: 0,
+		house: 1,
+		retrograde: false,
+		speed: 1,
+		lat: 0,
+		dist: null,
+		ra: 0,
+		dec: 0,
+		dignities: [],
+		...overrides,
+	};
+}
+
 describe("chart-patterns", () => {
 	it("computes chart signature distributions across hemispheres, quadrants, elements, and modalities", () => {
 		const bodies: Partial<Record<string, ChartBody>> = {
@@ -20,6 +37,7 @@ describe("chart-patterns", () => {
 				dist: null,
 				ra: 14,
 				dec: 6,
+				dignities: [],
 			},
 			moon: {
 				lon: 45,
@@ -32,6 +50,7 @@ describe("chart-patterns", () => {
 				dist: null,
 				ra: 43,
 				dec: 16,
+				dignities: [],
 			},
 			mars: {
 				lon: 135,
@@ -44,6 +63,7 @@ describe("chart-patterns", () => {
 				dist: null,
 				ra: 137,
 				dec: 17,
+				dignities: [],
 			},
 			jupiter: {
 				lon: 225,
@@ -56,6 +76,7 @@ describe("chart-patterns", () => {
 				dist: null,
 				ra: 223,
 				dec: -16,
+				dignities: [],
 			},
 		};
 
@@ -84,6 +105,7 @@ describe("chart-patterns", () => {
 				dist: null,
 				ra: 9,
 				dec: 4,
+				dignities: [],
 			},
 			mercury: {
 				lon: 15,
@@ -96,6 +118,7 @@ describe("chart-patterns", () => {
 				dist: null,
 				ra: 14,
 				dec: 6,
+				dignities: [],
 			},
 			venus: {
 				lon: 20,
@@ -108,6 +131,7 @@ describe("chart-patterns", () => {
 				dist: null,
 				ra: 18,
 				dec: 8,
+				dignities: [],
 			},
 		};
 
@@ -130,6 +154,7 @@ describe("chart-patterns", () => {
 				dist: null,
 				ra: 0,
 				dec: 0,
+				dignities: [],
 			},
 			moon: {
 				lon: 120,
@@ -142,6 +167,7 @@ describe("chart-patterns", () => {
 				dist: null,
 				ra: 120,
 				dec: 10,
+				dignities: [],
 			},
 			mars: {
 				lon: 240,
@@ -154,6 +180,7 @@ describe("chart-patterns", () => {
 				dist: null,
 				ra: 240,
 				dec: -10,
+				dignities: [],
 			},
 		};
 
@@ -165,6 +192,46 @@ describe("chart-patterns", () => {
 
 		const patterns = detectAspectPatterns(aspects, bodies);
 		expect(patterns.some((p) => p.type === "grand_trine")).toBe(true);
+	});
+	it("detects t-squares and yods from body longitudes", () => {
+		const tSquare = detectAspectPatterns([], {
+			sun: body({ lon: 0, sign: "Aries" }),
+			moon: body({ lon: 180, sign: "Libra" }),
+			mars: body({ lon: 90, sign: "Cancer" }),
+		});
+		expect(
+			tSquare.some((p) => p.type === "t_square" && p.apex === "mars"),
+		).toBe(true);
+
+		const yod = detectAspectPatterns([], {
+			sun: body({ lon: 0, sign: "Aries" }),
+			moon: body({ lon: 60, sign: "Gemini" }),
+			mars: body({ lon: 210, sign: "Scorpio" }),
+		});
+		expect(yod.some((p) => p.type === "yod" && p.apex === "mars")).toBe(true);
+	});
+
+	it("detects a grand cross as one maximal pattern, not four t-squares", () => {
+		const patterns = detectAspectPatterns([], {
+			sun: body({ lon: 0, sign: "Aries" }),
+			moon: body({ lon: 90, sign: "Cancer" }),
+			mars: body({ lon: 180, sign: "Libra" }),
+			jupiter: body({ lon: 270, sign: "Capricorn" }),
+		});
+
+		expect(patterns.some((p) => p.type === "grand_cross")).toBe(true);
+		expect(patterns.some((p) => p.type === "t_square")).toBe(false);
+	});
+
+	it("excludes nodes and Lilith from stellium detection", () => {
+		const patterns = detectAspectPatterns([], {
+			sun: body({ lon: 10, sign: "Aries" }),
+			moon: body({ lon: 12, sign: "Aries" }),
+			true_node: body({ lon: 14, sign: "Aries" }),
+			mean_lilith: body({ lon: 16, sign: "Aries" }),
+		});
+
+		expect(patterns.some((p) => p.type === "stellium")).toBe(false);
 	});
 
 	it("computes parallel and contraparallel declination aspects", () => {
@@ -180,6 +247,7 @@ describe("chart-patterns", () => {
 				dist: null,
 				ra: 0,
 				dec: 15.0,
+				dignities: [],
 			},
 			moon: {
 				lon: 180,
@@ -192,6 +260,7 @@ describe("chart-patterns", () => {
 				dist: null,
 				ra: 180,
 				dec: 15.2,
+				dignities: [],
 			},
 			saturn: {
 				lon: 90,
@@ -204,6 +273,7 @@ describe("chart-patterns", () => {
 				dist: null,
 				ra: 90,
 				dec: -15.1,
+				dignities: [],
 			},
 		};
 

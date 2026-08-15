@@ -18,7 +18,7 @@ export interface EclipsesResult {
 	lunar?: EclipseInfo;
 }
 
-/** Computes the prenatal solar and lunar eclipses occurring within 200 days prior to birth.
+/** Computes the prenatal solar and lunar eclipses occurring within 180 days prior to birth.
  *  In Jeffrey Wolf Green evolutionary astrology, prenatal eclipses represent the soul's
  *  intentions and primary karmic evolutionary blueprint for the current incarnation. */
 export function computePrenatalEclipses(
@@ -26,8 +26,9 @@ export function computePrenatalEclipses(
 	birth: ResolvedBirth,
 	cusps: number[],
 	houseSystem: HouseSystem,
+	topocentric = false,
 ): EclipsesResult {
-	const jdStart = birth.jdUt - 200;
+	const jdStart = birth.jdUt - 180;
 	const jdEnd = birth.jdUt;
 	const sEclipses = ephemeris.solarEclipses(jdStart, jdEnd);
 	const lEclipses = ephemeris.lunarEclipses(jdStart, jdEnd);
@@ -44,6 +45,7 @@ export function computePrenatalEclipses(
 	): EclipseInfo => {
 		const pos = ephemeris.chartAt(tMax, birth.lat, birth.lon, {
 			houseSystem,
+			topocentric,
 		});
 		const targetBody = isLunar ? pos.bodies.moon : pos.bodies.sun;
 		if (!targetBody) {

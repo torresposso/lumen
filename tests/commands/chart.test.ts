@@ -62,6 +62,21 @@ describe("chartCommand", () => {
 		expect(result.chart.draconic.bodies.true_node.lon).toBeCloseTo(0, 4);
 	});
 
+	test("computes a draconic chart when --draconic=true is passed", async () => {
+		const result = (await chartCommand(
+			[...TAMPA_ARGS, "--draconic=true"],
+			undefined,
+		)) as {
+			chart: {
+				birth: { requested: { draconic: boolean } };
+				draconic: { nodeUsed: string };
+			};
+		};
+
+		expect(result.chart.birth.requested.draconic).toBe(true);
+		expect(result.chart.draconic.nodeUsed).toBe("true_node");
+	});
+
 	test("computes evolutionary features (--eclipses --lots --stars)", async () => {
 		const result = (await chartCommand(
 			[...TAMPA_ARGS, "--eclipses", "--lots", "--stars"],
