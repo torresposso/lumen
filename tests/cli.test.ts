@@ -7,13 +7,19 @@ describe("main CLI entrypoint", () => {
 	});
 
 	test("can be invoked without crashing", async () => {
-		// Mock argv for home view
 		const originalArgv = process.argv;
+		const originalProfilesDir = process.env.LUMEN_PROFILES_DIR;
+		process.env.LUMEN_PROFILES_DIR = "/tmp/lumen-cli-test-profiles";
 		process.argv = ["node", "lumen"];
 		try {
 			await expect(main()).resolves.toBeUndefined();
 		} finally {
 			process.argv = originalArgv;
+			if (originalProfilesDir === undefined) {
+				delete process.env.LUMEN_PROFILES_DIR;
+			} else {
+				process.env.LUMEN_PROFILES_DIR = originalProfilesDir;
+			}
 		}
 	});
 });

@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { AxiError } from "axi-sdk-js";
 import { resolveExecPath, setupCommand } from "../../src/commands/setup";
 
 function withArgv1<T>(value: string, fn: () => T): T {
@@ -26,16 +27,23 @@ describe("resolveExecPath", () => {
 });
 
 describe("setupCommand", () => {
-	test("returns error and help for non-'hooks' subcommand", async () => {
-		const res = await setupCommand(["invalid"]);
-		expect(res).toEqual({
-			error: "Unknown setup command",
-			help: ["Run `lumen setup hooks`"],
-		});
+	test("rejects unknown setup subcommands with a validation error", async () => {
+		await expect(setupCommand(["invalid"])).rejects.toBeInstanceOf(AxiError);
+		try {
+			await setupCommand(["invalid"]);
+			expect.unreachable();
+		} catch (error) {
+			expect((error as AxiError).code).toBe("VALIDATION_ERROR");
+		}
 	});
 
-	test("returns error and help when run from unbuilt source script", async () => {
-		const res = await setupCommand(["hooks"]);
-		expect(res).toHaveProperty("error");
+	test("returns usage for setup --help", async () => {
+		const usage = await setupCommand(["--help"]);
+		expect(typeof usage).toBe("string");
+		expect(usage).toContain("lumen setup hooks");
+	});
+
+	test("rejects hook installation from an unbuilt source script", async () => {
+		await expect(setupCommand(["hooks"])).rejects.toBeInstanceOf(AxiError);
 	});
 });

@@ -383,7 +383,7 @@ describe("resolveNatalRequest", () => {
 			).rejects.toThrow(/unknown body: fake_body/);
 		});
 
-		test("throws MISSING_FLAG when required birth flag is missing", async () => {
+		test("throws VALIDATION_ERROR when required birth flag is missing", async () => {
 			expect(
 				resolveNatalRequest(
 					{

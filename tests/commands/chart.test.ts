@@ -115,6 +115,31 @@ describe("chartCommand", () => {
 		expect(Array.isArray(result.chart.evolutionary?.skippedSteps)).toBe(true);
 	});
 
+	test("defaults to the evolutionary reading", async () => {
+		const result = (await chartCommand(TAMPA_ARGS, undefined)) as {
+			chart: { evolutionary: { pluto: { sign: string } } };
+		};
+
+		expect(result.chart.evolutionary.pluto.sign).toBeDefined();
+	});
+
+	test("chart natal disables the evolutionary reading", async () => {
+		const result = (await chartCommand(
+			["natal", ...TAMPA_ARGS],
+			undefined,
+		)) as {
+			chart: { evolutionary?: unknown };
+		};
+
+		expect(result.chart.evolutionary).toBeUndefined();
+	});
+
+	test("rejects unknown chart subcommands", async () => {
+		await expect(chartCommand(["bogus"], undefined)).rejects.toBeInstanceOf(
+			AxiError,
+		);
+	});
+
 	test("throws a structured AxiError for an unknown house system", async () => {
 		await expect(
 			chartCommand([...TAMPA_ARGS, "--house-system", "foo"], undefined),

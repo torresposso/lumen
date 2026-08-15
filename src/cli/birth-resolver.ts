@@ -126,7 +126,7 @@ function toAxiError(
 	if (name !== "" && !(name in input)) {
 		return new AxiError(
 			`Missing required flag --${name}`,
-			"MISSING_FLAG",
+			"VALIDATION_ERROR",
 			suggestion === undefined ? undefined : [suggestion],
 		);
 	}

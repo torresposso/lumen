@@ -303,19 +303,21 @@ export class AstrologicalEngine {
 		this.ephemeris = ephemeris ?? new CaelusEphemeris();
 	}
 
+	/** Computes the raw caelus chart for a validated request. Kept public for
+	 *  synastry and timing commands that need the underlying engine chart. */
+	chartFor(request: NatalRequest): Chart {
+		const { birth, options } = request;
+		return this.ephemeris.chartAt(birth.jdUt, birth.lat, birth.lon, {
+			houseSystem: options.houseSystem,
+			zodiac: options.zodiac,
+			bodies: options.bodies,
+			topocentric: options.topocentric,
+		});
+	}
+
 	compute(request: NatalRequest): AstrologicalReading {
 		const { birth, options } = request;
-		const rawChart: Chart = this.ephemeris.chartAt(
-			birth.jdUt,
-			birth.lat,
-			birth.lon,
-			{
-				houseSystem: options.houseSystem,
-				zodiac: options.zodiac,
-				bodies: options.bodies,
-				topocentric: options.topocentric,
-			},
-		);
+		const rawChart: Chart = this.chartFor(request);
 
 		const evolutionary = options.evolutionary
 			? computeEvolutionaryReading(rawChart, options.node)

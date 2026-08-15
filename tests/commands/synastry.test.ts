@@ -1,0 +1,127 @@
+import { afterEach, describe, expect, test } from "bun:test";
+import { rmSync } from "node:fs";
+import type { CliContext } from "../../src/cli/context";
+import { ProfileStore } from "../../src/cli/profile-store";
+import { profileCommand } from "../../src/commands/profile";
+import { synastryCommand } from "../../src/commands/synastry";
+
+const STORE_FILE = "/tmp/lumen-synastry-command-test.json";
+
+function context(): CliContext {
+	return { profiles: new ProfileStore(STORE_FILE) };
+}
+
+afterEach(() => {
+	rmSync(STORE_FILE, { force: true });
+	rmSync(`${STORE_FILE}.tmp`, { force: true });
+});
+
+describe("synastryCommand", () => {
+	test("compares a natal chart with its draconic projection", async () => {
+		const ctx = context();
+		await profileCommand(
+			[
+				"add",
+				"erik",
+				"--year",
+				"1990",
+				"--month",
+				"6",
+				"--day",
+				"10",
+				"--hour",
+				"14",
+				"--minute",
+				"30",
+				"--lat",
+				"27.95",
+				"--lon",
+				"-82.46",
+			],
+			ctx,
+		);
+
+		const output = (await synastryCommand(
+			["self", "--profile", "erik"],
+			ctx,
+		)) as {
+			synastry: {
+				pair: string;
+				summary: { contacts: number; evolutionary: number };
+				contacts: Array<{ a: string; b: string; aspect: string; orb: number }>;
+			};
+		};
+
+		expect(output.synastry.pair).toBe("natal × draconic");
+		expect(output.synastry.summary.contacts).toBeGreaterThan(0);
+		expect(Array.isArray(output.synastry.contacts)).toBe(true);
+	});
+
+	test("compares two saved profiles", async () => {
+		const ctx = context();
+		await profileCommand(
+			[
+				"add",
+				"erik",
+				"--year",
+				"1990",
+				"--month",
+				"6",
+				"--day",
+				"10",
+				"--hour",
+				"14",
+				"--minute",
+				"30",
+				"--lat",
+				"27.95",
+				"--lon",
+				"-82.46",
+			],
+			ctx,
+		);
+		await profileCommand(
+			[
+				"add",
+				"kary",
+				"--year",
+				"1987",
+				"--month",
+				"3",
+				"--day",
+				"14",
+				"--hour",
+				"6",
+				"--minute",
+				"10",
+				"--lat",
+				"4.711",
+				"--lon",
+				"-74.072",
+			],
+			ctx,
+		);
+
+		const output = (await synastryCommand(
+			["pair", "--a", "erik", "--b", "kary"],
+			ctx,
+		)) as {
+			synastry: { pair: string; summary: { contacts: number } };
+		};
+
+		expect(output.synastry.pair).toBe("erik × kary");
+		expect(output.synastry.summary.contacts).toBeGreaterThan(0);
+	});
+
+	test("rejects pair without both profiles", async () => {
+		await expect(
+			synastryCommand(["pair", "--a", "erik"], context()),
+		).rejects.toThrow(/--b/);
+	});
+
+	test("rejects unknown focus values", async () => {
+		await expect(
+			synastryCommand(["self", "--focus", "romantico"], context()),
+		).rejects.toThrow(/Invalid focus/);
+	});
+});

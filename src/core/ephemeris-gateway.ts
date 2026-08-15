@@ -1,4 +1,5 @@
 import type {
+	BodyId,
 	Chart,
 	ChartLots,
 	EngineData,
@@ -10,8 +11,10 @@ import {
 	Engine,
 	lots,
 	lunarEclipses,
+	progressedLongitude,
 	solarEclipses,
 	starApparent,
+	stations,
 } from "caelus";
 import { embeddedData } from "caelus/data-embedded";
 
@@ -35,6 +38,15 @@ export interface Ephemeris {
 	starLongitude(entry: StarEntry, jdUt: number): number;
 	/** Fixed-star catalog entries keyed by conventional name. */
 	fixedStars(): Record<string, StarEntry>;
+	/** Optional timing extension: secondary-progressed longitude for a body. */
+	progressedLongitude?(body: BodyId, natalJd: number, targetJd: number): number;
+	/** Optional timing extension: body stations in a JD window. */
+	stations?(
+		body: BodyId,
+		jdStart: number,
+		jdEnd: number,
+		maxHits?: number,
+	): Array<[number, "retrograde" | "direct"]>;
 }
 
 /** The caelus-backed adapter: the single module that knows how to drive the
@@ -70,6 +82,19 @@ export class CaelusEphemeris implements Ephemeris {
 
 	lots(jdUt: number, lat: number, lonEast: number): ChartLots {
 		return lots(this.engine, jdUt, lat, lonEast);
+	}
+
+	progressedLongitude(body: BodyId, natalJd: number, targetJd: number): number {
+		return progressedLongitude(this.engine, body, natalJd, targetJd);
+	}
+
+	stations(
+		body: BodyId,
+		jdStart: number,
+		jdEnd: number,
+		maxHits = 30,
+	): Array<[number, "retrograde" | "direct"]> {
+		return stations(this.engine, body, jdStart, jdEnd, maxHits);
 	}
 
 	starLongitude(entry: StarEntry, jdUt: number): number {

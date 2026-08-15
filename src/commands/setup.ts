@@ -1,4 +1,5 @@
 import {
+	AxiError,
 	installSessionStartHooks,
 	shouldInstallHooksForNodeAxiExecPath,
 } from "axi-sdk-js";
@@ -18,20 +19,25 @@ export function resolveExecPath(): string {
 
 export async function setupCommand(
 	args: string[],
-): Promise<Record<string, unknown>> {
-	if (args[0] !== "hooks") {
-		return {
-			error: "Unknown setup command",
-			help: ["Run `lumen setup hooks`"],
-		};
+): Promise<string | Record<string, unknown>> {
+	if (args[0] === undefined || args[0] === "--help") {
+		return setupUsage;
+	}
+	if (args[0] !== "hooks" || args.length > 1) {
+		throw new AxiError(
+			`Unknown setup command: ${args.join(" ")}`,
+			"VALIDATION_ERROR",
+			["Run `lumen setup hooks`"],
+		);
 	}
 
 	const execPath = resolveExecPath();
 	if (!shouldInstallHooksForNodeAxiExecPath(execPath, HOOK_POLICY)) {
-		return {
-			error: "Cannot install session hooks from this executable",
-			help: ["Run `bun run build`, then `./dist/lumen setup hooks`"],
-		};
+		throw new AxiError(
+			"Cannot install session hooks from this executable",
+			"HOOK_INSTALL_ERROR",
+			["Run `bun run build`, then `./dist/lumen setup hooks`"],
+		);
 	}
 
 	installSessionStartHooks({ ...HOOK_POLICY, execPath });
