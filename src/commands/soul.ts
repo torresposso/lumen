@@ -102,6 +102,15 @@ export const soulCommand: AxiCliCommand<CliContext> = async (args, context) => {
 	const skipped =
 		nodalReading.skippedSteps.length > 0 ? nodalReading.skippedSteps : 0;
 
+	const p2 = (n: number) => String(n).padStart(2, "0");
+	const birth = request.birth;
+	const inlineFlags = [
+		`--when "${birth.local.year}-${p2(birth.local.month)}-${p2(birth.local.day)}T${p2(birth.local.hour)}:${p2(birth.local.minute)}"`,
+		...(birth.zone ? [`--zone "${birth.zone}"`] : []),
+		`--lat ${birth.lat}`,
+		`--lon ${birth.lon}`,
+	].join(" ");
+
 	return {
 		soul: {
 			client: clientName,
@@ -147,9 +156,14 @@ export const soulCommand: AxiCliCommand<CliContext> = async (args, context) => {
 					}
 				: {}),
 		},
-		help: [
-			`Run \`lumen soul ${clientName} --full\` for dispositor chains and fine orbs`,
-			`Run \`lumen consulta abrir ${clientName} --motivo "..."\` to begin consultation`,
-		],
+		help: clientId
+			? [
+					`Run \`lumen soul ${clientId} --full\` for dispositor chains and fine orbs`,
+					`Run \`lumen consulta abrir ${clientId} --motivo "..."\` to begin consultation`,
+				]
+			: [
+					`Run \`lumen soul ${inlineFlags} --full\` for dispositor chains and fine orbs`,
+					`Run \`lumen client add <id> ${inlineFlags}\` to save this profile, then \`lumen consulta abrir <id>\``,
+				],
 	};
 };
