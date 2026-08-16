@@ -309,7 +309,7 @@ describe("resolveNatalRequest", () => {
 			expect(request.options.topocentric).toBe(true);
 		});
 
-		test("parses --draconic flag", async () => {
+		test("parses --topocentric flag", async () => {
 			const request = await resolveNatalRequest(
 				{
 					when: "1981-01-26T00:50",
@@ -317,22 +317,9 @@ describe("resolveNatalRequest", () => {
 					lon: "-74.755",
 					zone: "America/Bogota",
 				},
-				new Set(["draconic"]),
+				new Set(["topocentric"]),
 			);
-			expect(request.options.draconic).toBe(true);
-		});
-
-		test("parses the --evolutionary flag", async () => {
-			const request = await resolveNatalRequest(
-				{
-					when: "1981-01-26T00:50",
-					lat: "9.242",
-					lon: "-74.755",
-					zone: "America/Bogota",
-				},
-				new Set(["evolutionary"]),
-			);
-			expect(request.options.evolutionary).toBe(true);
+			expect(request.options.topocentric).toBe(true);
 		});
 
 		test("rejects non-tropical zodiac values", async () => {
@@ -409,7 +396,7 @@ describe("resolveNatalRequest", () => {
 			}
 		});
 
-		test("resolveNatalRequestFromArgs honors boolean flags passed with =", async () => {
+		test("resolveNatalRequestFromArgs rejects removed projection flags", async () => {
 			const baseArgs = [
 				"--when",
 				"1981-01-26T00:50",
@@ -421,29 +408,11 @@ describe("resolveNatalRequest", () => {
 				"America/Bogota",
 			];
 
-			const enabled = await resolveNatalRequestFromArgs([
-				...baseArgs,
-				"--draconic=true",
-			]);
-			expect(enabled.kind).toBe("request");
-			if (enabled.kind === "request") {
-				expect(enabled.request.options.draconic).toBe(true);
+			for (const flag of ["--draconic", "--evolutionary", "--draconic=true"]) {
+				await expect(
+					resolveNatalRequestFromArgs([...baseArgs, flag]),
+				).rejects.toThrow(/Unknown flag/);
 			}
-
-			const disabled = await resolveNatalRequestFromArgs([
-				...baseArgs,
-				"--draconic=false",
-			]);
-			expect(disabled.kind).toBe("request");
-			if (disabled.kind === "request") {
-				expect(disabled.request.options.draconic).toBe(false);
-			}
-		});
-
-		test("resolveNatalRequestFromArgs rejects invalid boolean flag values", async () => {
-			await expect(
-				resolveNatalRequestFromArgs(["--draconic=maybe"]),
-			).rejects.toThrow(/expects true or false/);
 		});
 
 		test("resolveNatalRequestFromArgs handles --help=true", async () => {

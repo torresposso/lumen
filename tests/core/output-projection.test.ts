@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { Chart, ChartBody } from "caelus";
 import { BODIES } from "caelus";
-import { AstrologicalEngine } from "../../src/commands/classical";
+import { AstrologicalEngine } from "../../src/commands/chart";
 import type { NatalRequest } from "../../src/commands/client";
 
 const request: NatalRequest = {

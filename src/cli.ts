@@ -1,5 +1,5 @@
 import { runAxiCli } from "axi-sdk-js";
-import { classicalCommand } from "./commands/classical";
+import { chartCommand } from "./commands/chart";
 import { clientCommand } from "./commands/client";
 import { consultaCommand } from "./commands/consulta";
 import { journeyCommand } from "./commands/journey";
@@ -17,7 +17,7 @@ const topLevelHelp = [
 	"  karma      Sinastría evolutiva y acuerdos entre Almas",
 	"  consulta   Expedientes clínicos, hipótesis (H1, H2) y diálogo",
 	"  client     Gestión de consultantes locales",
-	"  classical  Proyecciones técnicas auxiliares (chart, draconic)",
+	"  chart      Carta: natal (insumo base) y draconic (experimento etiquetado)",
 	"  setup      Instala/actualiza la integración de sesión",
 ].join("\n");
 
@@ -40,7 +40,7 @@ export async function main(): Promise<void> {
 			karma: karmaCommand,
 			consulta: consultaCommand,
 			client: clientCommand,
-			classical: classicalCommand,
+			chart: chartCommand,
 			setup: setupCommand,
 		},
 		home: async (_args, context) => {

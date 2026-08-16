@@ -2,31 +2,13 @@ import type { AxiCliCommand } from "axi-sdk-js";
 import { AxiError } from "axi-sdk-js";
 import type { CliContext } from "./client";
 
-export const classicalUsage = [
-	"lumen classical chart [...]",
-	"lumen classical draconic [...]",
+export const chartUsage = [
+	"lumen chart natal <client> | lumen chart draconic <client>",
+	'lumen chart natal --when 1981-01-26T00:50 --place "Magangué, Colombia"',
 	"",
-	"Andamiaje técnico: carta base y proyección dracónica (experimento etiquetado).",
+	"Carta natal (insumo base) y proyección draconic (experimento etiquetado).",
+	"La lectura evolutiva vive en `lumen soul <client>`.",
 ].join("\n");
-
-export const classicalCommand: AxiCliCommand<CliContext> = async (
-	args,
-	context,
-) => {
-	const [sub, ...rest] = args;
-	if (sub === undefined || sub === "--help") return classicalUsage;
-
-	if (sub === "chart") {
-		return chartCommand(["natal", ...rest], context);
-	}
-	if (sub === "draconic") {
-		return chartCommand(["draconic", ...rest], context);
-	}
-
-	throw new AxiError(`Unknown classical command: ${sub}`, "VALIDATION_ERROR", [
-		"Run `lumen classical --help` for valid subcommands",
-	]);
-};
 
 // ============================================================================
 // Chart engine (application layer; core stays pure)
@@ -52,10 +34,6 @@ import {
 	type InterpretationContext,
 	toDraconicChart,
 } from "../core/classical";
-import {
-	computeEvolutionaryReading,
-	type EvolutionaryResult,
-} from "../core/soul";
 import type {
 	BirthStatus,
 	ChartRequestOptions,
@@ -107,7 +85,6 @@ export interface Projection {
 	declinationAspects?: DeclinationAspectProjection[];
 	patterns?: AspectPattern[];
 	signature?: ChartSignature;
-	evolutionary?: EvolutionaryResult;
 	draconic?: DraconicProjection;
 }
 
@@ -240,12 +217,11 @@ function projectDraconic(draconic: DraconicChart): DraconicProjection {
 interface ProjectionInput {
 	chart: Chart;
 	bodies: Chart["bodies"];
-	evolutionary?: EvolutionaryResult;
 	draconic?: DraconicChart;
 }
 
 function project(input: ProjectionInput): Projection {
-	const { chart, bodies: rawBodies, evolutionary, draconic } = input;
+	const { chart, bodies: rawBodies, draconic } = input;
 	const bodies = projectBodies(rawBodies);
 
 	const aspects = chart.aspects.map((a) => ({
@@ -276,7 +252,6 @@ function project(input: ProjectionInput): Projection {
 		declinationAspects,
 		patterns,
 		signature,
-		...(evolutionary ? { evolutionary } : {}),
 		...(draconic ? { draconic: projectDraconic(draconic) } : {}),
 	};
 }
@@ -323,10 +298,6 @@ export class AstrologicalEngine {
 		const { options } = request;
 		const rawChart: Chart = this.chartFor(request);
 
-		const evolutionary = options.evolutionary
-			? computeEvolutionaryReading(rawChart, options.node)
-			: undefined;
-
 		const draconic = options.draconic
 			? toDraconicChart(rawChart, options.node)
 			: undefined;
@@ -339,7 +310,6 @@ export class AstrologicalEngine {
 		const projected = project({
 			chart: rawChart,
 			bodies: natalBodies,
-			evolutionary,
 			draconic,
 		});
 
@@ -357,11 +327,6 @@ export class AstrologicalEngine {
 		if (request.birth.status !== "ok") {
 			help.push(
 				`Timezone resolution provenance status: ${request.birth.status}`,
-			);
-		}
-		if (options.evolutionary) {
-			help.push(
-				"The four natural evolutionary conditions (dimly evolved, herd, individuated, spiritual) cannot be determined from the chart alone; the evolutionary reading reports evidence, not a final condition.",
 			);
 		}
 
@@ -384,7 +349,7 @@ export class AstrologicalEngine {
 }
 
 // ============================================================================
-// Chart engine commands backing `lumen classical chart|draconic`
+// Chart engine commands backing `lumen chart natal|draconic`
 // ============================================================================
 
 import {
@@ -396,61 +361,60 @@ import {
 
 const FLAG_REFERENCE = NatalIntake.usage.split("\n").slice(2).join("\n");
 
-export const chartUsage = [
-	"lumen classical chart | lumen classical draconic",
-	"",
-	NatalIntake.usage,
-].join("\n");
-
 export const chartNatalUsage = [
-	'lumen classical chart --when 1981-01-26T00:50 --place "Magangué, Colombia"',
+	'lumen chart natal --when 1981-01-26T00:50 --place "Magangué, Colombia"',
 	"",
 	"Calcula la carta natal base (efemérides caelus) sin lectura evolutiva.",
 	"Usa `lumen soul <client>` para la lectura evolutiva completa.",
 ].join("\n");
 
 export const chartDraconicUsage = [
-	'lumen classical draconic --when 1981-01-26T00:50 --place "Magangué, Colombia"',
+	'lumen chart draconic --when 1981-01-26T00:50 --place "Magangué, Colombia"',
 	"",
-	"Calcula la carta natal y su proyección draconic con lectura evolutiva.",
+	"Calcula la carta natal y su proyección draconic (experimento etiquetado,",
+	"fuera del canon; sin lectura evolutiva).",
 ].join("\n");
 
-type ChartMode = "evolutionary" | "natal" | "draconic";
+type ChartMode = "natal" | "draconic";
 
-const CHART_MODES = new Set(["natal", "evolutionary", "draconic"]);
+const CHART_MODES = new Set(["natal", "draconic"]);
 
 function usageFor(mode: ChartMode): string {
 	if (mode === "natal") return `${chartNatalUsage}\n\n${FLAG_REFERENCE}`;
-	if (mode === "draconic") return `${chartDraconicUsage}\n\n${FLAG_REFERENCE}`;
-	return chartUsage;
+	return `${chartDraconicUsage}\n\n${FLAG_REFERENCE}`;
 }
 
 function applyMode(request: NatalRequest, mode: ChartMode): NatalRequest {
-	const options = { ...request.options };
-	if (mode === "natal") {
-		options.evolutionary = false;
-	} else if (mode === "draconic") {
-		options.draconic = true;
-		options.evolutionary = true;
-	} else {
-		options.evolutionary = true;
-	}
-	return { ...request, options };
+	return {
+		...request,
+		options: { ...request.options, draconic: mode === "draconic" },
+	};
 }
 
 async function resolveRequest(
 	args: string[],
 	context: CliContext | undefined,
 ): Promise<NatalRequest> {
+	const first = args[0];
+	if (first !== undefined && !first.startsWith("-")) {
+		const rest = args.slice(1);
+		if (rest.length > 0) {
+			throw new AxiError(
+				"Cannot combine positional client id with extra flags",
+				"VALIDATION_ERROR",
+				[`Use \`lumen chart natal ${first}\` or inline birth flags`],
+			);
+		}
+		return requestFromProfile(context, first);
+	}
+
 	const { name, rest } = takeProfileArg(args);
 	if (name !== undefined) {
 		if (rest.length > 0) {
 			throw new AxiError(
-				"Cannot combine --profile with inline birth or chart flags",
+				"Cannot combine --profile with inline birth flags",
 				"VALIDATION_ERROR",
-				[
-					"Use `lumen classical chart --profile <id>` or inline flags, not both",
-				],
+				[`Use \`lumen chart natal ${name}\` or inline birth flags`],
 			);
 		}
 		return requestFromProfile(context, name);
@@ -459,7 +423,7 @@ async function resolveRequest(
 	const result = await NatalIntake.process(rest);
 	if (result.kind === "help") {
 		throw new AxiError("Missing required birth flags", "VALIDATION_ERROR", [
-			"Run `lumen classical chart --help` for chart options",
+			"Run `lumen chart natal --help` for chart options",
 		]);
 	}
 	return result.request;
@@ -471,28 +435,30 @@ export const chartCommand: AxiCliCommand<CliContext> = async (
 ) => {
 	const first = args[0];
 
-	if (args.includes("--help")) {
-		const mode =
-			first !== undefined && CHART_MODES.has(first)
-				? (first as ChartMode)
-				: "evolutionary";
-		return usageFor(mode);
-	}
-
-	let mode: ChartMode = "evolutionary";
-	let rest = args;
-	if (first !== undefined && CHART_MODES.has(first)) {
-		mode = first as ChartMode;
-		rest = args.slice(1);
-	} else if (first !== undefined && first !== "-" && first.startsWith("-")) {
-		// Flags without a subcommand are the default evolutionary reading.
-	} else if (first !== undefined) {
+	if (first !== undefined && !first.startsWith("-") && !CHART_MODES.has(first)) {
 		throw new AxiError(`Unknown chart command: ${first}`, "VALIDATION_ERROR", [
-			"Run `lumen classical chart --help` for valid subcommands",
+			"Run `lumen chart --help` for valid subcommands",
 		]);
 	}
 
-	const request = applyMode(await resolveRequest(rest, context), mode);
+	if (first === undefined || args.includes("--help")) {
+		const mode =
+			first !== undefined && CHART_MODES.has(first)
+				? (first as ChartMode)
+				: undefined;
+		return mode === undefined ? chartUsage : usageFor(mode);
+	}
+
+	if (first.startsWith("-")) {
+		throw new AxiError(
+			"chart requires a subcommand: natal | draconic",
+			"VALIDATION_ERROR",
+			["Run `lumen chart --help` for usage"],
+		);
+	}
+
+	const mode = first as ChartMode;
+	const request = applyMode(await resolveRequest(args.slice(1), context), mode);
 	const engine = new AstrologicalEngine();
 	return engine.compute(request);
 };

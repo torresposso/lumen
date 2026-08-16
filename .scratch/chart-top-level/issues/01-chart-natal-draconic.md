@@ -1,7 +1,7 @@
 ---
 id: 01-chart-natal-draconic
 title: `chart` top-level (natal | draconic); `classical` y el modo evolutionary mueren
-status: ready-for-agent
+status: done
 blockers: []
 ---
 
@@ -50,7 +50,43 @@ sin retrocompatibilidad.
   entregándose por `lumen soul <id> --full` (tests existentes de soul intactos).
 - La superficie resultante es exactamente la de SPEC §3.
 
+## Answer
+
+- `src/commands/classical.ts` → `src/commands/chart.ts` (`git mv`): el wrapper
+  `classicalCommand` muere; `chartCommand` despacha `natal|draconic` top-level;
+  sin subcomando o `--help` → usage; flags sin subcomando y subcomandos
+  desconocidos → `VALIDATION_ERROR`. Client posicional (`lumen chart natal
+  erick`), `--profile` e inline (misma gramática que `soul`).
+- Motor: la sección `evolutionary` muere de `Projection`, `ProjectionInput`,
+  `project()` y `compute()`; la nota de help "four natural evolutionary
+  conditions" se elimina; `applyMode` solo controla `draconic` (el subcomando
+  es la puerta: `natal` fuerza `draconic:false`, saneando perfiles guardados con
+  residuo).
+- `src/commands/client.ts`: `deriveFlagSpec` gana `exclude`; `--draconic` /
+  `--evolutionary` fuera del flag spec, de `optionsSuggestions` y del usage
+  (campos zod y `ChartRequestOptions` permanecen — P2 diferido; zod default
+  false).
+- `src/cli.ts`: `chart: chartCommand` reemplaza a `classical`; topLevelHelp
+  actualizado.
+- Tests: `tests/commands/chart.test.ts` reescrito (15 tests: usage bare/`--help`/
+  por modo, no-default, natal end-to-end, draconic NN 0° Aries, subcomando
+  desconocido, errores de validación, flags removidos `--lots/--stars/
+  --eclipses/--draconic/--evolutionary` rechazados, consistencia usage↔spec);
+  `tests/commands/classical.test.ts` borrado; `tests/commands/profile.test.ts`
+  (import chart, addHelp sin `--evolutionary`/`--draconic`, `chart natal erik`
+  posicional); `tests/cli/natal-intake.test.ts` (flags removidos rechazados);
+  `tests/core/astrological-engine.test.ts` (tests evolutionary del engine
+  eliminados — la lectura vive en soul, cubierta por `tests/core/
+  evolutionary-astrology.test.ts` + soul.test.ts).
+- SPEC §6.1 recalibrado: 183/604 → **178 tests / 589 expect**.
+- Datos: `lumen client add erick --when "1981-01-26T00:50" --place "Magangué,
+  Colombia"` ejecutado (provisional hasta Q2/P1).
+- Verificado en vivo: `lumen chart` → usage; `lumen chart --draconic` y
+  `lumen classical` → VALIDATION_ERROR; `lumen chart natal erick`,
+  `lumen chart draconic erick` y `lumen soul erick --full` OK.
+
 ## Decisiones diferidas (next session — ver `.scratch/chart-top-level/spec.md`)
 
-Q2 (self vs client), Q3 (familia), P1 (dónde vive el dato del dueño),
-P2 (muerte del campo `options.evolutionary` en el schema persistido).
+Q2 (self vs client: ¿erick es un client más o concepto "self"?), Q3 (familia
+en el store), P1 (dónde vive el dato del dueño — ClientStore / flag self /
+config), P2 (muerte del campo `options.evolutionary` en el schema persistido).

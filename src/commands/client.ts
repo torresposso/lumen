@@ -272,11 +272,13 @@ function toFlagName(key: string): string {
 export function deriveFlagSpec(
 	schemas: SchemaShape[],
 	extras: FlagSpec,
+	exclude: readonly string[] = [],
 ): FlagSpec {
 	const booleanSet = new Set<string>(extras.boolean);
 	const value = new Set<string>(extras.value);
 	for (const schema of schemas) {
 		for (const key of Object.keys(schema.shape)) {
+			if (exclude.includes(key)) continue;
 			const flagName = toFlagName(key);
 			if (!booleanSet.has(flagName)) value.add(flagName);
 		}
@@ -340,20 +342,20 @@ export const optionsSuggestions: Record<string, string> = {
 	node: "Valid: both (default) | mean | true",
 	bodies: `Valid: ${EXTRA_BODIES.join(", ")}`,
 	topocentric: "Valid: --topocentric",
-	draconic: "Valid: --draconic",
-	evolutionary: "Valid: --evolutionary",
 };
 
 export const chartFlagSpec: FlagSpec = deriveFlagSpec(
 	[birthSchema, optionsSchema],
 	{
 		value: ["when", "place"],
-		boolean: ["topocentric", "draconic", "evolutionary"],
+		boolean: ["topocentric"],
 	},
+	// Schema fields with no CLI flag: the subcommand owns projection mode.
+	["draconic", "evolutionary"],
 );
 
 export const chartUsage = [
-	'lumen chart --when 1981-01-26T00:50 --place "Magangué, Colombia"',
+	'lumen chart natal --when 1981-01-26T00:50 --place "Magangué, Colombia"',
 	"",
 	"Birth:",
 	"  --when                                    Flexible date/time: 1981-01-26T00:50 | 26/01/1981 00:50 | 1981-01-26",
@@ -367,8 +369,6 @@ export const chartUsage = [
 	"  --node                                     both (default) | mean | true",
 	"  --bodies                                   Extra bodies, comma-separated: mean_lilith,true_lilith",
 	"  --topocentric                              Enable topocentric parallax",
-	"  --draconic                                 Re-project chart onto lunar-node zodiac (0° Aries North Node)",
-	"  --evolutionary                             Include Jeffrey Wolf Green evolutionary triad & skipped steps",
 ].join("\n");
 
 interface ParsedArgs {
@@ -497,8 +497,6 @@ function parseRequested(
 			node: values.node,
 			bodies: values.bodies,
 			topocentric: flags.has("topocentric"),
-			draconic: flags.has("draconic"),
-			evolutionary: flags.has("evolutionary"),
 		},
 		optionsSuggestions,
 	);

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { rmSync } from "node:fs";
-import { chartCommand } from "../../src/commands/classical";
+import { chartCommand } from "../../src/commands/chart";
 import type { CliContext } from "../../src/commands/client";
 import { profileCommand } from "../../src/commands/client";
 import { ProfileStore } from "../../src/storage/client-store";
@@ -83,7 +83,8 @@ describe("profileCommand", () => {
 		)) as string;
 		expect(listHelp).toContain("lumen profile list");
 		expect(listHelp).not.toContain("lumen profile show");
-		expect(addHelp).toContain("--evolutionary");
+		expect(addHelp).not.toContain("--evolutionary");
+		expect(addHelp).not.toContain("--draconic");
 	});
 
 	test("rejects missing profile ids with validation errors", async () => {
@@ -95,18 +96,14 @@ describe("profileCommand", () => {
 		);
 	});
 
-	test("chart --profile reuses a saved profile", async () => {
+	test("chart natal accepts a positioned saved profile", async () => {
 		const ctx = context();
 		await profileCommand(["add", "erik", ...TAMPA_ARGS], ctx);
 
-		const reading = (await chartCommand(["--profile", "erik"], ctx)) as {
-			chart: {
-				birth: { zone: string };
-				evolutionary: { pluto: { sign: string } };
-			};
+		const reading = (await chartCommand(["natal", "erik"], ctx)) as {
+			chart: { birth: { zone: string } };
 		};
 
 		expect(reading.chart.birth.zone).toBe("America/New_York");
-		expect(reading.chart.evolutionary.pluto.sign).toBeDefined();
 	});
 });

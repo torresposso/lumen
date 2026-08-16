@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { Ephemeris } from "../../src/adapters/ephemeris-gateway";
-import { AstrologicalEngine } from "../../src/commands/classical";
+import { AstrologicalEngine } from "../../src/commands/chart";
 import type { NatalRequest } from "../../src/commands/client";
 
 const request: NatalRequest = {
@@ -59,22 +59,6 @@ describe("AstrologicalEngine", () => {
 		expect(reading.chart.bodies.mean_node).toBeUndefined();
 	});
 
-	test("uses the selected node for the evolutionary reading", () => {
-		const reading = engine.compute({
-			...request,
-			options: { ...request.options, node: "mean", evolutionary: true },
-		});
-
-		expect(reading.chart.bodies.true_node).toBeUndefined();
-		expect(reading.chart.bodies.mean_node).toBeDefined();
-		expect(reading.chart.evolutionary?.nodes.northNode?.sign).toBe(
-			reading.chart.bodies.mean_node?.sign,
-		);
-		expect(reading.chart.evolutionary?.nodes.northNode?.signDeg).toBe(
-			reading.chart.bodies.mean_node?.signDeg,
-		);
-	});
-
 	test("computes requested extra bodies", () => {
 		const reading = engine.compute({
 			...request,
@@ -97,20 +81,6 @@ describe("AstrologicalEngine", () => {
 		expect(draconic?.bodies.true_node?.lon).toBeCloseTo(0, 4);
 		expect(draconic?.bodies.true_node?.sign).toBe("Aries");
 		expect(draconic?.bodies.true_node?.signDeg).toBeCloseTo(0, 4);
-	});
-
-	test("computes evolutionary module (--evolutionary)", () => {
-		const reading = engine.compute({
-			...request,
-			options: { ...request.options, evolutionary: true },
-		});
-		const evo = reading.chart.evolutionary;
-		expect(evo).toBeDefined();
-		expect(evo?.pluto?.sign).toBeDefined();
-		expect(evo?.polarityPoint?.sign).toBe("Taurus");
-		expect(evo?.nodes.northNode).toBeDefined();
-		expect(evo?.nodes.southNode).toBeDefined();
-		expect(Array.isArray(evo?.skippedSteps)).toBe(true);
 	});
 
 	test("AstrologicalEngine accepts a custom Ephemeris seam", () => {
@@ -163,10 +133,7 @@ describe("AstrologicalEngine", () => {
 	});
 
 	test("detects aspect patterns and computes chartSignature and interpretationContext", () => {
-		const reading = engine.compute({
-			...request,
-			options: { ...request.options, evolutionary: true },
-		});
+		const reading = engine.compute(request);
 
 		expect(reading.chart.signature).toBeDefined();
 		expect(reading.chart.signature?.hemispheres).toBeDefined();

@@ -34,7 +34,7 @@ src/
 │   ├── karma.ts                  # `lumen karma pair --a <id> --b <id>`
 │   ├── consulta.ts               # `lumen consulta abrir|preparar|leer|confirmar|cerrar`
 │   ├── client.ts                 # `lumen client add|list|show|remove` (alias `profile`)
-│   ├── classical.ts              # `lumen classical draconic|chart` (Sala de máquinas)
+│   ├── chart.ts                   # `lumen chart natal|draconic` (insumo base + experimento)
 │   └── setup.ts                  # `lumen setup hooks` (Idempotente, Claude/Codex/OpenCode)
 │
 ├── cli.ts                        # Enrutador axi-sdk-js con Home / Agenda de consultas del día
