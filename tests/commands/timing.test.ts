@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { rmSync } from "node:fs";
 import { AxiError } from "axi-sdk-js";
 import type { CliContext } from "../../src/commands/client";
-import { profileCommand } from "../../src/commands/client";
+import { clientCommand } from "../../src/commands/client";
 import { timingCommand } from "../../src/commands/journey";
 import { ProfileStore } from "../../src/storage/client-store";
 import { ConsultationStore } from "../../src/storage/consultation-store";
@@ -27,7 +27,7 @@ afterEach(() => {
 describe("timingCommand", () => {
 	test("computes secondary progressions for a saved profile", async () => {
 		const ctx = context();
-		await profileCommand(
+		await clientCommand(
 			[
 				"add",
 				"erik",
@@ -75,7 +75,7 @@ describe("timingCommand", () => {
 
 	test("includes house placements in progressed output", async () => {
 		const ctx = context();
-		await profileCommand(
+		await clientCommand(
 			[
 				"add",
 				"erik",
@@ -112,7 +112,7 @@ describe("timingCommand", () => {
 
 	test("relates progressed bodies to natal Pluto and the nodal axis", async () => {
 		const ctx = context();
-		await profileCommand(
+		await clientCommand(
 			[
 				"add",
 				"erik",
@@ -157,7 +157,7 @@ describe("timingCommand", () => {
 
 	test("computes stations and reveals limit truncation", async () => {
 		const ctx = context();
-		await profileCommand(
+		await clientCommand(
 			[
 				"add",
 				"erik",
@@ -203,7 +203,7 @@ describe("timingCommand", () => {
 
 	test("rejects impossible calendar dates with validation errors", async () => {
 		const ctx = context();
-		await profileCommand(
+		await clientCommand(
 			[
 				"add",
 				"erik",
@@ -241,7 +241,7 @@ describe("timingCommand", () => {
 
 	test("rejects progressions on or before the birth date", async () => {
 		const ctx = context();
-		await profileCommand(
+		await clientCommand(
 			[
 				"add",
 				"erik",
@@ -273,7 +273,7 @@ describe("timingCommand", () => {
 
 	test("rejects unknown bodies before touching the ephemeris", async () => {
 		const ctx = context();
-		await profileCommand(
+		await clientCommand(
 			[
 				"add",
 				"erik",
@@ -328,7 +328,7 @@ describe("timingCommand", () => {
 
 	test("bounds station windows and requires bodies", async () => {
 		const ctx = context();
-		await profileCommand(
+		await clientCommand(
 			[
 				"add",
 				"erik",

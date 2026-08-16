@@ -4,10 +4,12 @@ import { clientCommand } from "./commands/client";
 import { consultaCommand } from "./commands/consulta";
 import { journeyCommand } from "./commands/journey";
 import { karmaCommand } from "./commands/karma";
+import { profileCommand } from "./commands/profile";
 import { setupCommand } from "./commands/setup";
 import { soulCommand } from "./commands/soul";
 import { ClientStore } from "./storage/client-store";
 import { ConsultationStore } from "./storage/consultation-store";
+import { ProfileStore } from "./storage/profile-store";
 import { VERSION } from "./version";
 
 const topLevelHelp = [
@@ -17,29 +19,33 @@ const topLevelHelp = [
 	"  karma      Sinastría evolutiva y acuerdos entre Almas",
 	"  consulta   Expedientes clínicos, hipótesis (H1, H2) y diálogo",
 	"  client     Gestión de consultantes locales",
+	"  profile    Gestión de perfiles locales",
 	"  chart      Carta: natal (insumo base) y draconic (experimento etiquetado)",
 	"  setup      Instala/actualiza la integración de sesión",
 ].join("\n");
 
 export async function main(): Promise<void> {
 	const profiles = new ClientStore();
+	const persistence = new ProfileStore();
 	const consultations = new ConsultationStore();
 
 	await runAxiCli<{
 		profiles: ClientStore;
+		persistence: ProfileStore;
 		consultations: ConsultationStore;
 	}>({
 		description: "Astrología evolutiva computacional desde la terminal",
 		version: VERSION,
 		argv: process.argv.slice(2),
 		topLevelHelp,
-		resolveContext: async () => ({ profiles, consultations }),
+		resolveContext: async () => ({ profiles, persistence, consultations }),
 		commands: {
 			soul: soulCommand,
 			journey: journeyCommand,
 			karma: karmaCommand,
 			consulta: consultaCommand,
 			client: clientCommand,
+			profile: profileCommand,
 			chart: chartCommand,
 			setup: setupCommand,
 		},

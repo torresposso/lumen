@@ -1,12 +1,16 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { rmSync } from "node:fs";
 import { chartCommand } from "../../src/commands/chart";
-import type { CliContext } from "../../src/commands/client";
-import { profileCommand } from "../../src/commands/client";
-import { ProfileStore } from "../../src/storage/client-store";
+import { clientCommand } from "../../src/commands/client";
+import type { CliContext } from "../../src/commands/intake";
+import { profileCommand } from "../../src/commands/profile";
+import { ProfileStore as JsonProfileStore } from "../../src/storage/client-store";
 import { ConsultationStore } from "../../src/storage/consultation-store";
+import { ProfileStore as SqliteProfileStore } from "../../src/storage/profile-store";
 
-const STORE_FILE = "/tmp/lumen-profile-command-test.json";
+const CLIENTS_FILE = "/tmp/lumen-profile-command-clients.json";
+const DB_FILE = "/tmp/lumen-profile-command-test.db";
+const CONSULTATIONS_FILE = "/tmp/lumen-profile-command-consultations-test.json";
 const TAMPA_ARGS = [
 	"--year",
 	"1990",
@@ -26,24 +30,35 @@ const TAMPA_ARGS = [
 
 function context(): CliContext {
 	return {
-		profiles: new ProfileStore(STORE_FILE),
-		consultations: new ConsultationStore(
-			"/tmp/lumen-profile-command-consultations-test.json",
-		),
+		profiles: new JsonProfileStore(CLIENTS_FILE),
+		persistence: new SqliteProfileStore(DB_FILE),
+		consultations: new ConsultationStore(CONSULTATIONS_FILE),
 	};
 }
 
 afterEach(() => {
-	rmSync(STORE_FILE, { force: true });
-	rmSync(`${STORE_FILE}.tmp`, { force: true });
-	rmSync("/tmp/lumen-profile-command-consultations-test.json", { force: true });
+	rmSync(CLIENTS_FILE, { force: true });
+	rmSync(DB_FILE, { force: true });
+	rmSync(`${DB_FILE}-journal`, { force: true });
+	rmSync(`${DB_FILE}-wal`, { force: true });
+	rmSync(`${DB_FILE}-shm`, { force: true });
+	rmSync(CONSULTATIONS_FILE, { force: true });
 });
 
 describe("profileCommand", () => {
 	test("adds, lists, shows, and removes profiles idempotently", async () => {
 		const ctx = context();
 
-		await profileCommand(["add", "erik", ...TAMPA_ARGS], ctx);
+		const added = (await profileCommand(
+			["add", "erik", ...TAMPA_ARGS],
+			ctx,
+		)) as {
+			profile: string;
+			status: string;
+		};
+		expect(added.profile).toBe("erik");
+		expect(added.status).toBe("saved");
+
 		const listed = (await profileCommand(["list"], ctx)) as {
 			profiles: Array<{
 				id: string;
@@ -72,6 +87,15 @@ describe("profileCommand", () => {
 		expect(noop.status).toBe("already absent (no-op)");
 	});
 
+	test("lists zero profiles with a hint", async () => {
+		const listed = (await profileCommand(["list"], context())) as {
+			profiles: string;
+			help: string[];
+		};
+		expect(listed.profiles).toBe("0 profiles found");
+		expect(listed.help[0]).toContain("lumen profile add");
+	});
+
 	test("returns focused help for profile subcommands", async () => {
 		const listHelp = (await profileCommand(
 			["list", "--help"],
@@ -96,9 +120,21 @@ describe("profileCommand", () => {
 		);
 	});
 
+	test("rejects chart option flags on add (options live in config/flags)", async () => {
+		await expect(
+			profileCommand(
+				["add", "erik", ...TAMPA_ARGS, "--node", "mean"],
+				context(),
+			),
+		).rejects.toThrow(/not stored on profiles/);
+	});
+
 	test("chart natal accepts a positioned saved profile", async () => {
 		const ctx = context();
-		await profileCommand(["add", "erik", ...TAMPA_ARGS], ctx);
+		// During ticket 03 the read-side surface (chart/soul) keeps reading the
+		// JSON store: seed it via clientCommand. Ticket 04 flips this to the
+		// SQLite profile store added above.
+		await clientCommand(["add", "erik", ...TAMPA_ARGS], ctx);
 
 		const reading = (await chartCommand(["natal", "erik"], ctx)) as {
 			chart: { birth: { zone: string } };
