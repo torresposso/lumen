@@ -39,7 +39,7 @@ journey    ¿Qué me está pasando ahora? Progresiones secundarias y estaciones
 karma      ¿Cómo se aplica con otros? Sinastría evolutiva
 consulta   ¿Cómo dialogo con esto? Expedientes, hipótesis (H1, H2) y diálogo
 client     Los seres de la práctica: consultantes locales (privacidad 0600)
-classical  Andamiaje técnico: chart (insumo base) y draconic (experimento etiquetado)
+chart      Carta: natal (insumo base) y draconic (experimento etiquetado)
 setup      Integración de sesión (hooks + skill) — conveniencia, no producto
 ```
 
@@ -47,7 +47,8 @@ Fuera de la superficie (helenístico/técnico, fuera del canon evolutivo — ver
 ADR-0004 y `~/knowledge/research/2026-08-12--tradicion-astrologia-evolutiva.md`):
 sinastría clásica (la evolutiva vive en `karma pair`), lotes herméticos y
 estrellas fijas. Los eclipses prenatales son eventos nodales: los entrega
-`soul --full`, no `classical`.
+`soul --full`, no `chart`. La lectura evolutiva vive solo en `soul`;
+`chart` es geométrico (natal/draconic), sin sección de lectura.
 
 ## 4. Definición de Terminado (checklist AXI)
 
@@ -71,7 +72,7 @@ Si la respuesta no es un sí sentido, la decisión es no.**
 - Cambiar el norte (sección 1) requiere ADR.
 - Todo ticket en `.scratch/` responde esa pregunta en su primera línea; si un
   ticket no puede nombrar cómo sirve a la evolución, no se construye.
-- La superficie clásica solo crece con ticket que nombre un hueco de valor
+- La superficie solo crece con ticket que nombre un hueco de valor
   evolutivo concreto. Mover archivos "para ordenar" está prohibido.
 - El impulso de rehacer de cero es la voz del Nodo Sur (Acuario, casa 4); la
   medicina es mantener, usar, mostrar.

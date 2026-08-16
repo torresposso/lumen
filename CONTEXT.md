@@ -35,7 +35,10 @@ The tradition that reads the natal chart as the map of the soul's current lesson
 _Avoid_: karmic astrology, past-life astrology
 
 **Evolutionary reading**:
-The assembled output of the `--evolutionary` flag: Pluto's placement and Polarity Point, the lunar-node axis with its planetary rulers and their natal house/sign placements, Skipped Steps, the Pluto–North Node Midpoint, and the Pluto/Chiron dispositor chains.
+The curated reading assembled by `soul`: Pluto's placement and Polarity Point,
+the lunar-node axis with its planetary rulers and their natal house/sign
+placements, Skipped Steps, the Pluto–North Node Midpoint, and the Pluto/Chiron
+dispositor chains.
 
 **Pluto Polarity Point**:
 The point diametrically opposite Pluto (Pluto longitude + 180°), representing the evolutionary direction the soul is moving toward. Deactivated when Pluto is conjunct the North Node (as evolution channels directly through the North Node and its ruler).

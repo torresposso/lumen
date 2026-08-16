@@ -18,7 +18,7 @@ src/
 │   ├── phases.ts                 # Fases Sol-Luna natales y progresadas (8 arquetipos)
 │   ├── journey.ts                # Progresiones secundarias, triggers a puntos EA dentro de orbe, estaciones
 │   ├── karma.ts                  # Sinastría evolutiva y contactos inter-cartas a Nodos/Plutón
-│   └── classical.ts              # Proyecciones auxiliares: carta base y Dracónica (experimento etiquetado)
+│   └── classical.ts              # Síntesis de carta: patrones, firmas, átomos y Dracónica (experimento etiquetado)
 │
 ├── adapters/                     # 🌐 I/O EXTERNO & ADAPTADORES
 │   ├── geocode.ts                # Adaptador Open-Meteo, fallback offline y contratos de mock
@@ -34,7 +34,7 @@ src/
 │   ├── karma.ts                  # `lumen karma pair --a <id> --b <id>`
 │   ├── consulta.ts               # `lumen consulta abrir|preparar|leer|confirmar|cerrar`
 │   ├── client.ts                 # `lumen client add|list|show|remove`; intake natal y selección de perfiles compartidos
-│   ├── classical.ts              # `lumen classical chart|draconic` (Andamiaje técnico)
+│   ├── chart.ts                  # `lumen chart natal|draconic` (insumo base + experimento etiquetado)
 │   └── setup.ts                  # `lumen setup hooks` (Idempotente, Claude/Codex/OpenCode)
 │
 ├── cli.ts                        # Enrutador axi-sdk-js con Home / Agenda de consultas del día

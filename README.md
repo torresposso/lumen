@@ -36,9 +36,9 @@ bun run bin/lumen.ts client list
 bun run bin/lumen.ts client show erik
 bun run bin/lumen.ts client remove erik
 
-# Andamiaje técnico (chart = insumo base; draconic = experimento fuera del canon)
-bun run bin/lumen.ts classical chart --when "1981-01-26T00:50" --place "Magangué, Colombia"
-bun run bin/lumen.ts classical draconic --when "1981-01-26T00:50" --place "Magangué, Colombia"
+# Carta natal (insumo base; la lectura evolutiva vive en soul) y proyección draconic (experimento etiquetado)
+bun run bin/lumen.ts chart natal --when "1981-01-26T00:50" --place "Magangué, Colombia"
+bun run bin/lumen.ts chart draconic --when "1981-01-26T00:50" --place "Magangué, Colombia"
 ```
 
 ## Privacidad
