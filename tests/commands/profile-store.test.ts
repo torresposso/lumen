@@ -2,8 +2,8 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { chmodSync, mkdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { AxiError } from "axi-sdk-js";
-import { resolveNatalRequest } from "../../src/cli/natal-intake";
-import { ProfileStore } from "../../src/cli/profile-store";
+import { resolveNatalRequest } from "../../src/commands/client";
+import { ProfileStore } from "../../src/storage/client-store";
 
 const STORE_FILE = "/tmp/lumen-profile-store-test.json";
 
@@ -46,7 +46,9 @@ describe("ProfileStore", () => {
 		expect(first.createdAt).toBe("2026-01-01T00:00:00.000Z");
 		expect(second.createdAt).toBe(first.createdAt);
 		expect(second.updatedAt).toBe("2026-01-02T00:00:00.000Z");
-		expect(store.list()).toEqual([{ id: "erik", born: "1990-06-10" }]);
+		expect(store.list()).toEqual([
+			{ id: "erik", birthStatus: "ok", updatedAt: "2026-01-02T00:00:00.000Z" },
+		]);
 	});
 
 	test("wraps syntactically corrupt JSON as PROFILE_ERROR", () => {

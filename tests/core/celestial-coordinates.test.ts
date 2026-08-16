@@ -10,7 +10,7 @@ import {
 	projectPoint,
 	shiftLongitude,
 	signOf,
-} from "../../src/core/celestial-coordinates";
+} from "../../src/core/types";
 
 describe("celestial coordinates & zodiac math", () => {
 	test("signOf converts degrees to zodiac sign names", () => {

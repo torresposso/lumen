@@ -17,37 +17,11 @@ import {
 	stations,
 } from "caelus";
 import { embeddedData } from "caelus/data-embedded";
+import type { Ephemeris } from "../core/types";
+
+export type { Ephemeris };
 
 type ChartAtOptions = Parameters<Engine["chartAt"]>[3];
-
-/** Capability seam over the ephemeris engine. Every astronomical computation
- *  the chart path needs — the natal chart plus the extension features
- *  (prenatal eclipses, Hermetic Lots, fixed stars) — flows through this one
- *  interface, so a test double can substitute the whole engine. */
-export interface Ephemeris {
-	chartAt(
-		jdUt: number,
-		lat: number,
-		lonEast: number,
-		opts?: ChartAtOptions,
-	): Chart;
-	solarEclipses(jdStart: number, jdEnd: number): SolarEclipse[];
-	lunarEclipses(jdStart: number, jdEnd: number): LunarEclipse[];
-	lots(jdUt: number, lat: number, lonEast: number): ChartLots;
-	/** Apparent ecliptic longitude (degrees) of a fixed-star catalog entry at a UT JD. */
-	starLongitude(entry: StarEntry, jdUt: number): number;
-	/** Fixed-star catalog entries keyed by conventional name. */
-	fixedStars(): Record<string, StarEntry>;
-	/** Optional timing extension: secondary-progressed longitude for a body. */
-	progressedLongitude?(body: BodyId, natalJd: number, targetJd: number): number;
-	/** Optional timing extension: body stations in a JD window. */
-	stations?(
-		body: BodyId,
-		jdStart: number,
-		jdEnd: number,
-		maxHits?: number,
-	): Array<[number, "retrograde" | "direct"]>;
-}
 
 /** The caelus-backed adapter: the single module that knows how to drive the
  *  caelus engine and its embedded star catalog. */

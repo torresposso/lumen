@@ -1,12 +1,12 @@
 import type { AxiCliCommand } from "axi-sdk-js";
 import { AxiError } from "axi-sdk-js";
-import type { CliContext } from "../cli/context";
-import { requestFromProfile } from "../cli/profile-args";
-import { CaelusEphemeris } from "../core/ephemeris-gateway";
+import { CaelusEphemeris } from "../adapters/ephemeris-gateway";
 import { computeNodalReading } from "../core/nodes";
 import { computeSoulReading } from "../core/soul";
-import type { Hypothesis } from "../core/types";
+import type { Hypothesis, HypothesisResponseEnum } from "../core/types";
 import { ConsultationStore } from "../storage/consultation-store";
+import type { CliContext } from "./client";
+import { requestFromProfile } from "./client";
 
 export const consultaUsage = [
 	"lumen consulta abrir <client> [--motivo <text>]",
@@ -14,8 +14,6 @@ export const consultaUsage = [
 	"lumen consulta leer <client> [--capa evidencia|arquetipo|preguntas]",
 	"lumen consulta confirmar <client> --hipotesis <ID> --respuesta <enum> [--nota <text>]",
 	"lumen consulta cerrar <client> [--sintesis <text>] [--tarea <text>]",
-	"lumen consulta list",
-	"lumen consulta show <client>",
 	"",
 	"Gestión del ciclo de consulta clínica, hipótesis JWG y diálogo confidencial.",
 ].join("\n");
@@ -188,6 +186,7 @@ export const consultaCommand: AxiCliCommand<CliContext> = async (
 		case "leer": {
 			let clientId: string | undefined;
 			let capa = "evidencia";
+			const VALID_CAPAS = new Set(["evidencia", "arquetipo", "preguntas"]);
 
 			for (let i = 0; i < rest.length; i++) {
 				const arg = rest[i];
@@ -199,6 +198,11 @@ export const consultaCommand: AxiCliCommand<CliContext> = async (
 							? takeValue(rest, i, "capa").value
 							: arg.slice("--capa=".length);
 					if (arg === "--capa") i++;
+					if (!VALID_CAPAS.has(capa)) {
+						throw new AxiError(`Invalid layer: ${capa}`, "VALIDATION_ERROR", [
+							"Valid layers: evidencia | arquetipo | preguntas",
+						]);
+					}
 					continue;
 				}
 				if (clientId === undefined && !arg.startsWith("-")) {
@@ -301,7 +305,7 @@ export const consultaCommand: AxiCliCommand<CliContext> = async (
 			const recorded = consultationStore.recordHypothesis(
 				clientId,
 				hipotesisId,
-				respuesta,
+				respuesta as HypothesisResponseEnum,
 				nota,
 			);
 
@@ -372,37 +376,6 @@ export const consultaCommand: AxiCliCommand<CliContext> = async (
 					...(session.tarea ? { tarea: session.tarea } : {}),
 				},
 			};
-		}
-
-		case "list": {
-			const sessions = consultationStore.list();
-			if (sessions.length === 0) {
-				return {
-					consultas: "0 consultations found",
-					help: ['Run `lumen consulta abrir <client> --motivo "..."`'],
-				};
-			}
-			return { consultas: sessions };
-		}
-
-		case "show": {
-			const clientId = rest[0];
-			if (!clientId || clientId.startsWith("-")) {
-				throw new AxiError(
-					"consulta show requires a client id",
-					"VALIDATION_ERROR",
-					["Run `lumen consulta show <client>`"],
-				);
-			}
-			const session = consultationStore.get(clientId);
-			if (!session) {
-				throw new AxiError(
-					`No consultation session found for client "${clientId}"`,
-					"NOT_FOUND",
-					["Run `lumen consulta list` to see consultation sessions"],
-				);
-			}
-			return { consulta: session };
 		}
 
 		default:

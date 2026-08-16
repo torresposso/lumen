@@ -2,9 +2,9 @@ import { describe, expect, it } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { CliContext } from "../../src/cli/context";
-import { ProfileStore } from "../../src/cli/profile-store";
+import type { CliContext } from "../../src/commands/client";
 import { karmaCommand } from "../../src/commands/karma";
+import { ProfileStore } from "../../src/storage/client-store";
 import { ConsultationStore } from "../../src/storage/consultation-store";
 
 describe("karmaCommand", () => {
@@ -43,7 +43,7 @@ describe("karmaCommand", () => {
 					zone: "America/Bogota",
 					offsetMinutes: -300,
 					dst: false,
-					status: "resolved",
+					status: "ok",
 				},
 				options: {
 					houseSystem: "placidus",
@@ -68,7 +68,7 @@ describe("karmaCommand", () => {
 					zone: "America/New_York",
 					offsetMinutes: -240,
 					dst: false,
-					status: "resolved",
+					status: "ok",
 				},
 				options: {
 					houseSystem: "placidus",

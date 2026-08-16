@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { rmSync } from "node:fs";
-import type { CliContext } from "../../src/cli/context";
-import { ProfileStore } from "../../src/cli/profile-store";
-import { chartCommand } from "../../src/commands/chart";
-import { profileCommand } from "../../src/commands/profile";
+import { chartCommand } from "../../src/commands/classical";
+import type { CliContext } from "../../src/commands/client";
+import { profileCommand } from "../../src/commands/client";
+import { ProfileStore } from "../../src/storage/client-store";
+import { ConsultationStore } from "../../src/storage/consultation-store";
 
 const STORE_FILE = "/tmp/lumen-profile-command-test.json";
 const TAMPA_ARGS = [
@@ -24,12 +25,18 @@ const TAMPA_ARGS = [
 ];
 
 function context(): CliContext {
-	return { profiles: new ProfileStore(STORE_FILE) };
+	return {
+		profiles: new ProfileStore(STORE_FILE),
+		consultations: new ConsultationStore(
+			"/tmp/lumen-profile-command-consultations-test.json",
+		),
+	};
 }
 
 afterEach(() => {
 	rmSync(STORE_FILE, { force: true });
 	rmSync(`${STORE_FILE}.tmp`, { force: true });
+	rmSync("/tmp/lumen-profile-command-consultations-test.json", { force: true });
 });
 
 describe("profileCommand", () => {
@@ -38,9 +45,15 @@ describe("profileCommand", () => {
 
 		await profileCommand(["add", "erik", ...TAMPA_ARGS], ctx);
 		const listed = (await profileCommand(["list"], ctx)) as {
-			profiles: Array<{ id: string; born: string }>;
+			profiles: Array<{
+				id: string;
+				provenance: string;
+				session: string;
+			}>;
 		};
-		expect(listed.profiles).toEqual([{ id: "erik", born: "1990-06-10" }]);
+		expect(listed.profiles).toEqual([
+			{ id: "erik", provenance: "ok", session: "none" },
+		]);
 
 		const shown = (await profileCommand(["show", "erik"], ctx)) as {
 			profile: { id: string; birth: { zone: string } };

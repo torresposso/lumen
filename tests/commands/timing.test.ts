@@ -1,20 +1,27 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { rmSync } from "node:fs";
 import { AxiError } from "axi-sdk-js";
-import type { CliContext } from "../../src/cli/context";
-import { ProfileStore } from "../../src/cli/profile-store";
-import { profileCommand } from "../../src/commands/profile";
-import { timingCommand } from "../../src/commands/timing";
+import type { CliContext } from "../../src/commands/client";
+import { profileCommand } from "../../src/commands/client";
+import { timingCommand } from "../../src/commands/journey";
+import { ProfileStore } from "../../src/storage/client-store";
+import { ConsultationStore } from "../../src/storage/consultation-store";
 
 const STORE_FILE = "/tmp/lumen-timing-command-test.json";
 
 function context(): CliContext {
-	return { profiles: new ProfileStore(STORE_FILE) };
+	return {
+		profiles: new ProfileStore(STORE_FILE),
+		consultations: new ConsultationStore(
+			"/tmp/lumen-timing-command-consultations-test.json",
+		),
+	};
 }
 
 afterEach(() => {
 	rmSync(STORE_FILE, { force: true });
 	rmSync(`${STORE_FILE}.tmp`, { force: true });
+	rmSync("/tmp/lumen-timing-command-consultations-test.json", { force: true });
 });
 
 describe("timingCommand", () => {
@@ -63,7 +70,7 @@ describe("timingCommand", () => {
 	test("rejects progressed without --date", async () => {
 		await expect(
 			timingCommand(["progressed", "--profile", "erik"], context()),
-		).rejects.toThrow(/--date is required/);
+		).rejects.toThrow(/Target date is required via --at or --date/);
 	});
 
 	test("includes house placements in progressed output", async () => {

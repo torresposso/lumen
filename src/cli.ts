@@ -1,16 +1,16 @@
 import { runAxiCli } from "axi-sdk-js";
-import type { CliContext } from "./cli/context";
-import { ProfileStore } from "./cli/profile-store";
-import { chartCommand } from "./commands/chart";
-import { classicalCommand } from "./commands/classical";
-import { clientCommand } from "./commands/client";
+import {
+	chartCommand,
+	classicalCommand,
+	synastryCommand,
+} from "./commands/classical";
+import { clientCommand, profileCommand } from "./commands/client";
 import { consultaCommand } from "./commands/consulta";
 import { journeyCommand } from "./commands/journey";
 import { karmaCommand } from "./commands/karma";
-import { profileCommand } from "./commands/profile";
 import { setupCommand } from "./commands/setup";
 import { soulCommand } from "./commands/soul";
-import { synastryCommand } from "./commands/synastry";
+import { ClientStore } from "./storage/client-store";
 import { ConsultationStore } from "./storage/consultation-store";
 import { VERSION } from "./version";
 
@@ -26,10 +26,13 @@ const topLevelHelp = [
 ].join("\n");
 
 export async function main(): Promise<void> {
-	const profiles = new ProfileStore();
+	const profiles = new ClientStore();
 	const consultations = new ConsultationStore();
 
-	await runAxiCli<CliContext>({
+	await runAxiCli<{
+		profiles: ClientStore;
+		consultations: ConsultationStore;
+	}>({
 		description: "Astrología evolutiva computacional desde la terminal",
 		version: VERSION,
 		argv: process.argv.slice(2),
@@ -50,32 +53,23 @@ export async function main(): Promise<void> {
 			timing: journeyCommand,
 		},
 		home: async (_args, context) => {
-			const saved = context?.profiles.list() ?? [];
+			const clients = (context?.profiles.list() ?? []).map((client) => ({
+				id: client.id,
+				provenance: client.birthStatus,
+				session: context?.consultations.get(client.id)?.status ?? "none",
+			}));
 			const activeConsultations = (context?.consultations.list() ?? []).filter(
 				(c) => c.status === "open",
 			);
-
-			if (saved.length === 0) {
-				return {
-					agenda:
-						activeConsultations.length > 0
-							? activeConsultations
-							: "0 active consultations",
-					clients: "0 clients found",
-					help: [
-						'Run `lumen client add <id> --when "1981-01-26T00:50" --place "Magangué, Colombia"`',
-						"Run `lumen soul <client>` for baseline evolutionary reading",
-					],
-				};
-			}
 
 			return {
 				agenda:
 					activeConsultations.length > 0
 						? activeConsultations
 						: "0 active consultations",
-				clients: saved,
+				clients: clients.length > 0 ? clients : "0 clients found",
 				help: [
+					'Run `lumen client add <id> --when "1981-01-26T00:50" --place "Magangué, Colombia"`',
 					"Run `lumen soul <client>` for an evolutionary reading",
 					'Run `lumen consulta abrir <client> --motivo "..."` to begin a session',
 					"Run `lumen journey progressed <client> --at <YYYY-MM-DD>` for progressions",

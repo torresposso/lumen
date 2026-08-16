@@ -1,12 +1,7 @@
 import type { BodyId, Chart } from "caelus";
-import {
-	findAspect,
-	normalizeLongitude,
-	roundPrecision,
-} from "./celestial-coordinates";
-import type { Ephemeris } from "./ephemeris-gateway";
 import { computeSolLunaPhase, type SolLunaPhaseResult } from "./phases";
-import type { ResolvedBirth } from "./types";
+import type { Ephemeris, ResolvedBirth } from "./types";
+import { findAspect, normalizeLongitude, roundPrecision } from "./types";
 
 export interface ProgressedBodyPlacement {
 	body: string;
@@ -44,6 +39,15 @@ export interface JourneyStationsResult {
 	body: string;
 	windowYears: number;
 	stations: StationEvent[];
+}
+
+export interface StationWindow {
+	/** Start JD; defaults to birth. */
+	startJd?: number;
+	/** End JD; defaults to start + `years` (default 1) after birth. */
+	endJd?: number;
+	/** Retrocompatible years-from-birth window. */
+	years?: number;
 }
 
 export const EA_ASPECT_ORB = 3;
@@ -157,11 +161,15 @@ export function computeStations(
 	birth: ResolvedBirth,
 	bodyId: BodyId,
 	ephemeris: Ephemeris,
-	years = 1,
+	window: number | StationWindow = 1,
 	limit = 30,
 ): JourneyStationsResult {
-	const startJd = birth.jdUt;
-	const endJd = startJd + years * 365.24219;
+	const numericYears = typeof window === "number" ? window : undefined;
+	const options = typeof window === "object" ? window : {};
+	const years = numericYears ?? options.years ?? 1;
+	const startJd = options.startJd ?? birth.jdUt;
+	const endJd = options.endJd ?? startJd + years * 365.24219;
+	const windowYears = (endJd - startJd) / 365.24219;
 
 	const rawStations = ephemeris.stations
 		? ephemeris.stations(bodyId, startJd, endJd, limit)
@@ -182,7 +190,7 @@ export function computeStations(
 
 	return {
 		body: bodyId,
-		windowYears: years,
+		windowYears,
 		stations,
 	};
 }

@@ -4,8 +4,8 @@ import {
 	hasClockFlags,
 	mergeBirthInput,
 	parseWhen,
-	resolveBirth,
-} from "../../src/core/birth";
+} from "../../src/commands/client";
+import { resolveBirth } from "../../src/core/birth";
 import type { Geocoder } from "../../src/core/types";
 
 describe("core/birth", () => {

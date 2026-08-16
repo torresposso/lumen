@@ -3,7 +3,7 @@ import {
 	mergeBirthInput,
 	parseWhen,
 	resolveBirth,
-} from "../../src/cli/birth-resolver";
+} from "../../src/commands/client";
 
 describe("birth-resolver", () => {
 	it("parses valid ISO and dd/mm/yyyy --when formats", () => {

@@ -1,11 +1,3 @@
-import type { Chart } from "caelus";
-import {
-	angularDistance,
-	normalizeLongitude,
-	type ProjectedEclipticPoint,
-	projectPoint,
-	roundPrecision,
-} from "./celestial-coordinates";
 import {
 	buildDispositorChain,
 	type DispositorStep,
@@ -14,9 +6,17 @@ import {
 	SIGN_RULERS,
 } from "./soul";
 import type {
+	ChartBodiesLite,
 	NodalRulerPlacement,
 	NodeMotionStatus,
 	SkippedStep,
+} from "./types";
+import {
+	angularDistance,
+	normalizeLongitude,
+	type ProjectedEclipticPoint,
+	projectPoint,
+	roundPrecision,
 } from "./types";
 
 export type { NodalRulerPlacement, NodeMotionStatus, SkippedStep };
@@ -74,7 +74,7 @@ function matchClosestAspect(
 }
 
 export function computeNodeAspects(
-	bodies: Chart["bodies"],
+	bodies: ChartBodiesLite,
 	nodeLon: number,
 ): NodeAspect[] {
 	const aspects: NodeAspect[] = [];
@@ -100,7 +100,7 @@ export function computeNodeAspects(
 }
 
 export function computeSkippedSteps(
-	bodies: Chart["bodies"],
+	bodies: ChartBodiesLite,
 	northNodeLon: number,
 	orbLimit = 5,
 ): SkippedStep[] {
@@ -128,7 +128,7 @@ export function computeSkippedSteps(
 
 export function computeNodalRuler(
 	rulerId: string | undefined,
-	bodies: Chart["bodies"],
+	bodies: ChartBodiesLite,
 ): NodalRulerPlacement | undefined {
 	if (!rulerId) return undefined;
 	const body = bodies[rulerId as keyof typeof bodies];
@@ -158,7 +158,7 @@ export function computeNodalRuler(
  * Computes the complete Nodal Axis mechanics (North Node, South Node, Rulers, Skipped Steps).
  */
 export function computeNodalReading(
-	bodies: Chart["bodies"],
+	bodies: ChartBodiesLite,
 	cusps: number[],
 	orbLimit = 5,
 ): NodalAxisReading | undefined {

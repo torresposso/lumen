@@ -4,7 +4,7 @@ import {
 	computeChartSignature,
 	computeDeclinationAspects,
 	detectAspectPatterns,
-} from "../../src/core/chart-patterns";
+} from "../../src/core/classical";
 
 function body(overrides: Partial<ChartBody> = {}): ChartBody {
 	return {

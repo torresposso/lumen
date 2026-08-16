@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import type { NatalRequest } from "../../src/cli/natal-intake";
-import { AstrologicalEngine } from "../../src/core/astrological-engine";
-import type { Ephemeris } from "../../src/core/ephemeris-gateway";
+import type { Ephemeris } from "../../src/adapters/ephemeris-gateway";
+import { AstrologicalEngine } from "../../src/commands/classical";
+import type { NatalRequest } from "../../src/commands/client";
 
 const request: NatalRequest = {
 	birth: {

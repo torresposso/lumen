@@ -7,7 +7,7 @@ import {
 	parseWith,
 	resolveNatalRequest,
 	resolveNatalRequestFromArgs,
-} from "../../src/cli/natal-intake";
+} from "../../src/commands/client";
 
 describe("resolveNatalRequest", () => {
 	describe("schema validation", () => {

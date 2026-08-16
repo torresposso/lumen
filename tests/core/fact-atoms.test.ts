@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type { ChartBody } from "caelus";
-import { generateFactAtoms } from "../../src/core/fact-atoms";
+import { generateFactAtoms } from "../../src/core/classical";
 
 describe("fact-atoms", () => {
 	it("generates deterministic fact atoms for bodies, aspects, and patterns", () => {

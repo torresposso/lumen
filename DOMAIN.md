@@ -11,14 +11,14 @@ Límites estrictos: `core/` no realiza I/O (ni red ni filesystem). Los adaptador
 ```text
 src/
 ├── core/                         # 🧠 CÁLCULO PURO & MECÁNICA EVOLUTIVA (Zero I/O, Zero CLI)
-│   ├── types.ts                  # Tipos de dominio (ResolvedBirth, EAChart, Consultation, Hipotesis)
-│   ├── birth.ts                  # Puro: Zonas, Julian Day UT, validación y procedencia
-│   ├── soul.ts                   # Plutón, PPP (deactivación cuando conj. NN), Midpoint, aspectos
+│   ├── types.ts                  # Tipos de dominio, geometría zodiacal compartida y seam `Ephemeris`
+│   ├── birth.ts                  # Puro: Zonas, Julian Day UT y procedencia (la validación de flags vive en commands/client.ts)
+│   ├── soul.ts                   # Plutón, PPP (deactivación cuando conj. NN), Midpoint, aspectos y lectura evolutiva completa
 │   ├── nodes.ts                  # Eje nodal, regentes, skipped steps, cadenas de regentes nodales
 │   ├── phases.ts                 # Fases Sol-Luna natales y progresadas (8 arquetipos)
 │   ├── journey.ts                # Progresiones secundarias, triggers a puntos EA dentro de orbe, estaciones
 │   ├── karma.ts                  # Sinastría evolutiva y contactos inter-cartas a Nodos/Plutón
-│   └── classical.ts              # Proyecciones auxiliares explícitas: Dracónica, lots, estrellas fijas
+│   └── classical.ts              # Proyecciones auxiliares: Dracónica, lots, estrellas, eclipses prenatales, patrones y síntesis
 │
 ├── adapters/                     # 🌐 I/O EXTERNO & ADAPTADORES
 │   ├── geocode.ts                # Adaptador Open-Meteo, fallback offline y contratos de mock
@@ -33,11 +33,11 @@ src/
 │   ├── journey.ts                # `lumen journey progressed|stations <client>`
 │   ├── karma.ts                  # `lumen karma pair --a <id> --b <id>`
 │   ├── consulta.ts               # `lumen consulta abrir|preparar|leer|confirmar|cerrar`
-│   ├── client.ts                 # `lumen client add|list|show|remove` (alias `profile`)
-│   ├── classical.ts              # `lumen classical draconic|chart` (Sala de máquinas)
+│   ├── client.ts                 # `lumen client add|list|show|remove` (alias `profile`); intake natal y selección de perfiles compartidos
+│   ├── classical.ts              # `lumen classical chart|draconic|synastry` (Sala de máquinas + motor de carta)
 │   └── setup.ts                  # `lumen setup hooks` (Idempotente, Claude/Codex/OpenCode)
 │
-├── cli.ts                        # Enrutador axi-sdk-js con Home / Agenda de consultas del día
+├── cli.ts                        # Enrutador axi-sdk-js con Home / Agenda de consultas del día y aliases retrocompatibles
 └── version.ts
 ```
 
@@ -128,7 +128,8 @@ help[2]:
 ```
 
 2. **`lumen consulta confirmar silvia --hipotesis H1 --respuesta reliving --nota "El consultante refiere repetición de patrones de subordinación"`**:
-   - Enums cerrados doctrinales (`reliving | fruition | dual` para dinámicas Plutón-SN según JWG).
+   - Enums cerrados doctrinales a nivel de tipo (`reliving | fruition | dual` para Plutón-SN; `activo | en_proceso | integrado` para skipped steps; `polo_sur | en_transicion | polo_norte` para integración nodal).
+   - `leer --capa` solo acepta `evidencia | arquetipo | preguntas` y rechaza cualquier otro valor con `VALIDATION_ERROR`.
    - `--nota` libre para registrar las palabras del consultante.
    - Idempotente: confirmar la misma hipótesis actualiza la respuesta registrada.
    - Si la hipótesis no existe, error AXI estructurado con la lista de IDs válidos.
@@ -137,7 +138,8 @@ help[2]:
 
 ### E. `lumen client <action>` (y alias `profile`)
 - `add <id> --when "..." --place "..."`: Si el ID existe, actualiza (no-op/update idempotente).
-- `list`: Respeta privacidad AXI. Lista solo IDs, procedencia válida y si la sesión está abierta/cerrada. Cero fechas de nacimiento en contexto ambiente.
+- `list`: Respeta privacidad AXI. Lista solo `id`, `provenance` (estado `ok | ambiguous | nonexistent`) y `session` (`open | closed | none`). Cero fechas de nacimiento en contexto ambiente.
+- `show <id>` es el único comando que expone la fecha de nacimiento y las opciones de carta; el Home y el alias `profile` mantienen la misma privacidad.
 - `show <id>`: Detalle de datos de nacimiento del consultante.
 - `remove <id>`: Idempotente (exit 0 si ya fue eliminado).
 

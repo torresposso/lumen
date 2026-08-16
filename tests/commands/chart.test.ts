@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { AxiError } from "axi-sdk-js";
-import { chartFlagSpec } from "../../src/cli/natal-intake";
-import { chartCommand, chartUsage } from "../../src/commands/chart";
+import { chartCommand, chartUsage } from "../../src/commands/classical";
+import { chartFlagSpec } from "../../src/commands/client";
 
 const TAMPA_ARGS = [
 	"--year",

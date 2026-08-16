@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { julianDay } from "caelus";
+import { CaelusEphemeris } from "../../src/adapters/ephemeris-gateway";
 import { computeClassicalProjections } from "../../src/core/classical";
-import { CaelusEphemeris } from "../../src/core/ephemeris-gateway";
 import type { ResolvedBirth } from "../../src/core/types";
 
 describe("core/classical", () => {

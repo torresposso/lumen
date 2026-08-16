@@ -1,5 +1,5 @@
-import { angularDistanceDirect, roundPrecision } from "./celestial-coordinates";
 import type { SolLunaPhaseName } from "./types";
+import { angularDistanceDirect, roundPrecision } from "./types";
 
 export type { SolLunaPhaseName };
 

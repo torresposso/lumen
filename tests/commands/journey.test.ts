@@ -2,9 +2,9 @@ import { describe, expect, it } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { CliContext } from "../../src/cli/context";
-import { ProfileStore } from "../../src/cli/profile-store";
+import type { CliContext } from "../../src/commands/client";
 import { journeyCommand } from "../../src/commands/journey";
+import { ProfileStore } from "../../src/storage/client-store";
 import { ConsultationStore } from "../../src/storage/consultation-store";
 
 describe("journeyCommand", () => {
@@ -43,7 +43,7 @@ describe("journeyCommand", () => {
 					zone: "America/Bogota",
 					offsetMinutes: -300,
 					dst: false,
-					status: "resolved",
+					status: "ok",
 				},
 				options: {
 					houseSystem: "placidus",
@@ -89,7 +89,7 @@ describe("journeyCommand", () => {
 					zone: "America/Bogota",
 					offsetMinutes: -300,
 					dst: false,
-					status: "resolved",
+					status: "ok",
 				},
 				options: {
 					houseSystem: "placidus",
@@ -106,11 +106,20 @@ describe("journeyCommand", () => {
 			});
 
 			const result = (await journeyCommand(
-				["stations", "carlos", "--body", "mercury", "--years", "2"],
+				[
+					"stations",
+					"carlos",
+					"--body",
+					"mercury",
+					"--from",
+					"1981-03-01",
+					"--to",
+					"1982-03-01",
+				],
 				context,
 			)) as Record<string, unknown>;
 
-			expect(result.timing).toBeDefined();
+			expect(result.journey).toBeDefined();
 			expect(result.stations).toBeDefined();
 		} finally {
 			cleanup();

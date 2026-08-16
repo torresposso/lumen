@@ -1,5 +1,6 @@
 # SPEC: Evolutionary Astrology Module (`--evolutionary`)
 
+> **Nota de implementación (refactor modular)**: la entrada de flags vive en `src/commands/client.ts`; el cálculo evolutivo en `src/core/soul.ts` y `src/core/nodes.ts`; la salida del comando `chart` en `src/commands/classical.ts`. Las rutas `src/lib/*` de abajo son históricas del diseño original.
 ## Summary
 Add `--evolutionary` boolean flag to `lumen chart` to compute the Jeffrey Wolf Green evolutionary triad:
 - Pluto natal placement & directionality (Direct, Retrograde).

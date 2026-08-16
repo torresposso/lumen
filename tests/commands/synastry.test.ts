@@ -1,19 +1,28 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { rmSync } from "node:fs";
-import type { CliContext } from "../../src/cli/context";
-import { ProfileStore } from "../../src/cli/profile-store";
-import { profileCommand } from "../../src/commands/profile";
-import { synastryCommand } from "../../src/commands/synastry";
+import { synastryCommand } from "../../src/commands/classical";
+import type { CliContext } from "../../src/commands/client";
+import { profileCommand } from "../../src/commands/client";
+import { ProfileStore } from "../../src/storage/client-store";
+import { ConsultationStore } from "../../src/storage/consultation-store";
 
 const STORE_FILE = "/tmp/lumen-synastry-command-test.json";
 
 function context(): CliContext {
-	return { profiles: new ProfileStore(STORE_FILE) };
+	return {
+		profiles: new ProfileStore(STORE_FILE),
+		consultations: new ConsultationStore(
+			"/tmp/lumen-synastry-command-consultations-test.json",
+		),
+	};
 }
 
 afterEach(() => {
 	rmSync(STORE_FILE, { force: true });
 	rmSync(`${STORE_FILE}.tmp`, { force: true });
+	rmSync("/tmp/lumen-synastry-command-consultations-test.json", {
+		force: true,
+	});
 });
 
 describe("synastryCommand", () => {

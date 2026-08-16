@@ -2,6 +2,8 @@
 
 Western evolutionary astrology CLI built on the caelus ephemeris engine.
 
+> **Arquitectura de referencia**: `src/core/` es cálculo puro (sin I/O, zod o AxiError); `src/adapters/` aísla Open-Meteo y Caelus; `src/storage/` persiste en XDG con `0600` y escritura atómica; `src/commands/` son comandos AXI delgados; `src/cli.ts` enruta y mantiene los aliases retrocompatibles. La especificación definitiva vive en `DOMAIN.md` y la implementación en `SPEC.md`.
+
 ## Language
 
 ### Core
@@ -15,11 +17,11 @@ The complete, immutable assembled calculation result containing the natal chart,
 _Avoid_: chart output object, raw chart
 
 **Natal intake**:
-The process of parsing, validating, and resolving raw CLI inputs into a validated Resolved birth and Chart request options.
+The process of parsing, validating, and resolving raw CLI inputs into a validated Resolved birth and Chart request options. Lives in `src/commands/client.ts` (the only zod contact point); `src/core/birth.ts` performs only the pure UT/provenance resolution.
 _Avoid_: flag parser, argument validator
 
 **Resolved birth**:
-A local birth time and place turned into a UT Julian Day with timezone provenance (zone, offset, DST, status).
+A local birth time and place turned into a UT Julian Day with timezone provenance (zone, offset, DST, status). Status is caelus's union: `ok | ambiguous | nonexistent`.
 _Avoid_: birth data, birth record
 
 **Draconic chart**:
@@ -51,7 +53,7 @@ The point diametrically opposite the North Node (North Node longitude + 180°), 
 _Avoid_: descending node, Ketu
 
 **Skipped Steps**:
-Planets that square the lunar nodal axis (orb ≤ 7°), indicating unresolved evolutionary dynamics from prior lives. A square to Pluto by itself is a Pluto aspect, not a skipped step.
+Planets that square the lunar nodal axis (orb ≤ 5°), indicating unresolved evolutionary dynamics from prior lives. A square to Pluto by itself is a Pluto aspect, not a skipped step.
 
 **Dispositor chain**:
 The sequence of planetary sign rulers traced from a body to its final dispositor or mutual reception loop, revealing the underlying psychological driver.

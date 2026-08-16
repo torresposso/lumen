@@ -84,7 +84,7 @@ describe("ConsultationStore", () => {
 				id: "H3",
 				campo: "nodo_norte_regente",
 				pregunta: "¿Nueva dirección?",
-				respuestasValidas: ["si", "no"],
+				respuestasValidas: ["polo_sur", "polo_norte"],
 			},
 		]);
 
@@ -117,7 +117,11 @@ describe("ConsultationStore", () => {
 
 		// Invalid answer throws AxiError with valid suggestions
 		expect(() =>
-			store.recordHypothesis("silvia", "H1", "invalid_enum"),
+			store.recordHypothesis(
+				"silvia",
+				"H1",
+				"invalid_enum" as Parameters<ConsultationStore["recordHypothesis"]>[2],
+			),
 		).toThrow(AxiError);
 
 		// Unknown hypothesis ID throws AxiError

@@ -1,5 +1,6 @@
 # SPEC: Draconic Chart Support (`--draconic`)
 
+> **Nota de implementación (refactor modular)**: la entrada de flags vive en `src/commands/client.ts`; la proyección dracónica en `src/core/classical.ts`; la salida del comando `chart` en `src/commands/classical.ts`. Las rutas `src/lib/*` de abajo son históricas del diseño original.
 ## Summary
 Add support for computing and rendering Draconic charts in `lumen`. A Draconic chart shifts all natal longitudes (bodies, angles, and house cusps) so that the North Lunar Node aligns with 0° Aries (`0.0000°` longitude).
 

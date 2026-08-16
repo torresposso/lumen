@@ -2,9 +2,9 @@ import { describe, expect, it } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { CliContext } from "../../src/cli/context";
-import { ProfileStore } from "../../src/cli/profile-store";
 import { classicalCommand } from "../../src/commands/classical";
+import type { CliContext } from "../../src/commands/client";
+import { ProfileStore } from "../../src/storage/client-store";
 import { ConsultationStore } from "../../src/storage/consultation-store";
 
 describe("classicalCommand", () => {

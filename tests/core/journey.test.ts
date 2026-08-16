@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { julianDay } from "caelus";
-import { CaelusEphemeris } from "../../src/core/ephemeris-gateway";
+import { CaelusEphemeris } from "../../src/adapters/ephemeris-gateway";
 import { computeProgressions, computeStations } from "../../src/core/journey";
 import type { ResolvedBirth } from "../../src/core/types";
 

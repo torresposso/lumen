@@ -1,5 +1,6 @@
 # SPEC: Evolutionary Astrology Features (`--eclipses`, `--lots`, `--stars`)
 
+> **Nota de implementación (refactor modular)**: la entrada de flags vive en `src/commands/client.ts`; eclipses/lots/estrellas en `src/core/classical.ts`; la salida del comando `chart` en `src/commands/classical.ts`. Las rutas `src/lib/*` de abajo son históricas del diseño original.
 ## Summary
 Add optional flags to `lumen chart` to enrich natal and draconic readings with evolutionary features:
 - `--eclipses`: Prenatal solar and lunar eclipses immediately preceding birth.

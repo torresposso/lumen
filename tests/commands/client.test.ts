@@ -2,9 +2,9 @@ import { describe, expect, it } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { CliContext } from "../../src/cli/context";
-import { ProfileStore } from "../../src/cli/profile-store";
+import type { CliContext } from "../../src/commands/client";
 import { clientCommand } from "../../src/commands/client";
+import { ProfileStore } from "../../src/storage/client-store";
 import { ConsultationStore } from "../../src/storage/consultation-store";
 
 describe("clientCommand", () => {
@@ -52,11 +52,16 @@ describe("clientCommand", () => {
 			expect(addRes.client).toBe("lucia");
 			expect(addRes.status).toBe("saved");
 
-			const listRes = (await clientCommand(["list"], context)) as Record<
-				string,
-				unknown
-			>;
+			const listRes = (await clientCommand(["list"], context)) as {
+				clients: Array<Record<string, unknown>>;
+			};
 			expect(listRes.clients).toBeDefined();
+			for (const client of listRes.clients) {
+				expect(client.id).toBeDefined();
+				expect(client.provenance).toBeDefined();
+				expect(client.session).toBeDefined();
+				expect(client.born).toBeUndefined();
+			}
 
 			const showRes = (await clientCommand(
 				["show", "lucia"],

@@ -1,11 +1,11 @@
 import type { AxiCliCommand } from "axi-sdk-js";
 import { AxiError } from "axi-sdk-js";
 import { BODIES, type BodyId, EXTRA_BODIES, julianDay } from "caelus";
-import type { CliContext } from "../cli/context";
-import { requestFromProfile } from "../cli/profile-args";
-import { CaelusEphemeris } from "../core/ephemeris-gateway";
+import { CaelusEphemeris } from "../adapters/ephemeris-gateway";
 import { computeProgressions, computeStations } from "../core/journey";
 import type { ResolvedBirth } from "../core/types";
+import type { CliContext } from "./client";
+import { requestFromProfile } from "./client";
 
 const KNOWN_TIMING_BODIES = new Set<string>([...BODIES, ...EXTRA_BODIES]);
 const MAX_STATION_YEARS = 100;
@@ -13,7 +13,7 @@ const DEFAULT_STATION_LIMIT = 30;
 
 export const journeyUsage = [
 	"lumen journey progressed <client> --at 2026-08-13 [--bodies moon,sun,pluto] [--orb 3]",
-	"lumen journey stations <client> --body mercury [--years 1] [--limit 30]",
+	"lumen journey stations <client> --body mercury [--from YYYY-MM-DD] [--to YYYY-MM-DD] [--limit 30]",
 	"",
 	"El reloj temporal del Alma: progresiones secundarias y estaciones planetarias.",
 ].join("\n");
@@ -30,7 +30,7 @@ export const journeyProgressedUsage = [
 ].join("\n");
 
 export const journeyStationsUsage = [
-	"lumen journey stations <client> --body mercury [--years 1] [--limit 30]",
+	"lumen journey stations <client> --body mercury [--from YYYY-MM-DD] [--to YYYY-MM-DD] [--limit 30]",
 	"",
 	"  <client>    ID del consultante o `--profile <id>`",
 	"  --body      Cuerpo a buscar estaciones (mercury, venus, mars, etc.)",
@@ -328,9 +328,23 @@ async function progressed(args: string[], context: CliContext | undefined) {
 async function stations(args: string[], context: CliContext | undefined) {
 	const { client, rest: clientRest } = parseClientAndArgs(args);
 	let body: string | undefined;
-	let years = 1;
+	let fromRaw: string | undefined;
+	let toRaw: string | undefined;
+	let years: number | undefined;
 	let limit = DEFAULT_STATION_LIMIT;
 	const seen = new Set<string>();
+
+	const parsePositiveInteger = (raw: string, flag: string): number => {
+		const value = Number(raw);
+		if (!Number.isInteger(value) || value <= 0) {
+			throw new AxiError(
+				`Flag --${flag} expects a positive integer`,
+				"VALIDATION_ERROR",
+				[`Example: --${flag} 30`],
+			);
+		}
+		return value;
+	};
 
 	for (let i = 0; i < clientRest.length; i++) {
 		const arg = clientRest[i];
@@ -338,13 +352,31 @@ async function stations(args: string[], context: CliContext | undefined) {
 
 		if (arg === "--body" || arg.startsWith("--body=")) {
 			assertOnce(seen, "--body");
-			if (arg === "--body") {
-				const taken = takeValue(clientRest, i, "body");
-				body = taken.value;
-				i = taken.next;
-			} else {
-				body = arg.slice("--body=".length);
-			}
+			body =
+				arg === "--body"
+					? takeValue(clientRest, i, "body").value
+					: arg.slice("--body=".length);
+			if (arg === "--body") i++;
+			continue;
+		}
+
+		if (arg === "--from" || arg.startsWith("--from=")) {
+			assertOnce(seen, "--from");
+			fromRaw =
+				arg === "--from"
+					? takeValue(clientRest, i, "from").value
+					: arg.slice("--from=".length);
+			if (arg === "--from") i++;
+			continue;
+		}
+
+		if (arg === "--to" || arg.startsWith("--to=")) {
+			assertOnce(seen, "--to");
+			toRaw =
+				arg === "--to"
+					? takeValue(clientRest, i, "to").value
+					: arg.slice("--to=".length);
+			if (arg === "--to") i++;
 			continue;
 		}
 
@@ -373,14 +405,7 @@ async function stations(args: string[], context: CliContext | undefined) {
 					? takeValue(clientRest, i, "limit").value
 					: arg.slice("--limit=".length);
 			if (arg === "--limit") i++;
-			limit = Number(raw);
-			if (!Number.isInteger(limit) || limit <= 0) {
-				throw new AxiError(
-					"Flag --limit expects a positive integer",
-					"VALIDATION_ERROR",
-					["Example: --limit 30"],
-				);
-			}
+			limit = parsePositiveInteger(raw, "limit");
 			continue;
 		}
 
@@ -399,6 +424,15 @@ async function stations(args: string[], context: CliContext | undefined) {
 			"Use a known caelus body id, for example mercury, venus, mars",
 		]);
 	}
+	if (fromRaw !== undefined && toRaw !== undefined) {
+		const from = parseDate(fromRaw);
+		const to = parseDate(toRaw);
+		if (to.jdUt <= from.jdUt) {
+			throw new AxiError("Flag --to must be after --from", "VALIDATION_ERROR", [
+				"Example: --from 2026-01-01 --to 2026-12-31",
+			]);
+		}
+	}
 
 	const request = requestFromProfile(context, client);
 	const ephemeris = new CaelusEphemeris();
@@ -414,11 +448,13 @@ async function stations(args: string[], context: CliContext | undefined) {
 		local: request.birth.local,
 	};
 
+	const fromJd = fromRaw !== undefined ? parseDate(fromRaw).jdUt : undefined;
+	const toJd = toRaw !== undefined ? parseDate(toRaw).jdUt : undefined;
 	const result = computeStations(
 		resolvedBirth,
 		body as BodyId,
 		ephemeris,
-		years,
+		{ startJd: fromJd, endJd: toJd, years },
 		limit,
 	);
 
@@ -427,15 +463,23 @@ async function stations(args: string[], context: CliContext | undefined) {
 		direction: s.type,
 	}));
 
+	const windowYears = result.windowYears;
 	const help: string[] = [];
 	if (projected.length >= limit && projected.length > 0) {
 		help.push(
-			`Run \`lumen journey stations ${client} --body ${body} --years ${years} --limit ${limit + 50}\` for up to ${limit + 50} stations`,
+			`Run \`lumen journey stations ${client} --body ${body} --limit ${limit + 50}\` for up to ${limit + 50} stations`,
 		);
 	}
 
 	return {
-		timing: { kind: "stations", profile: client, body, years, limit },
+		journey: {
+			kind: "stations",
+			client,
+			body,
+			from: fromRaw ?? "birth",
+			to: toRaw ?? `${windowYears.toFixed(2)} years after birth`,
+			limit,
+		},
 		stations: projected,
 		...(help.length > 0 ? { help } : {}),
 	};
@@ -462,3 +506,7 @@ export const journeyCommand: AxiCliCommand<CliContext> = async (
 		"Run `lumen journey --help` for valid subcommands",
 	]);
 };
+
+/** Retrocompatible `timing` aliases; `lumen timing` is routed to journey. */
+export const timingCommand = journeyCommand;
+export const timingUsage = journeyUsage;

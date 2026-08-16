@@ -3,7 +3,7 @@ import type { ChartBody } from "caelus";
 import {
 	computeEvolutionaryReading,
 	type EvolutionaryInput,
-} from "../../src/core/evolutionary-astrology";
+} from "../../src/core/soul";
 
 function body(overrides: Partial<ChartBody> = {}): ChartBody {
 	return {

@@ -2,9 +2,9 @@ import { describe, expect, it } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { CliContext } from "../../src/cli/context";
-import { ProfileStore } from "../../src/cli/profile-store";
+import type { CliContext } from "../../src/commands/client";
 import { consultaCommand } from "../../src/commands/consulta";
+import { ProfileStore } from "../../src/storage/client-store";
 import { ConsultationStore } from "../../src/storage/consultation-store";
 
 describe("consultaCommand", () => {
@@ -31,6 +31,42 @@ describe("consultaCommand", () => {
 		}
 	});
 
+	it("rejects invalid leer layers with VALIDATION_ERROR", async () => {
+		const { context, cleanup } = setupContext();
+		try {
+			context.profiles.add("silvia", {
+				birth: {
+					jdUt: 2444630.7430555555,
+					lat: 9.24,
+					lon: -74.75,
+					local: { year: 1981, month: 1, day: 26, hour: 0, minute: 50 },
+					zone: "America/Bogota",
+					offsetMinutes: -300,
+					dst: false,
+					status: "ok",
+				},
+				options: {
+					houseSystem: "placidus",
+					zodiac: "tropical",
+					node: "true",
+					bodies: [],
+					topocentric: false,
+					draconic: false,
+					eclipses: false,
+					lots: false,
+					stars: false,
+					evolutionary: true,
+				},
+			});
+			await consultaCommand(["abrir", "silvia"], context);
+			await expect(
+				consultaCommand(["leer", "silvia", "--capa", "basura"], context),
+			).rejects.toThrow(/Invalid layer: basura/);
+		} finally {
+			cleanup();
+		}
+	});
+
 	it("runs the full clinical consultation lifecycle (abrir -> preparar -> leer -> confirmar -> cerrar)", async () => {
 		const { context, cleanup } = setupContext();
 		try {
@@ -43,7 +79,7 @@ describe("consultaCommand", () => {
 					zone: "America/Bogota",
 					offsetMinutes: -300,
 					dst: false,
-					status: "resolved",
+					status: "ok",
 				},
 				options: {
 					houseSystem: "placidus",

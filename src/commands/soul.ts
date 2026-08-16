@@ -1,12 +1,16 @@
 import type { AxiCliCommand } from "axi-sdk-js";
 import { AxiError } from "axi-sdk-js";
-import type { CliContext } from "../cli/context";
-import { NatalIntake, type NatalRequest } from "../cli/natal-intake";
-import { requestFromProfile, takeProfileArg } from "../cli/profile-args";
-import { CaelusEphemeris } from "../core/ephemeris-gateway";
+import { CaelusEphemeris } from "../adapters/ephemeris-gateway";
 import { computeNodalReading } from "../core/nodes";
 import { computeSolLunaPhase } from "../core/phases";
 import { computeSoulReading } from "../core/soul";
+import type { CliContext } from "./client";
+import {
+	NatalIntake,
+	type NatalRequest,
+	requestFromProfile,
+	takeProfileArg,
+} from "./client";
 
 export const soulUsage = [
 	"lumen soul <client> [--full]",

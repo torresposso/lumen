@@ -4,7 +4,7 @@ import {
 	type ChartLike,
 	computeSynastry,
 	toSynastryChart,
-} from "../../src/core/synastry";
+} from "../../src/core/karma";
 
 function body(overrides: Partial<ChartBody> = {}): ChartBody {
 	return {

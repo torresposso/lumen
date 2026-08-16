@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { julianDay } from "caelus";
-import { CaelusEphemeris } from "../../src/core/ephemeris-gateway";
+import { CaelusEphemeris } from "../../src/adapters/ephemeris-gateway";
 import { computeKarma } from "../../src/core/karma";
 
 describe("core/karma", () => {
