@@ -331,7 +331,6 @@ export const optionsSchema = z.object({
 		}),
 	topocentric: z.boolean().default(false),
 	draconic: z.boolean().default(false),
-	evolutionary: z.boolean().default(false),
 });
 
 export type OptionsFields = z.infer<typeof optionsSchema>;
@@ -351,7 +350,7 @@ export const chartFlagSpec: FlagSpec = deriveFlagSpec(
 		boolean: ["topocentric"],
 	},
 	// Schema fields with no CLI flag: the subcommand owns projection mode.
-	["draconic", "evolutionary"],
+	["draconic"],
 );
 
 export const chartUsage = [

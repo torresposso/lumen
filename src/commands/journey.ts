@@ -506,7 +506,3 @@ export const journeyCommand: AxiCliCommand<CliContext> = async (
 		"Run `lumen journey --help` for valid subcommands",
 	]);
 };
-
-/** Retrocompatible `timing` aliases; `lumen timing` is routed to journey. */
-export const timingCommand = journeyCommand;
-export const timingUsage = journeyUsage;

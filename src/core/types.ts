@@ -56,7 +56,6 @@ export interface ChartRequestOptions {
 	bodies: BodyId[];
 	topocentric: boolean;
 	draconic: boolean;
-	evolutionary: boolean;
 }
 
 export interface NatalRequest {

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { rmSync } from "node:fs";
 import { AxiError } from "axi-sdk-js";
 import type { CliContext } from "../../src/commands/intake";
-import { timingCommand } from "../../src/commands/journey";
+import { journeyCommand } from "../../src/commands/journey";
 import { profileCommand } from "../../src/commands/profile";
 import { ProfileStore } from "../../src/storage/profile-store";
 
@@ -21,7 +21,7 @@ afterEach(() => {
 	rmSync(`${STORE_FILE}-shm`, { force: true });
 });
 
-describe("timingCommand", () => {
+describe("journeyCommand (progressed/stations coverage)", () => {
 	test("computes secondary progressions for a saved profile", async () => {
 		const ctx = context();
 		await profileCommand(
@@ -46,7 +46,7 @@ describe("timingCommand", () => {
 			ctx,
 		);
 
-		const output = (await timingCommand(
+		const output = (await journeyCommand(
 			["progressed", "--profile", "erik", "--date", "2026-08-13"],
 			ctx,
 		)) as {
@@ -66,7 +66,7 @@ describe("timingCommand", () => {
 
 	test("rejects progressed without --date", async () => {
 		await expect(
-			timingCommand(["progressed", "--profile", "erik"], context()),
+			journeyCommand(["progressed", "--profile", "erik"], context()),
 		).rejects.toThrow(/Target date is required via --at or --date/);
 	});
 
@@ -94,7 +94,7 @@ describe("timingCommand", () => {
 			ctx,
 		);
 
-		const output = (await timingCommand(
+		const output = (await journeyCommand(
 			["progressed", "--profile", "erik", "--date", "2026-08-13"],
 			ctx,
 		)) as {
@@ -131,7 +131,7 @@ describe("timingCommand", () => {
 			ctx,
 		);
 
-		const output = (await timingCommand(
+		const output = (await journeyCommand(
 			["progressed", "--profile", "erik", "--date", "2026-08-13"],
 			ctx,
 		)) as {
@@ -176,7 +176,7 @@ describe("timingCommand", () => {
 			ctx,
 		);
 
-		const output = (await timingCommand(
+		const output = (await journeyCommand(
 			[
 				"stations",
 				"--profile",
@@ -224,7 +224,7 @@ describe("timingCommand", () => {
 
 		for (const date of ["2026-02-30", "2026-13-01", "2026-00-10"]) {
 			try {
-				await timingCommand(
+				await journeyCommand(
 					["progressed", "--profile", "erik", "--date", date],
 					ctx,
 				);
@@ -261,7 +261,7 @@ describe("timingCommand", () => {
 		);
 
 		await expect(
-			timingCommand(
+			journeyCommand(
 				["progressed", "--profile", "erik", "--date", "1990-06-10"],
 				ctx,
 			),
@@ -293,7 +293,7 @@ describe("timingCommand", () => {
 		);
 
 		try {
-			await timingCommand(
+			await journeyCommand(
 				[
 					"progressed",
 					"--profile",
@@ -312,7 +312,7 @@ describe("timingCommand", () => {
 		}
 
 		try {
-			await timingCommand(
+			await journeyCommand(
 				["stations", "--profile", "erik", "--body", "banana"],
 				ctx,
 			);
@@ -348,14 +348,14 @@ describe("timingCommand", () => {
 		);
 
 		await expect(
-			timingCommand(
+			journeyCommand(
 				["stations", "--profile", "erik", "--body", "moon", "--years", "101"],
 				ctx,
 			),
 		).rejects.toThrow(/no greater than 100/);
 
 		await expect(
-			timingCommand(
+			journeyCommand(
 				[
 					"progressed",
 					"--profile",

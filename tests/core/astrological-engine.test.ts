@@ -21,7 +21,6 @@ const request: NatalRequest = {
 		bodies: [],
 		topocentric: false,
 		draconic: false,
-		evolutionary: false,
 	},
 };
 

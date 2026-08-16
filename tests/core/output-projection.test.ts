@@ -22,7 +22,6 @@ const request: NatalRequest = {
 		bodies: ["mean_lilith"],
 		topocentric: false,
 		draconic: false,
-		evolutionary: false,
 	},
 };
 

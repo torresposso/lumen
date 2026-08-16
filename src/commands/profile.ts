@@ -18,7 +18,6 @@ function sameOptions(a: ChartRequestOptions, b: ChartRequestOptions): boolean {
 		a.node === b.node &&
 		a.topocentric === b.topocentric &&
 		a.draconic === b.draconic &&
-		a.evolutionary === b.evolutionary &&
 		a.bodies.length === b.bodies.length &&
 		a.bodies.every((body, i) => body === b.bodies[i])
 	);
