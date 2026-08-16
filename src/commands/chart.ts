@@ -435,7 +435,11 @@ export const chartCommand: AxiCliCommand<CliContext> = async (
 ) => {
 	const first = args[0];
 
-	if (first !== undefined && !first.startsWith("-") && !CHART_MODES.has(first)) {
+	if (
+		first !== undefined &&
+		!first.startsWith("-") &&
+		!CHART_MODES.has(first)
+	) {
 		throw new AxiError(`Unknown chart command: ${first}`, "VALIDATION_ERROR", [
 			"Run `lumen chart --help` for valid subcommands",
 		]);

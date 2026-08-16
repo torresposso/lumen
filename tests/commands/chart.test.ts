@@ -96,9 +96,9 @@ describe("chartCommand", () => {
 		await expect(chartCommand(["bogus"], undefined)).rejects.toBeInstanceOf(
 			AxiError,
 		);
-		await expect(chartCommand(["bogus", "--help"], undefined)).rejects.toBeInstanceOf(
-			AxiError,
-		);
+		await expect(
+			chartCommand(["bogus", "--help"], undefined),
+		).rejects.toBeInstanceOf(AxiError);
 	});
 
 	test("throws a structured AxiError for an unknown house system", async () => {
