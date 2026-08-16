@@ -65,8 +65,8 @@ export const profileRemoveUsage = [
 	"Elimina un perfil local. Eliminar un perfil ausente es un no-op exitoso.",
 ].join("\n");
 
-function persistence(context: CliContext | undefined): ProfileStore {
-	return context?.persistence ?? new DefaultProfileStore();
+function store(context: CliContext | undefined): ProfileStore {
+	return context?.profiles ?? new DefaultProfileStore();
 }
 
 function assertNoFlags(args: string[], command: string): void {
@@ -127,7 +127,7 @@ export const profileCommand: AxiCliCommand<CliContext> = async (
 					],
 				);
 			}
-			persistence(context).add(id, result.request.birth);
+			store(context).add(id, result.request.birth);
 			return {
 				profile: id,
 				status: "saved",
@@ -140,7 +140,7 @@ export const profileCommand: AxiCliCommand<CliContext> = async (
 		case "list": {
 			assertNoFlags(rest, "lumen profile list");
 			const sessions = context?.consultations;
-			const profiles = persistence(context)
+			const profiles = store(context)
 				.list()
 				.map((profile) => ({
 					id: profile.id,
@@ -165,7 +165,7 @@ export const profileCommand: AxiCliCommand<CliContext> = async (
 					["Run `lumen profile show <id>`"],
 				);
 			}
-			const profile = persistence(context).get(id);
+			const profile = store(context).get(id);
 			if (profile === undefined) {
 				throw new AxiError(`Unknown profile: ${id}`, "VALIDATION_ERROR", [
 					"Run `lumen profile list` to see saved profiles",
@@ -183,7 +183,7 @@ export const profileCommand: AxiCliCommand<CliContext> = async (
 					["Run `lumen profile remove <id>`"],
 				);
 			}
-			const removed = persistence(context).remove(id);
+			const removed = store(context).remove(id);
 			return {
 				profile: id,
 				status: removed ? "removed" : "already absent (no-op)",

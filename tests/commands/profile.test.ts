@@ -1,14 +1,11 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { rmSync } from "node:fs";
 import { chartCommand } from "../../src/commands/chart";
-import { clientCommand } from "../../src/commands/client";
 import type { CliContext } from "../../src/commands/intake";
 import { profileCommand } from "../../src/commands/profile";
-import { ProfileStore as JsonProfileStore } from "../../src/storage/client-store";
 import { ConsultationStore } from "../../src/storage/consultation-store";
-import { ProfileStore as SqliteProfileStore } from "../../src/storage/profile-store";
+import { ProfileStore } from "../../src/storage/profile-store";
 
-const CLIENTS_FILE = "/tmp/lumen-profile-command-clients.json";
 const DB_FILE = "/tmp/lumen-profile-command-test.db";
 const CONSULTATIONS_FILE = "/tmp/lumen-profile-command-consultations-test.json";
 const TAMPA_ARGS = [
@@ -30,14 +27,12 @@ const TAMPA_ARGS = [
 
 function context(): CliContext {
 	return {
-		profiles: new JsonProfileStore(CLIENTS_FILE),
-		persistence: new SqliteProfileStore(DB_FILE),
+		profiles: new ProfileStore(DB_FILE),
 		consultations: new ConsultationStore(CONSULTATIONS_FILE),
 	};
 }
 
 afterEach(() => {
-	rmSync(CLIENTS_FILE, { force: true });
 	rmSync(DB_FILE, { force: true });
 	rmSync(`${DB_FILE}-journal`, { force: true });
 	rmSync(`${DB_FILE}-wal`, { force: true });
@@ -131,10 +126,7 @@ describe("profileCommand", () => {
 
 	test("chart natal accepts a positioned saved profile", async () => {
 		const ctx = context();
-		// During ticket 03 the read-side surface (chart/soul) keeps reading the
-		// JSON store: seed it via clientCommand. Ticket 04 flips this to the
-		// SQLite profile store added above.
-		await clientCommand(["add", "erik", ...TAMPA_ARGS], ctx);
+		await profileCommand(["add", "erik", ...TAMPA_ARGS], ctx);
 
 		const reading = (await chartCommand(["natal", "erik"], ctx)) as {
 			chart: { birth: { zone: string } };

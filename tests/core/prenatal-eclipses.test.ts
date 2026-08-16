@@ -3,7 +3,7 @@ import type { Chart, ChartBody } from "caelus";
 import { BODIES } from "caelus";
 import type { Ephemeris } from "../../src/adapters/ephemeris-gateway";
 import { CaelusEphemeris } from "../../src/adapters/ephemeris-gateway";
-import type { ResolvedBirth } from "../../src/commands/client";
+import type { ResolvedBirth } from "../../src/commands/intake";
 import { computePrenatalEclipses } from "../../src/core/nodes";
 
 const birth: ResolvedBirth = {

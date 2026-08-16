@@ -2,15 +2,15 @@ import { describe, expect, it } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { CliContext } from "../../src/commands/client";
 import { consultaCommand } from "../../src/commands/consulta";
-import { ProfileStore } from "../../src/storage/client-store";
+import type { CliContext } from "../../src/commands/intake";
 import { ConsultationStore } from "../../src/storage/consultation-store";
+import { ProfileStore } from "../../src/storage/profile-store";
 
 describe("consultaCommand", () => {
 	const setupContext = (): { context: CliContext; cleanup: () => void } => {
 		const dir = mkdtempSync(join(tmpdir(), "lumen-consulta-test-"));
-		const profiles = new ProfileStore(join(dir, "profiles.json"));
+		const profiles = new ProfileStore(join(dir, "lumen.db"));
 		const consultations = new ConsultationStore(
 			join(dir, "consultations.json"),
 		);
@@ -35,25 +35,14 @@ describe("consultaCommand", () => {
 		const { context, cleanup } = setupContext();
 		try {
 			context.profiles.add("silvia", {
-				birth: {
-					jdUt: 2444630.7430555555,
-					lat: 9.24,
-					lon: -74.75,
-					local: { year: 1981, month: 1, day: 26, hour: 0, minute: 50 },
-					zone: "America/Bogota",
-					offsetMinutes: -300,
-					dst: false,
-					status: "ok",
-				},
-				options: {
-					houseSystem: "placidus",
-					zodiac: "tropical",
-					node: "true",
-					bodies: [],
-					topocentric: false,
-					draconic: false,
-					evolutionary: true,
-				},
+				jdUt: 2444630.7430555555,
+				lat: 9.24,
+				lon: -74.75,
+				local: { year: 1981, month: 1, day: 26, hour: 0, minute: 50 },
+				zone: "America/Bogota",
+				offsetMinutes: -300,
+				dst: false,
+				status: "ok",
 			});
 			await consultaCommand(["abrir", "silvia"], context);
 			await expect(
@@ -68,25 +57,14 @@ describe("consultaCommand", () => {
 		const { context, cleanup } = setupContext();
 		try {
 			context.profiles.add("silvia", {
-				birth: {
-					jdUt: 2444630.7430555555,
-					lat: 9.24,
-					lon: -74.75,
-					local: { year: 1981, month: 1, day: 26, hour: 0, minute: 50 },
-					zone: "America/Bogota",
-					offsetMinutes: -300,
-					dst: false,
-					status: "ok",
-				},
-				options: {
-					houseSystem: "placidus",
-					zodiac: "tropical",
-					node: "true",
-					bodies: [],
-					topocentric: false,
-					draconic: false,
-					evolutionary: true,
-				},
+				jdUt: 2444630.7430555555,
+				lat: 9.24,
+				lon: -74.75,
+				local: { year: 1981, month: 1, day: 26, hour: 0, minute: 50 },
+				zone: "America/Bogota",
+				offsetMinutes: -300,
+				dst: false,
+				status: "ok",
 			});
 
 			// 1. Abrir

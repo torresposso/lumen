@@ -4,7 +4,7 @@ import {
 	hasClockFlags,
 	mergeBirthInput,
 	parseWhen,
-} from "../../src/commands/client";
+} from "../../src/commands/intake";
 import { resolveBirth } from "../../src/core/birth";
 import type { Geocoder } from "../../src/core/types";
 

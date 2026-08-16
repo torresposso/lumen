@@ -5,15 +5,15 @@ import { computeNodalReading } from "../core/nodes";
 import { computeSoulReading } from "../core/soul";
 import type { Hypothesis, HypothesisResponseEnum } from "../core/types";
 import { ConsultationStore } from "../storage/consultation-store";
-import type { CliContext } from "./client";
-import { requestFromProfile } from "./client";
+import type { CliContext } from "./intake";
+import { requestFromProfile } from "./intake";
 
 export const consultaUsage = [
-	"lumen consulta abrir <client> [--motivo <text>]",
-	"lumen consulta preparar <client>",
-	"lumen consulta leer <client> [--capa evidencia|arquetipo|preguntas]",
-	"lumen consulta confirmar <client> --hipotesis <ID> --respuesta <enum> [--nota <text>]",
-	"lumen consulta cerrar <client> [--sintesis <text>] [--tarea <text>]",
+	"lumen consulta abrir <profile> [--motivo <text>]",
+	"lumen consulta preparar <profile>",
+	"lumen consulta leer <profile> [--capa evidencia|arquetipo|preguntas]",
+	"lumen consulta confirmar <profile> --hipotesis <ID> --respuesta <enum> [--nota <text>]",
+	"lumen consulta cerrar <profile> [--sintesis <text>] [--tarea <text>]",
 	"",
 	"Gestión del ciclo de consulta clínica, hipótesis JWG y diálogo confidencial.",
 ].join("\n");
@@ -118,15 +118,15 @@ export const consultaCommand: AxiCliCommand<CliContext> = async (
 					continue;
 				}
 				throw new AxiError(`Unexpected argument: ${arg}`, "VALIDATION_ERROR", [
-					"Run `lumen consulta abrir <client> [--motivo <text>]`",
+					"Run `lumen consulta abrir <profile> [--motivo <text>]`",
 				]);
 			}
 
 			if (!clientId) {
 				throw new AxiError(
-					"consulta abrir requires a client id",
+					"consulta abrir requires a profile id",
 					"VALIDATION_ERROR",
-					['Run `lumen consulta abrir <client> --motivo "..."`'],
+					['Run `lumen consulta abrir <profile> --motivo "..."`'],
 				);
 			}
 
@@ -149,9 +149,9 @@ export const consultaCommand: AxiCliCommand<CliContext> = async (
 			const clientId = rest[0];
 			if (!clientId || clientId.startsWith("-")) {
 				throw new AxiError(
-					"consulta preparar requires a client id",
+					"consulta preparar requires a profile id",
 					"VALIDATION_ERROR",
-					["Run `lumen consulta preparar <client>`"],
+					["Run `lumen consulta preparar <profile>`"],
 				);
 			}
 
@@ -210,15 +210,15 @@ export const consultaCommand: AxiCliCommand<CliContext> = async (
 					continue;
 				}
 				throw new AxiError(`Unexpected argument: ${arg}`, "VALIDATION_ERROR", [
-					"Run `lumen consulta leer <client> [--capa evidencia|arquetipo|preguntas]`",
+					"Run `lumen consulta leer <profile> [--capa evidencia|arquetipo|preguntas]`",
 				]);
 			}
 
 			if (!clientId) {
 				throw new AxiError(
-					"consulta leer requires a client id",
+					"consulta leer requires a profile id",
 					"VALIDATION_ERROR",
-					["Run `lumen consulta leer <client>`"],
+					["Run `lumen consulta leer <profile>`"],
 				);
 			}
 
@@ -288,13 +288,13 @@ export const consultaCommand: AxiCliCommand<CliContext> = async (
 					continue;
 				}
 				throw new AxiError(`Unexpected argument: ${arg}`, "VALIDATION_ERROR", [
-					"Run `lumen consulta confirmar <client> --hipotesis <ID> --respuesta <enum> [--nota <text>]`",
+					"Run `lumen consulta confirmar <profile> --hipotesis <ID> --respuesta <enum> [--nota <text>]`",
 				]);
 			}
 
 			if (!clientId || !hipotesisId || !respuesta) {
 				throw new AxiError(
-					"consulta confirmar requires client, --hipotesis, and --respuesta",
+					"consulta confirmar requires profile, --hipotesis, and --respuesta",
 					"VALIDATION_ERROR",
 					[
 						"Example: lumen consulta confirmar silvia --hipotesis H1 --respuesta reliving",
@@ -354,15 +354,15 @@ export const consultaCommand: AxiCliCommand<CliContext> = async (
 					continue;
 				}
 				throw new AxiError(`Unexpected argument: ${arg}`, "VALIDATION_ERROR", [
-					"Run `lumen consulta cerrar <client> [--sintesis <text>] [--tarea <text>]`",
+					"Run `lumen consulta cerrar <profile> [--sintesis <text>] [--tarea <text>]`",
 				]);
 			}
 
 			if (!clientId) {
 				throw new AxiError(
-					"consulta cerrar requires a client id",
+					"consulta cerrar requires a profile id",
 					"VALIDATION_ERROR",
-					["Run `lumen consulta cerrar <client>`"],
+					["Run `lumen consulta cerrar <profile>`"],
 				);
 			}
 

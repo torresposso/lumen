@@ -21,7 +21,6 @@ import type {
 	NatalRequest as CoreNatalRequest,
 	ResolvedBirth,
 } from "../core/types";
-import type { ClientStore } from "../storage/client-store";
 import type { ConsultationStore } from "../storage/consultation-store";
 import type { ProfileStore } from "../storage/profile-store";
 
@@ -29,10 +28,7 @@ export type { BirthClockFields, BirthStatus, ResolvedBirth };
 
 /** Runtime context injected into every AXI command. */
 export interface CliContext {
-	profiles: ClientStore;
-	/** SQLite profile store; consumed by `profile` since ticket 03 and by the
-	 *  rest of the surface once `client` dies (ticket 04). */
-	persistence?: ProfileStore;
+	profiles: ProfileStore;
 	consultations: ConsultationStore;
 }
 
@@ -632,13 +628,13 @@ export function requestFromProfile(
 ): NatalRequest {
 	const profile = context?.profiles.get(name);
 	if (profile === undefined) {
-		throw new AxiError(`Unknown client: ${name}`, "VALIDATION_ERROR", [
-			"Run `lumen client list` to see saved clients",
-			`Run \`lumen client add ${name} --when ... --place ...\``,
+		throw new AxiError(`Unknown profile: ${name}`, "VALIDATION_ERROR", [
+			"Run `lumen profile list` to see saved profiles",
+			`Run \`lumen profile add ${name} --when ... --place ...\``,
 		]);
 	}
 	return {
 		birth: profile.birth,
-		options: { ...profile.options },
+		options: defaultChartOptions(),
 	};
 }

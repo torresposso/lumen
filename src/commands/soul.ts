@@ -4,16 +4,16 @@ import { CaelusEphemeris } from "../adapters/ephemeris-gateway";
 import { computeNodalReading, computePrenatalEclipses } from "../core/nodes";
 import { computeSolLunaPhase } from "../core/phases";
 import { computeSoulReading } from "../core/soul";
-import type { CliContext } from "./client";
+import type { CliContext } from "./intake";
 import {
 	NatalIntake,
 	type NatalRequest,
 	requestFromProfile,
 	takeProfileArg,
-} from "./client";
+} from "./intake";
 
 export const soulUsage = [
-	"lumen soul <client> [--full]",
+	"lumen soul <profile> [--full]",
 	'lumen soul --when 1981-01-26T00:50 --place "Magangué, Colombia" [--full]',
 	"",
 	"Radiografía del estado basal del Alma y la intención evolutiva (JWG).",
@@ -39,7 +39,7 @@ export const soulCommand: AxiCliCommand<CliContext> = async (args, context) => {
 		const rest = filteredArgs.slice(1);
 		if (rest.length > 0) {
 			throw new AxiError(
-				"Cannot combine positional client id with extra flags",
+				"Cannot combine positional profile id with extra flags",
 				"VALIDATION_ERROR",
 				[`Use \`lumen soul ${clientId}\` or inline birth flags`],
 			);
@@ -113,7 +113,7 @@ export const soulCommand: AxiCliCommand<CliContext> = async (args, context) => {
 
 	return {
 		soul: {
-			client: clientName,
+			profile: clientName,
 			pluto: `${pluto.sign}/H${pluto.house}`,
 			ppp: ppp.active ? `${ppp.sign}/H${ppp.house}` : ppp.description,
 			southNode: `${snObj.sign}/H${snObj.house}`,
@@ -163,7 +163,7 @@ export const soulCommand: AxiCliCommand<CliContext> = async (args, context) => {
 				]
 			: [
 					`Run \`lumen soul ${inlineFlags} --full\` for dispositor chains and fine orbs`,
-					`Run \`lumen client add <id> ${inlineFlags}\` to save this profile, then \`lumen consulta abrir <id>\``,
+					`Run \`lumen profile add <id> ${inlineFlags}\` to save this profile, then \`lumen consulta abrir <id>\``,
 				],
 	};
 };

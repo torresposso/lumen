@@ -4,24 +4,24 @@ import { BODIES, type BodyId, EXTRA_BODIES, julianDay } from "caelus";
 import { CaelusEphemeris } from "../adapters/ephemeris-gateway";
 import { computeProgressions, computeStations } from "../core/journey";
 import type { ResolvedBirth } from "../core/types";
-import type { CliContext } from "./client";
-import { requestFromProfile } from "./client";
+import type { CliContext } from "./intake";
+import { requestFromProfile } from "./intake";
 
 const KNOWN_TIMING_BODIES = new Set<string>([...BODIES, ...EXTRA_BODIES]);
 const MAX_STATION_YEARS = 100;
 const DEFAULT_STATION_LIMIT = 30;
 
 export const journeyUsage = [
-	"lumen journey progressed <client> --at 2026-08-13 [--bodies moon,sun,pluto] [--orb 3]",
-	"lumen journey stations <client> --body mercury [--from YYYY-MM-DD] [--to YYYY-MM-DD] [--limit 30]",
+	"lumen journey progressed <profile> --at 2026-08-13 [--bodies moon,sun,pluto] [--orb 3]",
+	"lumen journey stations <profile> --body mercury [--from YYYY-MM-DD] [--to YYYY-MM-DD] [--limit 30]",
 	"",
 	"El reloj temporal del Alma: progresiones secundarias y estaciones planetarias.",
 ].join("\n");
 
 export const journeyProgressedUsage = [
-	"lumen journey progressed <client> --at 2026-08-13 [--bodies moon,sun,pluto] [--orb 3]",
+	"lumen journey progressed <profile> --at 2026-08-13 [--bodies moon,sun,pluto] [--orb 3]",
 	"",
-	"  <client>    ID del consultante o `--profile <id>`",
+	"  <profile>    ID del perfil o `--profile <id>`",
 	"  --at        Fecha objetivo en formato YYYY-MM-DD (alias: `--date`)",
 	"  --bodies    Cuerpos a progresar, separados por comas (default: moon,sun,pluto)",
 	"  --orb       Orbe máximo para contactos a puntos evolutivos (default: 3°)",
@@ -30,9 +30,9 @@ export const journeyProgressedUsage = [
 ].join("\n");
 
 export const journeyStationsUsage = [
-	"lumen journey stations <client> --body mercury [--from YYYY-MM-DD] [--to YYYY-MM-DD] [--limit 30]",
+	"lumen journey stations <profile> --body mercury [--from YYYY-MM-DD] [--to YYYY-MM-DD] [--limit 30]",
 	"",
-	"  <client>    ID del consultante o `--profile <id>`",
+	"  <profile>    ID del perfil o `--profile <id>`",
 	"  --body      Cuerpo a buscar estaciones (mercury, venus, mars, etc.)",
 	"  --years     Ventana en años desde el nacimiento (default: 1, máx: 100)",
 	"  --limit     Límite de eventos de estación (default: 30)",
@@ -301,7 +301,7 @@ async function progressed(args: string[], context: CliContext | undefined) {
 	return {
 		journey: {
 			kind: "progressed",
-			client,
+			profile: client,
 			targetDate: dateRaw,
 			ageYears: result.ageYears,
 			solLunaPhase: result.solLunaPhase?.name,
@@ -474,7 +474,7 @@ async function stations(args: string[], context: CliContext | undefined) {
 	return {
 		journey: {
 			kind: "stations",
-			client,
+			profile: client,
 			body,
 			from: fromRaw ?? "birth",
 			to: toRaw ?? `${windowYears.toFixed(2)} years after birth`,

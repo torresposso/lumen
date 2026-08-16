@@ -2,8 +2,8 @@ import type { AxiCliCommand } from "axi-sdk-js";
 import { AxiError } from "axi-sdk-js";
 import { CaelusEphemeris } from "../adapters/ephemeris-gateway";
 import { computeKarma } from "../core/karma";
-import type { CliContext } from "./client";
-import { requestFromProfile } from "./client";
+import type { CliContext } from "./intake";
+import { requestFromProfile } from "./intake";
 
 export const karmaUsage = [
 	"lumen karma pair --a <id> --b <id> [--orb 3]",
@@ -15,8 +15,8 @@ export const karmaUsage = [
 export const karmaPairUsage = [
 	"lumen karma pair --a <id> --b <id> [--orb 3]",
 	"",
-	"  --a    Perfil o cliente A",
-	"  --b    Perfil o cliente B",
+	"  --a    Perfil A",
+	"  --b    Perfil B",
 	"  --orb  Orbe máximo en grados (default: 3°)",
 ].join("\n");
 

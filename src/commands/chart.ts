@@ -1,13 +1,13 @@
 import type { AxiCliCommand } from "axi-sdk-js";
 import { AxiError } from "axi-sdk-js";
-import type { CliContext } from "./client";
+import type { CliContext } from "./intake";
 
 export const chartUsage = [
-	"lumen chart natal <client> | lumen chart draconic <client>",
+	"lumen chart natal <profile> | lumen chart draconic <profile>",
 	'lumen chart natal --when 1981-01-26T00:50 --place "Magangué, Colombia"',
 	"",
 	"Carta natal (insumo base) y proyección draconic (experimento etiquetado).",
-	"La lectura evolutiva vive en `lumen soul <client>`.",
+	"La lectura evolutiva vive en `lumen soul <profile>`.",
 ].join("\n");
 
 // ============================================================================
@@ -357,7 +357,7 @@ import {
 	type NatalRequest,
 	requestFromProfile,
 	takeProfileArg,
-} from "./client";
+} from "./intake";
 
 const FLAG_REFERENCE = NatalIntake.usage.split("\n").slice(2).join("\n");
 
@@ -365,7 +365,7 @@ export const chartNatalUsage = [
 	'lumen chart natal --when 1981-01-26T00:50 --place "Magangué, Colombia"',
 	"",
 	"Calcula la carta natal base (efemérides caelus) sin lectura evolutiva.",
-	"Usa `lumen soul <client>` para la lectura evolutiva completa.",
+	"Usa `lumen soul <profile>` para la lectura evolutiva completa.",
 ].join("\n");
 
 export const chartDraconicUsage = [
@@ -400,7 +400,7 @@ async function resolveRequest(
 		const rest = args.slice(1);
 		if (rest.length > 0) {
 			throw new AxiError(
-				"Cannot combine positional client id with extra flags",
+				"Cannot combine positional profile id with extra flags",
 				"VALIDATION_ERROR",
 				[`Use \`lumen chart natal ${first}\` or inline birth flags`],
 			);
