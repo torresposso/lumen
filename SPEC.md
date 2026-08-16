@@ -1,50 +1,87 @@
-# Especificación Técnica de Implementación: Lumen (JWG + AXI)
+# Especificación de Lumen: CLI AXI de Astrología Evolutiva
 
-## 1. Resumen y Objetivos
-Migrar la arquitectura actual de Lumen hacia una estructura de **Módulos Profundos sin ceremonia**, garantizando:
-1. **Pureza de `core/`**: Cero I/O en cálculo astrológico. `adapters/geocode.ts` y `adapters/ephemeris-gateway.ts` aíslan la red y Caelus.
-2. **Ciclo de Consulta (`lumen consulta`)**: Nuevo módulo de expedientes clínicos basado en hipótesis (`H1`, `H2`) y respuestas tipadas con persistencia segura (`0600`).
-3. **Gramática AXI en Comandos**: `soul`, `journey`, `karma`, `consulta`, `client`, `classical` y `setup` con salidas TOON compactas y estados vacíos explícitos.
-4. **Cero regresiones**: Mantener los **186 tests** en verde y soportar alias retrocompatibles (`profile` ➔ `client`, `chart`/`synastry`/`timing` desde `cli.ts`).
+## 1. Norte (una frase)
 
----
+> **Lumen es mi instrumento de evolución: leo mi propia carta y las de mi
+> familia, aprendo astrología evolutiva practicándola, y con ese aprendizaje
+> aprendo a brillar en mi Nodo Norte en Leo (casa 10, conjunción MC) — para
+> después aplicarlo con los demás. Preguntarle al agente debe ser tan barato
+> que aprender sea conversación, no análisis.**
 
-## 2. Fases de Implementación (Tracer Bullets)
+La astrología evolutiva es la tradición: dos lentes de un mismo canon — el
+Plutón de Green (el Alma y su punto evolutivo) y el eje nodal de Forrest (la
+historia kármica). La elección de lente la resuelve la práctica, no el
+análisis. AXI es el contrato, no el producto: si el agente tropieza con lumen,
+tropieza Erick. La enseñanza sale por la conversación con el agente; lumen se
+mantiene geométrico y TOON-mínimo.
 
-### Fase 1: Fronteras de Pureza y Adaptadores
-- **`src/core/types.ts`**: Tipos canónicos de dominio (`ResolvedBirth`, `EAChart`, `ConsultationSession`, `Hypothesis`), geometría zodiacal compartida y el seam puro `Ephemeris`.
-- **`src/core/birth.ts`**: Lógica pura de zonas horarias, cálculo a UT Julian Day y procedencia (`ok | ambiguous | nonexistent`) sin zod, AxiError, red ni filesystem. La validación de flags vive en `src/commands/client.ts` (único punto de contacto de zod).
-- **`src/adapters/geocode.ts`**: Extracción del geocoding de Open-Meteo fuera de core; implementa el contrato `Geocoder` definido en `core/types.ts` y expone `createMockGeocoder` para tests.
+## 2. Fronteras (inamovibles)
 
-### Fase 2: Módulos Profundos del Motor Evolutivo (`core/`)
-- **`src/core/soul.ts`**: Cálculo del paradigma de Plutón, Punto de Polaridad (con desactivación si conjunción con Nodo Norte), Midpoint Plutón-Nodo Norte y conteo de aspectos estresantes/fluidos.
-- **`src/core/nodes.ts`**: Eje nodal, regentes natales, detección estricta de Pasos Omitidos (*Skipped Steps*, orbe ≤ 5°) y cadenas de dispositores de los regentes nodales.
-- **`src/core/phases.ts`**: Fases Sol-Luna natales y secundarias progresadas (las 8 fases arquetípicas).
-- **`src/core/journey.ts`**: Motor de progresiones secundarias día-por-año (con contactos a puntos EA en orbe ≤ 3°) y búsqueda de estaciones planetarias.
-- **`src/core/karma.ts`**: Motor de sinastría evolutiva pura (contactos cruzados inter-cartas a Plutón/Nodos, superposición de casas nodales y primitivas clásicas de sinastría).
-- **`src/core/classical.ts`**: Proyecciones técnicas auxiliares (Dracónica, lots herméticos, estrellas fijas, eclipses prenatales), patrones de aspecto, firma de carta y síntesis de átomos de hecho.
+| Capa | Responsabilidad | Prohibido |
+|---|---|---|
+| `src/core/` (8 módulos puros) | Cálculo astrológico determinista | I/O, zod, AxiError, imports de adapters/storage/commands |
+| `src/adapters/` | Red y efemérides (Open-Meteo, Caelus) | Lógica de dominio |
+| `src/storage/` | Persistencia XDG (`0600`, escritura atómica) | Cálculo |
+| `src/commands/` | Parseo, llamado a core, salida TOON | Cálculo astrológico |
+| `src/cli.ts` | Router axi-sdk-js, Home con agenda | Lógica de negocio |
 
-### Fase 3: Capa de Almacenamiento Clínico (`storage/`)
-- **`src/storage/client-store.ts`**: Gestión real de `~/.config/lumen/profiles.json` (XDG compliance, permisos 0600, escritura atómica tmp+rename, retrocompatibilidad `profile` / `client`, validación manual de archivo sin zod y resúmenes privados sin fecha de nacimiento).
-- **`src/storage/consultation-store.ts`**: Expedientes clínicos en `~/.config/lumen/consultations.json` (sesiones `open` / `closed`, hipótesis tipadas con enums cerrados, confirmaciones y notas; validación manual de archivo sin zod).
+La validación zod vive únicamente en el seam de intake (`src/commands/client.ts`).
+La salida siempre es tipos nativos caelus convertidos a TOON en la frontera.
 
-### Fase 4: Comandos AXI (`commands/`)
-- **`src/commands/soul.ts`**: Adaptador CLI para `lumen soul <client>` con salida TOON precomputada.
-- **`src/commands/journey.ts`**: Subcomandos `progressed` y `stations` con flags unívocos.
-- **`src/commands/karma.ts`**: `pair --a <id> --b <id>` con vacíos explícitos.
-- **`src/commands/consulta.ts`**: Subcomandos `abrir`, `preparar`, `leer`, `confirmar`, `cerrar`.
-- **`src/commands/client.ts`**: `add`, `list`, `show`, `remove` (con alias `profileCommand`). También concentra `NatalIntake`, schemas zod, geocoding, `CliContext` y selección de perfiles compartida; no existe carpeta `src/cli/`.
-- **`src/commands/classical.ts`**: `chart`, `draconic`, `synastry`, más el motor de carta (`AstrologicalEngine`) y los comandos retrocompatibles `chartCommand`/`synastryCommand`.
-- **`src/commands/setup.ts`**: `lumen setup hooks`.
+## 3. Superficie de comandos (la única que existe)
 
-### Fase 5: Integración y Suite de Pruebas
-- **`src/cli.ts`**: Router con `axi-sdk-js`, contexto inyectado, Home con agenda de consultas activas (sin exponer datos biográficos) y aliases retrocompatibles `chart`, `profile`, `synastry` y `timing`.
-- **`tests/`**: Migración y expansión de tests unitarios y de integración para cada módulo y comando.
+7 comandos + Home, organizados por las preguntas del practicante. Sin aliases,
+sin comandos ocultos, sin retrocompatibilidad que contamine `--help`:
 
----
+```
+soul       ¿De dónde vengo / a dónde voy? Plutón, PPP, eje nodal, eclipses prenatales (--full)
+journey    ¿Qué me está pasando ahora? Progresiones secundarias y estaciones
+karma      ¿Cómo se aplica con otros? Sinastría evolutiva
+consulta   ¿Cómo dialogo con esto? Expedientes, hipótesis (H1, H2) y diálogo
+client     Los seres de la práctica: consultantes locales (privacidad 0600)
+classical  Andamiaje técnico: chart (insumo base) y draconic (experimento etiquetado)
+setup      Integración de sesión (hooks + skill) — conveniencia, no producto
+```
 
-## 3. Criterios de Aceptación (Definición de Terminado)
-1. `bun test` (186 tests) y `bun run typecheck` pasan sin errores ni regresiones.
-2. `bun run check` (biome sobre todo el repo) pasa con 0 errores y 0 warnings.
-3. Ningún archivo en `src/core/` realiza llamadas de red o filesystem, ni importa desde `src/adapters/`, `src/commands/`, `src/storage/`, zod o axi-sdk-js; `core/` solo depende de caelus, caelus-birth y de sus propios módulos.
-4. El comando `lumen consulta` permite abrir, preparar hipótesis (`H1`, `H2`), confirmarlas y cerrar sesiones con idempotencia demostrada en tests.
+Fuera de la superficie (helenístico/técnico, fuera del canon evolutivo — ver
+ADR-0004 y `~/knowledge/research/2026-08-12--tradicion-astrologia-evolutiva.md`):
+sinastría clásica (la evolutiva vive en `karma pair`), lotes herméticos y
+estrellas fijas. Los eclipses prenatales son eventos nodales: los entrega
+`soul --full`, no `classical`.
+
+## 4. Definición de Terminado (checklist AXI)
+
+1. **TOON en stdout**; nada más. Logs y progreso a stderr.
+2. **Schemas mínimos**: listas ≤ 4 campos, `--fields` para más, límites altos.
+3. **Truncación**: campos largos truncados (500–1500 chars) con tamaño total y escape hatch.
+4. **Agregados precomputados**: `count` total en listas, estado derivado barato inline.
+5. **Vacíos definitivos**: "0 X found" con contexto; nunca salida ambigua.
+6. **Errores estructurados en stdout** (AxiError): mensaje + `help` accionable; exit 0 para no-ops, 1 error, 2 uso; flags desconocidos rechazados con hint; `--help` siempre pasa.
+7. **Contexto ambiente**: `setup hooks` idempotente (Claude Code, Codex, OpenCode) + skill instalable generada del Home, con `--check` de staleness.
+8. **Content first**: Home sin argumentos muestra estado vivo (agenda, clientes) + `bin:` y `description:`.
+9. **Disclosure contextual**: `help[]` con siguientes pasos relevantes, placeholders `<id>`, omitido si la salida es autocontenida.
+10. **Help consistente**: `--help` por comando con flags, defaults y 2-3 ejemplos; `--version`/-v/-V vía fast-path en <ms (hoja `src/version.ts`).
+
+## 5. Regla de congelación (la cura del rumbo)
+
+**Toda decisión de alcance — agregar, cortar, refactorizar, o el impulso de
+borrar y rehacer — se juzga con una sola pregunta: ¿sirve a mi Nodo Norte?
+Si la respuesta no es un sí sentido, la decisión es no.**
+
+- Cambiar el norte (sección 1) requiere ADR.
+- Todo ticket en `.scratch/` responde esa pregunta en su primera línea; si un
+  ticket no puede nombrar cómo sirve a la evolución, no se construye.
+- La superficie clásica solo crece con ticket que nombre un hueco de valor
+  evolutivo concreto. Mover archivos "para ordenar" está prohibido.
+- El impulso de rehacer de cero es la voz del Nodo Sur (Acuario, casa 4); la
+  medicina es mantener, usar, mostrar.
+
+## 6. Criterios de Aceptación
+
+1. `bun test` en verde y `bun run typecheck` sin errores (el conteo de tests se
+   recalibra tras los tickets de remoción).
+2. `bun run check` (biome) con 0 errores y 0 warnings.
+3. `src/core/` sin I/O, zod, AxiError ni imports fuera de core/caelus.
+4. La superficie de comandos es exactamente la de la sección 3.
+5. Auditoría AXI de la sección 4 pasa sin violaciones abiertas.
+6. Cada ticket de `.scratch/` responde la pregunta del norte en su primera línea.

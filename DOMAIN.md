@@ -1,4 +1,4 @@
-# Especificación Definitiva del Sistema Lumen (JWG + AXI)
+# Especificación Definitiva del Sistema Lumen (Astrología Evolutiva + AXI)
 
 > **"El alma manda, la mecánica obedece, y AXI es el idioma que habla el instrumento."**
 
@@ -18,7 +18,7 @@ src/
 │   ├── phases.ts                 # Fases Sol-Luna natales y progresadas (8 arquetipos)
 │   ├── journey.ts                # Progresiones secundarias, triggers a puntos EA dentro de orbe, estaciones
 │   ├── karma.ts                  # Sinastría evolutiva y contactos inter-cartas a Nodos/Plutón
-│   └── classical.ts              # Proyecciones auxiliares: Dracónica, lots, estrellas, eclipses prenatales, patrones y síntesis
+│   └── classical.ts              # Proyecciones auxiliares: carta base y Dracónica (experimento etiquetado)
 │
 ├── adapters/                     # 🌐 I/O EXTERNO & ADAPTADORES
 │   ├── geocode.ts                # Adaptador Open-Meteo, fallback offline y contratos de mock
@@ -33,11 +33,11 @@ src/
 │   ├── journey.ts                # `lumen journey progressed|stations <client>`
 │   ├── karma.ts                  # `lumen karma pair --a <id> --b <id>`
 │   ├── consulta.ts               # `lumen consulta abrir|preparar|leer|confirmar|cerrar`
-│   ├── client.ts                 # `lumen client add|list|show|remove` (alias `profile`); intake natal y selección de perfiles compartidos
-│   ├── classical.ts              # `lumen classical chart|draconic|synastry` (Sala de máquinas + motor de carta)
+│   ├── client.ts                 # `lumen client add|list|show|remove`; intake natal y selección de perfiles compartidos
+│   ├── classical.ts              # `lumen classical chart|draconic` (Andamiaje técnico)
 │   └── setup.ts                  # `lumen setup hooks` (Idempotente, Claude/Codex/OpenCode)
 │
-├── cli.ts                        # Enrutador axi-sdk-js con Home / Agenda de consultas del día y aliases retrocompatibles
+├── cli.ts                        # Enrutador axi-sdk-js con Home / Agenda de consultas del día
 └── version.ts
 ```
 
@@ -47,7 +47,7 @@ src/
 
 ### A. `lumen soul <client>`
 Radiografía del estado basal del Alma y la intención evolutiva.
-- **Flags**: `[--when "..." --place "..."]` (inline) | `[--full]` (cadenas de dispositores completas).
+- **Flags**: `[--when "..." --place "..."]` (inline) | `[--full]` (cadenas de dispositores completas + eclipses prenatales).
 - **Garantías de Borde (AXI §5)**:
   - Si Plutón está conjunto al Nodo Norte: `pppActive: false` y `ppp: "none (Direct integration through North Node)"`.
   - Si no hay pasos saltados: `skippedSteps: 0`.
@@ -72,7 +72,7 @@ evolutionaryMechanics:
     southNodeRuler: "Neptune in Capricorn/H10 (Direct)"
     northNodeRuler: "Mercury in Sagittarius/H9 (Direct)"
 help[2]:
-  Run `lumen soul silvia --full` for dispositor chains and fine orbs
+  Run `lumen soul silvia --full` for dispositor chains, prenatal eclipses and fine orbs
   Run `lumen consulta abrir silvia --motivo "..."` to begin consultation
 ```
 
@@ -136,10 +136,10 @@ help[2]:
 
 ---
 
-### E. `lumen client <action>` (y alias `profile`)
+### E. `lumen client <action>`
 - `add <id> --when "..." --place "..."`: Si el ID existe, actualiza (no-op/update idempotente).
 - `list`: Respeta privacidad AXI. Lista solo `id`, `provenance` (estado `ok | ambiguous | nonexistent`) y `session` (`open | closed | none`). Cero fechas de nacimiento en contexto ambiente.
-- `show <id>` es el único comando que expone la fecha de nacimiento y las opciones de carta; el Home y el alias `profile` mantienen la misma privacidad.
+- `show <id>` es el único comando que expone la fecha de nacimiento y las opciones de carta; el Home mantiene la misma privacidad.
 - `show <id>`: Detalle de datos de nacimiento del consultante.
 - `remove <id>`: Idempotente (exit 0 si ya fue eliminado).
 

@@ -1,8 +1,8 @@
 # Lumen
 
-Western evolutionary astrology CLI built on the caelus ephemeris engine.
+Western evolutionary astrology CLI built on the caelus ephemeris engine — the personal instrument for learning the tradition (Green's Pluto lens and Forrest's nodal lens) by practicing on one's own chart, family, and future clients.
 
-> **Arquitectura de referencia**: `src/core/` es cálculo puro (sin I/O, zod o AxiError); `src/adapters/` aísla Open-Meteo y Caelus; `src/storage/` persiste en XDG con `0600` y escritura atómica; `src/commands/` son comandos AXI delgados; `src/cli.ts` enruta y mantiene los aliases retrocompatibles. La especificación definitiva vive en `DOMAIN.md` y la implementación en `SPEC.md`.
+> **Arquitectura de referencia**: `src/core/` es cálculo puro (sin I/O, zod o AxiError); `src/adapters/` aísla Open-Meteo y Caelus; `src/storage/` persiste en XDG con `0600` y escritura atómica; `src/commands/` son comandos AXI delgados; `src/cli.ts` enruta los 7 comandos AXI. La especificación definitiva vive en `DOMAIN.md` y la implementación en `SPEC.md`.
 
 ## Language
 
@@ -25,10 +25,14 @@ A local birth time and place turned into a UT Julian Day with timezone provenanc
 _Avoid_: birth data, birth record
 
 **Draconic chart**:
-A natal chart re-projected onto the lunar-node zodiac by subtracting the North Node's longitude from all positions, placing the North Node at 0° Aries. Preserves aspects and angular separations.
+A natal chart re-projected onto the lunar-node zodiac by subtracting the North Node's longitude from all positions, placing the North Node at 0° Aries. Preserves aspects and angular separations. Outside the evolutionary canon; kept as a labeled experiment.
 _Avoid_: soul chart
 
-### Evolutionary astrology (Jeffrey Wolf Green)
+### Evolutionary astrology (Green & Forrest)
+
+**Evolutionary astrology**:
+The tradition that reads the natal chart as the map of the soul's current lesson: where it has been and where it is going. Two lenses share one canon — Green's Pluto (the soul and its evolutionary point) and Forrest's nodal axis (the karmic story). The choice of lens is resolved by practice, not analysis.
+_Avoid_: karmic astrology, past-life astrology
 
 **Evolutionary reading**:
 The assembled output of the `--evolutionary` flag: Pluto's placement and Polarity Point, the lunar-node axis with its planetary rulers and their natal house/sign placements, Skipped Steps, the Pluto–North Node Midpoint, and the Pluto/Chiron dispositor chains.
@@ -64,13 +68,4 @@ The midpoint calculated between Pluto and the North Node, marking the integratio
 **Prenatal eclipses**:
 The solar eclipse (projecting the Sun) and lunar eclipse (projecting the Moon) immediately preceding birth, marking the soul's evolutionary intentions for the current life.
 _Avoid_: prenatal lunation
-
-### Classical extensions
-
-**Hermetic lots**:
-Calculated points derived from the Ascendant, Sun, and Moon — specifically the Lot of Spirit and the Lot of Fortune.
-_Avoid_: Arabic parts
-
-**Fixed stars**:
-Major star alignments (orb ≤ 1.5°) with natal body positions.
 

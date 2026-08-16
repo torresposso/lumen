@@ -1,6 +1,6 @@
 # lumen
 
-Astrología evolutiva computacional desde la terminal.
+Mi instrumento de evolución: astrología evolutiva (Green + Forrest) desde la terminal.
 
 ## Instalar dependencias
 
@@ -8,10 +8,11 @@ Astrología evolutiva computacional desde la terminal.
 bun install
 ```
 
-## Comandos AXI (JWG)
+## Comandos AXI
 
 ```bash
 # Radiografía evolutiva del Alma (también acepta flags de nacimiento inline)
+# --full incluye cadenas de dispositores completas y eclipses prenatales
 bun run bin/lumen.ts soul silvia
 bun run bin/lumen.ts soul silvia --full
 
@@ -29,25 +30,15 @@ bun run bin/lumen.ts consulta confirmar silvia --hipotesis H1 --respuesta relivi
 bun run bin/lumen.ts consulta leer silvia --capa preguntas
 bun run bin/lumen.ts consulta cerrar silvia --sintesis "..." --tarea "..."
 
-# Gestión local de clientes (alias: profile)
+# Gestión local de clientes
 bun run bin/lumen.ts client add erik --when "1981-01-26T00:50" --place "Magangué, Colombia"
 bun run bin/lumen.ts client list
 bun run bin/lumen.ts client show erik
 bun run bin/lumen.ts client remove erik
 
-# Sala de máquinas clásica
+# Andamiaje técnico (chart = insumo base; draconic = experimento fuera del canon)
 bun run bin/lumen.ts classical chart --when "1981-01-26T00:50" --place "Magangué, Colombia"
 bun run bin/lumen.ts classical draconic --when "1981-01-26T00:50" --place "Magangué, Colombia"
-```
-
-## Compatibilidad retroactiva
-
-`lumen chart`, `lumen profile`, `lumen synastry` y `lumen timing` siguen
-funcionando como aliases en `src/cli.ts`:
-
-```bash
-bun run bin/lumen.ts chart natal --when "1981-01-26T00:50" --place "Magangué, Colombia"
-bun run bin/lumen.ts timing progressed --profile erik --date 2026-08-13
 ```
 
 ## Privacidad
