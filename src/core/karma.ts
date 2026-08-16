@@ -45,17 +45,10 @@ function derivedPoint(id: string, lon: number, cusps: number[]): OverlayPoint {
 }
 
 /** Normalizes a natal chart into the frame-agnostic overlay used by karma. */
-export function toOverlayChart(
-	id: string,
-	chart: ChartLike,
-	nodeMode: "both" | "mean" | "true" = "both",
-): OverlayChart {
+export function toOverlayChart(id: string, chart: ChartLike): OverlayChart {
 	const points: OverlayPoint[] = [];
 	const bodies = chart.bodies;
-	const northNode =
-		nodeMode === "mean"
-			? (bodies.mean_node ?? bodies.true_node)
-			: (bodies.true_node ?? bodies.mean_node);
+	const northNode = bodies.true_node ?? bodies.mean_node;
 
 	for (const [bodyId, body] of Object.entries(bodies)) {
 		if (body === undefined) continue;

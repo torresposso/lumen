@@ -49,12 +49,11 @@ function silenceWarnings(load: () => ChartConfig): ChartConfig {
 
 async function requestOptions(
 	config: ConfigStore | undefined,
-	flags?: { houseSystem?: string; node?: string },
+	flags?: { houseSystem?: string },
 ) {
 	const values: Record<string, string> = { ...BIRTH_VALUES };
 	if (flags?.houseSystem !== undefined)
 		values["house-system"] = flags.houseSystem;
-	if (flags?.node !== undefined) values.node = flags.node;
 	return (await resolveNatalRequest(values, new Set(), undefined, config))
 		.options;
 }
@@ -79,7 +78,7 @@ describe("ConfigStore", () => {
 	});
 
 	test("non-object JSON reads as empty", () => {
-		const { store, cleanup } = storeWith(["whole_sign", "mean"]);
+		const { store, cleanup } = storeWith(["whole_sign", "equal"]);
 		try {
 			expect(silenceWarnings(() => store.load())).toEqual({});
 		} finally {
@@ -87,25 +86,22 @@ describe("ConfigStore", () => {
 		}
 	});
 
-	test("individual invalid values are dropped, valid ones survive", () => {
-		const badSystem = storeWith({ houseSystem: "bogus", node: "mean" });
-		const badNode = storeWith({ houseSystem: "whole_sign", node: "chiron" });
-		const allValid = storeWith({ houseSystem: "whole_sign", node: "true" });
+	test("invalid values are dropped, unknown keys ignored", () => {
+		const badSystem = storeWith({ houseSystem: "bogus" });
+		const allValid = storeWith({ houseSystem: "whole_sign" });
+		const nodeIgnored = storeWith({ houseSystem: "whole_sign", node: "mean" });
 		try {
-			expect(silenceWarnings(() => badSystem.store.load())).toEqual({
-				node: "mean",
-			});
-			expect(silenceWarnings(() => badNode.store.load())).toEqual({
-				houseSystem: "whole_sign",
-			});
+			expect(silenceWarnings(() => badSystem.store.load())).toEqual({});
 			expect(allValid.store.load()).toEqual({
 				houseSystem: "whole_sign",
-				node: "true",
+			});
+			expect(nodeIgnored.store.load()).toEqual({
+				houseSystem: "whole_sign",
 			});
 		} finally {
 			badSystem.cleanup();
-			badNode.cleanup();
 			allValid.cleanup();
+			nodeIgnored.cleanup();
 		}
 	});
 
@@ -140,35 +136,25 @@ describe("config precedence (flag > config > zod-default)", () => {
 	test("schema defaults apply with no flag and no config", async () => {
 		const options = await requestOptions(undefined);
 		expect(options.houseSystem).toBe("placidus");
-		expect(options.node).toBe("both");
 	});
 
 	test("config values override schema defaults", async () => {
-		const { store, cleanup } = storeWith({
-			houseSystem: "whole_sign",
-			node: "mean",
-		});
+		const { store, cleanup } = storeWith({ houseSystem: "whole_sign" });
 		try {
 			const options = await requestOptions(store);
 			expect(options.houseSystem).toBe("whole_sign");
-			expect(options.node).toBe("mean");
 		} finally {
 			cleanup();
 		}
 	});
 
 	test("an explicit flag always wins over config", async () => {
-		const { store, cleanup } = storeWith({
-			houseSystem: "whole_sign",
-			node: "mean",
-		});
+		const { store, cleanup } = storeWith({ houseSystem: "whole_sign" });
 		try {
 			const options = await requestOptions(store, {
 				houseSystem: "equal",
-				node: "true",
 			});
 			expect(options.houseSystem).toBe("equal");
-			expect(options.node).toBe("true");
 		} finally {
 			cleanup();
 		}

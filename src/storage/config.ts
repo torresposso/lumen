@@ -13,21 +13,12 @@ import { defaultProfilesDir } from "./profile-store";
  * Reading is tolerant on purpose: a missing or unparseable file yields an
  * empty config (schema defaults apply) and never breaks startup.
  */
-export type ConfigNodePreference = "both" | "mean" | "true";
-
 export interface ChartConfig {
 	houseSystem?: string;
-	node?: ConfigNodePreference;
 }
 
 export function defaultConfigFile(): string {
 	return join(defaultProfilesDir(), "config.json");
-}
-
-function toNode(value: unknown): ConfigNodePreference | undefined {
-	return value === "both" || value === "mean" || value === "true"
-		? value
-		: undefined;
 }
 
 export class ConfigStore {
@@ -35,7 +26,7 @@ export class ConfigStore {
 
 	/**
 	 * Tolerant read: missing/empty/invalid file → `{}` with a one-line notice.
-	 * Values that fail validation (unknown house system, bad node) are dropped
+	 * Values that fail validation (unknown house system) are dropped
 	 * individually so a single typo can't poison every chart.
 	 */
 	load(): ChartConfig {
@@ -83,15 +74,6 @@ export class ConfigStore {
 					`lumen: ignoring unknown house system "${houseSystem}" in ${this.file}`,
 				);
 			}
-		}
-
-		const node = toNode(record.node);
-		if (node !== undefined) {
-			config.node = node;
-		} else if (record.node !== undefined) {
-			console.warn(
-				`lumen: ignoring invalid node "${String(record.node)}" in ${this.file}`,
-			);
 		}
 
 		return config;

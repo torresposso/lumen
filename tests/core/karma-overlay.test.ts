@@ -46,27 +46,19 @@ describe("karma overlay chart projection", () => {
 		expect(ids).not.toContain("true_node");
 	});
 
-	test("honors the selected node mode when both nodes are present", () => {
+	test("uses the true node when both nodes are present", () => {
 		const source = chart({
 			true_node: body({ lon: 10, sign: "Aries", house: 1 }),
 			mean_node: body({ lon: 20, sign: "Aries", house: 1 }),
 		});
 
-		const mean = toOverlayChart("x", source, "mean");
-		const trueNode = toOverlayChart("x", source, "true");
-		const both = toOverlayChart("x", source, "both");
+		const projected = toOverlayChart("x", source);
 
-		expect(mean.points.find((point) => point.id === "north_node")?.lon).toBe(
-			20,
-		);
 		expect(
-			trueNode.points.find((point) => point.id === "north_node")?.lon,
+			projected.points.find((point) => point.id === "north_node")?.lon,
 		).toBe(10);
-		expect(both.points.find((point) => point.id === "north_node")?.lon).toBe(
-			10,
-		);
 		expect(
-			mean.points.filter((point) => point.id === "north_node").length,
+			projected.points.filter((point) => point.id === "north_node").length,
 		).toBe(1);
 	});
 });

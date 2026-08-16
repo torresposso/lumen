@@ -115,7 +115,7 @@ describe("profileCommand", () => {
 	test("rejects chart option flags on add (options live in config/flags)", async () => {
 		await expect(
 			profileCommand(
-				["add", "erik", ...TAMPA_ARGS, "--node", "mean"],
+				["add", "erik", ...TAMPA_ARGS, "--house-system", "equal"],
 				context(),
 			),
 		).rejects.toThrow(/not stored on profiles/);

@@ -37,7 +37,7 @@ bun run bin/lumen.ts chart draconic --when "1981-01-26T00:50" --place "Magangué
 ## Privacidad
 
 - Los perfiles viven en `~/.config/lumen/lumen.db` (bun:sqlite embebido, permisos `0600`, migraciones con `PRAGMA user_version`).
-- Las opciones de carta por defecto viven en `~/.config/lumen/config.json` (sistema de casas, nodos); un flag en la línea de comandos gana a la config.
+- Las opciones de carta por defecto viven en `~/.config/lumen/config.json` (sistema de casas); un flag en la línea de comandos gana a la config.
 - `lumen profile list` y el Home solo muestran `id` y estado de nacimiento (`ok | ambiguous | nonexistent`): nunca fechas de nacimiento.
 - `lumen profile show <id>` es el único comando que expone los datos natales completos.
 

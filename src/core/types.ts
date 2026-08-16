@@ -52,7 +52,6 @@ export interface Geocoder {
 export interface ChartRequestOptions {
 	houseSystem: HouseSystem;
 	zodiac: Zodiac;
-	node: "both" | "mean" | "true";
 	bodies: BodyId[];
 	topocentric: boolean;
 	draconic: boolean;
@@ -79,7 +78,7 @@ export type ChartBodiesLite = Partial<Record<string, ChartBodyLite>>;
 // Ephemeris Capability Seam
 // ============================================================================
 
-export type EphemerisChartAtOptions = Parameters<Engine["chartAt"]>[3];
+type EphemerisChartAtOptions = Parameters<Engine["chartAt"]>[3];
 
 /** Pure capability seam over the ephemeris engine. Adapters implement this
  *  interface; core modules depend only on the interface, never on I/O. */
@@ -132,13 +131,6 @@ export interface NodalRulerPlacement {
 	description: string;
 }
 
-export interface DispositorChainNode {
-	body: string;
-	rules: string;
-	sign: string;
-	next?: string;
-}
-
 export interface PlutoPolarityPoint {
 	lon: number;
 	sign: string;
@@ -183,14 +175,6 @@ export function angularDistance(lonA: number, lonB: number): number {
 /** Direct counter-clockwise arc from lonFrom to lonTo, degrees [0, 360). */
 export function angularDistanceDirect(lonFrom: number, lonTo: number): number {
 	return normalizeLongitude(lonTo - lonFrom);
-}
-
-export function isOrbWithin(
-	lonA: number,
-	lonB: number,
-	maxOrb: number,
-): boolean {
-	return angularDistance(lonA, lonB) <= maxOrb;
 }
 
 /** Tropical zodiac sign for an ecliptic longitude in degrees. */

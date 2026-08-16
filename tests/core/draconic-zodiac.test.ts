@@ -48,7 +48,7 @@ describe("toDraconicChart", () => {
 			aspects: [],
 		};
 
-		const draconic = toDraconicChart(inputChart, "true");
+		const draconic = toDraconicChart(inputChart);
 
 		expect(draconic.nodeUsed).toBe("true_node");
 		expect(draconic.bodies.true_node?.lon).toBe(0);

@@ -308,7 +308,6 @@ export const optionsSchema = z.object({
 			message: 'zodiac must be "tropical" (Western astrology)',
 		})
 		.default("tropical"),
-	node: z.enum(["both", "mean", "true"]).default("both"),
 	bodies: z
 		.string()
 		.default("")
@@ -338,7 +337,6 @@ export type OptionsFields = z.infer<typeof optionsSchema>;
 export const optionsSuggestions: Record<string, string> = {
 	houseSystem: `Valid: ${HOUSE_SYSTEMS.join(", ")}`,
 	zodiac: "Valid: tropical (lumen is dedicated to Western astrology)",
-	node: "Valid: both (default) | mean | true",
 	bodies: `Valid: ${EXTRA_BODIES.join(", ")}`,
 	topocentric: "Valid: --topocentric",
 };
@@ -365,7 +363,6 @@ export const chartUsage = [
 	"Options:",
 	"  --house-system                             placidus (default) | porphyry | equal | whole_sign | ...",
 	"  --zodiac                                   tropical (default, Western astrology)",
-	"  --node                                     both (default) | mean | true",
 	"  --bodies                                   Extra bodies, comma-separated: mean_lilith,true_lilith",
 	"  --topocentric                              Enable topocentric parallax",
 ].join("\n");
@@ -495,7 +492,6 @@ function parseRequested(
 		{
 			houseSystem: values["house-system"] ?? chartConfig.houseSystem,
 			zodiac: values.zodiac,
-			node: values.node ?? chartConfig.node,
 			bodies: values.bodies,
 			topocentric: flags.has("topocentric"),
 		},

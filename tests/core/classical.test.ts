@@ -19,7 +19,7 @@ describe("core/classical", () => {
 
 	it("projects the chart onto the draconic zodiac (0° Aries North Node)", () => {
 		const chart = ephemeris.chartAt(birth.jdUt, birth.lat, birth.lon);
-		const draconic = toDraconicChart(chart, "both");
+		const draconic = toDraconicChart(chart);
 
 		expect(draconic.nodeUsed).toBe("true_node");
 		expect(draconic.bodies.true_node?.lon).toBeCloseTo(0, 4);

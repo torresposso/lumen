@@ -17,7 +17,6 @@ const request: NatalRequest = {
 	options: {
 		houseSystem: "placidus",
 		zodiac: "tropical",
-		node: "both",
 		bodies: [],
 		topocentric: false,
 		draconic: false,
@@ -34,26 +33,8 @@ describe("AstrologicalEngine", () => {
 		expect(reading.chart.meta.houseSystem).toBe("placidus");
 	});
 
-	test("keeps both nodes when node is both", () => {
+	test("keeps only the true node (lumen is dedicated to the true node)", () => {
 		const reading = engine.compute(request);
-		expect(reading.chart.bodies.mean_node).toBeDefined();
-		expect(reading.chart.bodies.true_node).toBeDefined();
-	});
-
-	test("drops the true node when node is mean", () => {
-		const reading = engine.compute({
-			...request,
-			options: { ...request.options, node: "mean" },
-		});
-		expect(reading.chart.bodies.mean_node).toBeDefined();
-		expect(reading.chart.bodies.true_node).toBeUndefined();
-	});
-
-	test("drops the mean node when node is true", () => {
-		const reading = engine.compute({
-			...request,
-			options: { ...request.options, node: "true" },
-		});
 		expect(reading.chart.bodies.true_node).toBeDefined();
 		expect(reading.chart.bodies.mean_node).toBeUndefined();
 	});

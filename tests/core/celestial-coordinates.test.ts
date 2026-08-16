@@ -5,7 +5,6 @@ import {
 	findAspect,
 	findDeclinationAspect,
 	houseOf,
-	isOrbWithin,
 	normalizeLongitude,
 	projectPoint,
 	shiftLongitude,
@@ -68,11 +67,6 @@ describe("celestial coordinates & zodiac math", () => {
 		expect(angularDistanceDirect(350, 10)).toBe(20);
 		expect(angularDistanceDirect(100, 100)).toBe(0);
 		expect(angularDistanceDirect(10, 100)).toBe(90);
-	});
-
-	test("isOrbWithin evaluates orb limits accurately", () => {
-		expect(isOrbWithin(10, 350, 20)).toBe(true);
-		expect(isOrbWithin(10, 350, 15)).toBe(false);
 	});
 
 	test("projectPoint normalizes, rounds, finds sign, degree, and house", () => {

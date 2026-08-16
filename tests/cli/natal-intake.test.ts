@@ -286,7 +286,6 @@ describe("resolveNatalRequest", () => {
 			);
 			expect(request.options.houseSystem).toBe("placidus");
 			expect(request.options.zodiac).toBe("tropical");
-			expect(request.options.node).toBe("both");
 			expect(request.options.bodies).toEqual([]);
 		});
 
@@ -298,13 +297,11 @@ describe("resolveNatalRequest", () => {
 					lon: "-74.755",
 					zone: "America/Bogota",
 					"house-system": "whole_sign",
-					node: "mean",
 					bodies: "mean_lilith, true_lilith",
 				},
 				new Set(["topocentric"]),
 			);
 			expect(request.options.houseSystem).toBe("whole_sign");
-			expect(request.options.node).toBe("mean");
 			expect(request.options.bodies).toEqual(["mean_lilith", "true_lilith"]);
 			expect(request.options.topocentric).toBe(true);
 		});

@@ -18,7 +18,6 @@ const request: NatalRequest = {
 	options: {
 		houseSystem: "placidus",
 		zodiac: "tropical",
-		node: "both",
 		bodies: ["mean_lilith"],
 		topocentric: false,
 		draconic: false,
@@ -147,7 +146,7 @@ describe("AstrologicalEngine Output Projection", () => {
 		expect(out.chart.birth.requested).toEqual(request.options);
 
 		expect(out.summary).toEqual({
-			bodies: BODIES.length - 1,
+			bodies: BODIES.length - 2,
 			aspects: 1,
 			applying: 1,
 			separating: 0,

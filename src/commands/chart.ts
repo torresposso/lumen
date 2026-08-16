@@ -138,15 +138,10 @@ export type AstrologicalReading = {
 	help?: string[];
 };
 
-/** Node ids to drop from the chart per `--node` selection. The engine always
- *  computes both nodes; this module owns the selection policy so the chart
- *  that leaves the seam is already final. */
-const DROPPED_BY_NODE: Record<EngineNatalRequest["options"]["node"], string[]> =
-	{
-		both: [],
-		mean: ["true_node"],
-		true: ["mean_node"],
-	};
+/** Node ids to drop from the chart. The engine always computes both nodes;
+ *  lumen is dedicated to the true node (North Node canon), so the mean node
+ *  never leaves the seam. */
+const DROPPED_NODE: readonly string[] = ["mean_node"];
 
 function renderLon(input: number | { lon: number }): LonProjection {
 	const rawLon = typeof input === "number" ? input : input.lon;
@@ -298,12 +293,10 @@ export class AstrologicalEngine {
 		const { options } = request;
 		const rawChart: Chart = this.chartFor(request);
 
-		const draconic = options.draconic
-			? toDraconicChart(rawChart, options.node)
-			: undefined;
+		const draconic = options.draconic ? toDraconicChart(rawChart) : undefined;
 
 		const natalBodies = { ...rawChart.bodies };
-		for (const dropped of DROPPED_BY_NODE[options.node]) {
+		for (const dropped of DROPPED_NODE) {
 			delete natalBodies[dropped];
 		}
 

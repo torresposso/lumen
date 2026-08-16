@@ -26,7 +26,7 @@ src/
 │
 ├── storage/                      # 💾 PERSISTENCIA LOCAL (XDG ~/.config/lumen/ - lumen.db bun:sqlite - 0600)
 │   ├── profile-store.ts          # Perfiles en lumen.db (bun:sqlite, PRAGMA user_version, 0600)
-│   └── config.ts                 # config.json: opciones de carta por defecto (sistema de casas, nodos; el flag gana)
+│   └── config.ts                 # config.json: opciones de carta por defecto (sistema de casas; el flag gana)
 │
 ├── commands/                     # 🔌 COMANDOS AXI DELGADOS (Parseo, llamado a core, TOON stdout)
 │   ├── soul.ts                   # `lumen soul <profile>`

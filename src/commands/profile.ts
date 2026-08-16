@@ -15,7 +15,6 @@ function sameOptions(a: ChartRequestOptions, b: ChartRequestOptions): boolean {
 	return (
 		a.houseSystem === b.houseSystem &&
 		a.zodiac === b.zodiac &&
-		a.node === b.node &&
 		a.topocentric === b.topocentric &&
 		a.draconic === b.draconic &&
 		a.bodies.length === b.bodies.length &&

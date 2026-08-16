@@ -78,7 +78,7 @@ Si la respuesta no es un sí sentido, la decisión es no.**
 
 ## 6. Criterios de Aceptación
 
-1. `bun test` en verde (162 tests, 513 expect) y `bun run typecheck` sin
+1. `bun test` en verde (159 tests, 498 expect) y `bun run typecheck` sin
    errores; el conteo se recalibra solo vía tickets de remoción con ticket del
    norte.
 2. `bun run check` (biome) con 0 errores y 0 warnings.

@@ -81,7 +81,7 @@ export const soulCommand: AxiCliCommand<CliContext> = async (args, context) => {
 	const bodies = natal.bodies;
 	const cusps = natal.cusps;
 
-	const nn = bodies.true_node ?? bodies.mean_node;
+	const nn = bodies.true_node;
 	const soulReading = computeSoulReading(bodies, cusps, nn?.lon);
 	const nodalReading = computeNodalReading(bodies, cusps);
 

@@ -21,22 +21,15 @@ export interface DraconicChart {
 	cusps: number[];
 }
 
-/** Re-projects a natal chart onto the lunar-node zodiac, North Node at 0° Aries. */
-export function toDraconicChart(
-	chart: Chart,
-	nodeMode: "both" | "mean" | "true",
-): DraconicChart {
-	const nodeUsed: DraconicChart["nodeUsed"] =
-		nodeMode === "mean" || chart.bodies.true_node === undefined
-			? "mean_node"
-			: "true_node";
-
-	const nodeBody = chart.bodies[nodeUsed];
+/** Re-projects a natal chart onto the lunar-node zodiac, true North Node at 0° Aries. */
+export function toDraconicChart(chart: Chart): DraconicChart {
+	const nodeBody = chart.bodies.true_node;
 	if (nodeBody === undefined) {
 		throw new Error(
-			"Cannot compute Draconic chart: no lunar node position found in chart",
+			"Cannot compute Draconic chart: no true node position found in chart",
 		);
 	}
+	const nodeUsed: DraconicChart["nodeUsed"] = "true_node";
 
 	const nodeLon = nodeBody.lon;
 	const shift = (lon: number): number => shiftLongitude(lon, nodeLon);
@@ -54,11 +47,7 @@ export function toDraconicChart(
 		}
 	}
 
-	if (nodeMode === "mean") {
-		delete shiftedBodies.true_node;
-	} else if (nodeMode === "true") {
-		delete shiftedBodies.mean_node;
-	}
+	delete shiftedBodies.mean_node;
 
 	const shiftedAngles = {
 		asc: shift(chart.angles.asc),
