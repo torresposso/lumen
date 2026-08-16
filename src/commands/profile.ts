@@ -50,7 +50,7 @@ export const profileListUsage = [
 	"lumen profile list",
 	"",
 	"Lista los perfiles guardados sin exponer fechas de nacimiento:",
-	"solo id, procedencia válida y estado de sesión (abierta/cerrada).",
+	"solo id y procedencia válida.",
 ].join("\n");
 
 export const profileShowUsage = [
@@ -131,21 +131,16 @@ export const profileCommand: AxiCliCommand<CliContext> = async (
 			return {
 				profile: id,
 				status: "saved",
-				help: [
-					`Run \`lumen soul ${id}\` for baseline evolutionary reading`,
-					`Run \`lumen consulta abrir ${id}\` to start consultation`,
-				],
+				help: [`Run \`lumen soul ${id}\` for baseline evolutionary reading`],
 			};
 		}
 		case "list": {
 			assertNoFlags(rest, "lumen profile list");
-			const sessions = context?.consultations;
 			const profiles = store(context)
 				.list()
 				.map((profile) => ({
 					id: profile.id,
 					provenance: profile.birthStatus,
-					session: sessions?.get(profile.id)?.status ?? "none",
 				}));
 			if (profiles.length === 0) {
 				return {

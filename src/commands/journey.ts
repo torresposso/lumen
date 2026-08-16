@@ -120,11 +120,11 @@ function assertOnce(seen: Set<string>, flag: string): void {
 	seen.add(flag);
 }
 
-function parseClientAndArgs(args: string[]): {
-	client: string;
+function parseProfileAndArgs(args: string[]): {
+	profile: string;
 	rest: string[];
 } {
-	let client: string | undefined;
+	let profile: string | undefined;
 	const seen = new Set<string>();
 	const rest: string[] = [];
 
@@ -136,31 +136,31 @@ function parseClientAndArgs(args: string[]): {
 			assertOnce(seen, "--profile");
 			if (arg === "--profile") {
 				const taken = takeValue(args, i, "profile");
-				client = taken.value;
+				profile = taken.value;
 				i = taken.next;
 			} else {
-				client = arg.slice("--profile=".length);
+				profile = arg.slice("--profile=".length);
 			}
 			continue;
 		}
 
-		if (client === undefined && !arg.startsWith("-")) {
-			client = arg;
+		if (profile === undefined && !arg.startsWith("-")) {
+			profile = arg;
 			continue;
 		}
 
 		rest.push(arg);
 	}
 
-	if (client === undefined) {
+	if (profile === undefined) {
 		throw new AxiError(
-			"Client ID or --profile is required",
+			"Profile ID or --profile is required",
 			"VALIDATION_ERROR",
 			["Run `lumen journey --help`"],
 		);
 	}
 
-	return { client, rest };
+	return { profile, rest };
 }
 
 function validateBodies(bodies: string[]): void {
@@ -180,15 +180,15 @@ function validateBodies(bodies: string[]): void {
 }
 
 async function progressed(args: string[], context: CliContext | undefined) {
-	const { client, rest: clientRest } = parseClientAndArgs(args);
+	const { profile, rest: profileRest } = parseProfileAndArgs(args);
 	let dateRaw: string | undefined;
 	let bodiesRaw = "moon,sun,pluto";
 	let orb = 3;
 	const rest: string[] = [];
 	const seen = new Set<string>();
 
-	for (let i = 0; i < clientRest.length; i++) {
-		const arg = clientRest[i];
+	for (let i = 0; i < profileRest.length; i++) {
+		const arg = profileRest[i];
 		if (arg === undefined) continue;
 
 		if (
@@ -201,7 +201,7 @@ async function progressed(args: string[], context: CliContext | undefined) {
 			const isAt = arg.startsWith("--at");
 			const prefix = isAt ? "--at" : "--date";
 			if (arg === prefix) {
-				const taken = takeValue(clientRest, i, isAt ? "at" : "date");
+				const taken = takeValue(profileRest, i, isAt ? "at" : "date");
 				dateRaw = taken.value;
 				i = taken.next;
 			} else {
@@ -213,7 +213,7 @@ async function progressed(args: string[], context: CliContext | undefined) {
 		if (arg === "--bodies" || arg.startsWith("--bodies=")) {
 			assertOnce(seen, "--bodies");
 			if (arg === "--bodies") {
-				const taken = takeValue(clientRest, i, "bodies");
+				const taken = takeValue(profileRest, i, "bodies");
 				bodiesRaw = taken.value;
 				i = taken.next;
 			} else {
@@ -226,7 +226,7 @@ async function progressed(args: string[], context: CliContext | undefined) {
 			assertOnce(seen, "--orb");
 			const raw =
 				arg === "--orb"
-					? takeValue(clientRest, i, "orb").value
+					? takeValue(profileRest, i, "orb").value
 					: arg.slice("--orb=".length);
 			if (arg === "--orb") i++;
 			orb = Number(raw);
@@ -259,7 +259,7 @@ async function progressed(args: string[], context: CliContext | undefined) {
 		);
 	}
 
-	const request = requestFromProfile(context, client);
+	const request = requestFromProfile(context, profile);
 	const target = parseDate(dateRaw);
 	assertDateAfterBirth(target, request.birth.local);
 
@@ -301,7 +301,7 @@ async function progressed(args: string[], context: CliContext | undefined) {
 	return {
 		journey: {
 			kind: "progressed",
-			profile: client,
+			profile: profile,
 			targetDate: dateRaw,
 			ageYears: result.ageYears,
 			solLunaPhase: result.solLunaPhase?.name,
@@ -326,7 +326,7 @@ async function progressed(args: string[], context: CliContext | undefined) {
 }
 
 async function stations(args: string[], context: CliContext | undefined) {
-	const { client, rest: clientRest } = parseClientAndArgs(args);
+	const { profile, rest: profileRest } = parseProfileAndArgs(args);
 	let body: string | undefined;
 	let fromRaw: string | undefined;
 	let toRaw: string | undefined;
@@ -346,15 +346,15 @@ async function stations(args: string[], context: CliContext | undefined) {
 		return value;
 	};
 
-	for (let i = 0; i < clientRest.length; i++) {
-		const arg = clientRest[i];
+	for (let i = 0; i < profileRest.length; i++) {
+		const arg = profileRest[i];
 		if (arg === undefined) continue;
 
 		if (arg === "--body" || arg.startsWith("--body=")) {
 			assertOnce(seen, "--body");
 			body =
 				arg === "--body"
-					? takeValue(clientRest, i, "body").value
+					? takeValue(profileRest, i, "body").value
 					: arg.slice("--body=".length);
 			if (arg === "--body") i++;
 			continue;
@@ -364,7 +364,7 @@ async function stations(args: string[], context: CliContext | undefined) {
 			assertOnce(seen, "--from");
 			fromRaw =
 				arg === "--from"
-					? takeValue(clientRest, i, "from").value
+					? takeValue(profileRest, i, "from").value
 					: arg.slice("--from=".length);
 			if (arg === "--from") i++;
 			continue;
@@ -374,7 +374,7 @@ async function stations(args: string[], context: CliContext | undefined) {
 			assertOnce(seen, "--to");
 			toRaw =
 				arg === "--to"
-					? takeValue(clientRest, i, "to").value
+					? takeValue(profileRest, i, "to").value
 					: arg.slice("--to=".length);
 			if (arg === "--to") i++;
 			continue;
@@ -384,7 +384,7 @@ async function stations(args: string[], context: CliContext | undefined) {
 			assertOnce(seen, "--years");
 			const raw =
 				arg === "--years"
-					? takeValue(clientRest, i, "years").value
+					? takeValue(profileRest, i, "years").value
 					: arg.slice("--years=".length);
 			if (arg === "--years") i++;
 			years = Number(raw);
@@ -402,7 +402,7 @@ async function stations(args: string[], context: CliContext | undefined) {
 			assertOnce(seen, "--limit");
 			const raw =
 				arg === "--limit"
-					? takeValue(clientRest, i, "limit").value
+					? takeValue(profileRest, i, "limit").value
 					: arg.slice("--limit=".length);
 			if (arg === "--limit") i++;
 			limit = parsePositiveInteger(raw, "limit");
@@ -434,7 +434,7 @@ async function stations(args: string[], context: CliContext | undefined) {
 		}
 	}
 
-	const request = requestFromProfile(context, client);
+	const request = requestFromProfile(context, profile);
 	const ephemeris = new CaelusEphemeris();
 
 	const resolvedBirth: ResolvedBirth = {
@@ -467,14 +467,14 @@ async function stations(args: string[], context: CliContext | undefined) {
 	const help: string[] = [];
 	if (projected.length >= limit && projected.length > 0) {
 		help.push(
-			`Run \`lumen journey stations ${client} --body ${body} --limit ${limit + 50}\` for up to ${limit + 50} stations`,
+			`Run \`lumen journey stations ${profile} --body ${body} --limit ${limit + 50}\` for up to ${limit + 50} stations`,
 		);
 	}
 
 	return {
 		journey: {
 			kind: "stations",
-			profile: client,
+			profile: profile,
 			body,
 			from: fromRaw ?? "birth",
 			to: toRaw ?? `${windowYears.toFixed(2)} years after birth`,

@@ -23,21 +23,20 @@ mantiene geométrico y TOON-mínimo.
 | `src/adapters/` | Red y efemérides (Open-Meteo, Caelus) | Lógica de dominio |
 | `src/storage/` | Persistencia XDG (`0600`, escritura atómica) | Cálculo |
 | `src/commands/` | Parseo, llamado a core, salida TOON | Cálculo astrológico |
-| `src/cli.ts` | Router axi-sdk-js, Home con agenda | Lógica de negocio |
+| `src/cli.ts` | Router axi-sdk-js, Home | Lógica de negocio |
 
 La validación zod vive únicamente en el seam de intake (`src/commands/intake.ts`).
 La salida siempre es tipos nativos caelus convertidos a TOON en la frontera.
 
 ## 3. Superficie de comandos (la única que existe)
 
-7 comandos + Home, organizados por las preguntas del practicante. Sin aliases,
+6 comandos + Home, organizados por las preguntas del practicante. Sin aliases,
 sin comandos ocultos, sin retrocompatibilidad que contamine `--help`:
 
 ```
 soul       ¿De dónde vengo / a dónde voy? Plutón, PPP, eje nodal, eclipses prenatales (--full)
 journey    ¿Qué me está pasando ahora? Progresiones secundarias y estaciones
 karma      ¿Cómo se aplica con otros? Sinastría evolutiva
-consulta   ¿Cómo dialogo con esto? Expedientes, hipótesis (H1, H2) y diálogo
 profile    Los seres de la práctica: perfiles locales de nacimiento (privacidad 0600, lumen.db)
 chart      Carta: natal (insumo base) y draconic (experimento etiquetado)
 setup      Integración de sesión (hooks + skill) — conveniencia, no producto
@@ -59,7 +58,7 @@ estrellas fijas. Los eclipses prenatales son eventos nodales: los entrega
 5. **Vacíos definitivos**: "0 X found" con contexto; nunca salida ambigua.
 6. **Errores estructurados en stdout** (AxiError): mensaje + `help` accionable; exit 0 para no-ops, 1 error, 2 uso; flags desconocidos rechazados con hint; `--help` siempre pasa.
 7. **Contexto ambiente**: `setup hooks` idempotente (Claude Code, Codex, OpenCode) + skill instalable generada del Home, con `--check` de staleness.
-8. **Content first**: Home sin argumentos muestra estado vivo (agenda, perfiles) + `bin:` y `description:`.
+8. **Content first**: Home sin argumentos muestra estado vivo (perfiles) + `bin:` y `description:`.
 9. **Disclosure contextual**: `help[]` con siguientes pasos relevantes, placeholders `<id>`, omitido si la salida es autocontenida.
 10. **Help consistente**: `--help` por comando con flags, defaults y 2-3 ejemplos; `--version`/-v/-V vía fast-path en <ms (hoja `src/version.ts`).
 
@@ -79,7 +78,7 @@ Si la respuesta no es un sí sentido, la decisión es no.**
 
 ## 6. Criterios de Aceptación
 
-1. `bun test` en verde (184 tests, 592 expect) y `bun run typecheck` sin
+1. `bun test` en verde (175 tests, 557 expect) y `bun run typecheck` sin
    errores; el conteo se recalibra solo vía tickets de remoción con ticket del
    norte.
 2. `bun run check` (biome) con 0 errores y 0 warnings.

@@ -23,13 +23,6 @@ bun run bin/lumen.ts journey stations silvia --body mercury --from 2026-01-01 --
 # Sinastría evolutiva entre dos Almas
 bun run bin/lumen.ts karma pair --a erik --b kary --orb 3
 
-# Ciclo de consulta clínica
-bun run bin/lumen.ts consulta abrir silvia --motivo "Reorientación vocacional"
-bun run bin/lumen.ts consulta preparar silvia
-bun run bin/lumen.ts consulta confirmar silvia --hipotesis H1 --respuesta reliving
-bun run bin/lumen.ts consulta leer silvia --capa preguntas
-bun run bin/lumen.ts consulta cerrar silvia --sintesis "..." --tarea "..."
-
 # Perfiles locales de nacimiento (reseñados por soul/journey/karma/chart)
 bun run bin/lumen.ts profile add erik --when "1981-01-26T00:50" --place "Magangué, Colombia"
 bun run bin/lumen.ts profile list
@@ -45,7 +38,7 @@ bun run bin/lumen.ts chart draconic --when "1981-01-26T00:50" --place "Magangué
 
 - Los perfiles viven en `~/.config/lumen/lumen.db` (bun:sqlite embebido, permisos `0600`, migraciones con `PRAGMA user_version`).
 - Las opciones de carta por defecto viven en `~/.config/lumen/config.json` (sistema de casas, nodos); un flag en la línea de comandos gana a la config.
-- `lumen profile list` y el Home solo muestran `id`, estado de nacimiento (`ok | ambiguous | nonexistent`) y estado de sesión: nunca fechas de nacimiento.
+- `lumen profile list` y el Home solo muestran `id` y estado de nacimiento (`ok | ambiguous | nonexistent`): nunca fechas de nacimiento.
 - `lumen profile show <id>` es el único comando que expone los datos natales completos.
 
 ## Integración de sesión

@@ -22,7 +22,6 @@ import type {
 	ResolvedBirth,
 } from "../core/types";
 import type { ConfigStore } from "../storage/config";
-import type { ConsultationStore } from "../storage/consultation-store";
 import type { ProfileStore } from "../storage/profile-store";
 
 export type { BirthClockFields, BirthStatus, ResolvedBirth };
@@ -30,7 +29,6 @@ export type { BirthClockFields, BirthStatus, ResolvedBirth };
 /** Runtime context injected into every AXI command. */
 export interface CliContext {
 	profiles: ProfileStore;
-	consultations: ConsultationStore;
 	/** Global chart-option defaults (`config.json`, ticket 05). Optional so
 	 *  tests can omit it: absent config behaves exactly like an empty one. */
 	config?: ConfigStore;

@@ -4,18 +4,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { CliContext } from "../../src/commands/intake";
 import { journeyCommand } from "../../src/commands/journey";
-import { ConsultationStore } from "../../src/storage/consultation-store";
 import { ProfileStore } from "../../src/storage/profile-store";
 
 describe("journeyCommand", () => {
 	const setupContext = (): { context: CliContext; cleanup: () => void } => {
 		const dir = mkdtempSync(join(tmpdir(), "lumen-journey-test-"));
 		const profiles = new ProfileStore(join(dir, "lumen.db"));
-		const consultations = new ConsultationStore(
-			join(dir, "consultations.json"),
-		);
 		return {
-			context: { profiles, consultations },
+			context: { profiles },
 			cleanup: () => rmSync(dir, { recursive: true, force: true }),
 		};
 	};

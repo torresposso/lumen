@@ -4,7 +4,6 @@ import { AxiError } from "axi-sdk-js";
 import type { CliContext } from "../../src/commands/intake";
 import { timingCommand } from "../../src/commands/journey";
 import { profileCommand } from "../../src/commands/profile";
-import { ConsultationStore } from "../../src/storage/consultation-store";
 import { ProfileStore } from "../../src/storage/profile-store";
 
 const STORE_FILE = "/tmp/lumen-timing-command-test.db";
@@ -12,9 +11,6 @@ const STORE_FILE = "/tmp/lumen-timing-command-test.db";
 function context(): CliContext {
 	return {
 		profiles: new ProfileStore(STORE_FILE),
-		consultations: new ConsultationStore(
-			"/tmp/lumen-timing-command-consultations-test.json",
-		),
 	};
 }
 
@@ -23,7 +19,6 @@ afterEach(() => {
 	rmSync(`${STORE_FILE}-journal`, { force: true });
 	rmSync(`${STORE_FILE}-wal`, { force: true });
 	rmSync(`${STORE_FILE}-shm`, { force: true });
-	rmSync("/tmp/lumen-timing-command-consultations-test.json", { force: true });
 });
 
 describe("timingCommand", () => {

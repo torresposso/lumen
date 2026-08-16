@@ -4,18 +4,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { CliContext } from "../../src/commands/intake";
 import { karmaCommand } from "../../src/commands/karma";
-import { ConsultationStore } from "../../src/storage/consultation-store";
 import { ProfileStore } from "../../src/storage/profile-store";
 
 describe("karmaCommand", () => {
 	const setupContext = (): { context: CliContext; cleanup: () => void } => {
 		const dir = mkdtempSync(join(tmpdir(), "lumen-karma-test-"));
 		const profiles = new ProfileStore(join(dir, "lumen.db"));
-		const consultations = new ConsultationStore(
-			join(dir, "consultations.json"),
-		);
 		return {
-			context: { profiles, consultations },
+			context: { profiles },
 			cleanup: () => rmSync(dir, { recursive: true, force: true }),
 		};
 	};

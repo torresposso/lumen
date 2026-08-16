@@ -26,20 +26,18 @@ src/
 │
 ├── storage/                      # 💾 PERSISTENCIA LOCAL (XDG ~/.config/lumen/ - lumen.db bun:sqlite - 0600)
 │   ├── profile-store.ts          # Perfiles en lumen.db (bun:sqlite, PRAGMA user_version, 0600)
-│   ├── config.ts                 # config.json: opciones de carta por defecto (sistema de casas, nodos; el flag gana)
-│   └── consultation-store.ts     # Expedientes clínicos, hipótesis, confirmaciones y notas
+│   └── config.ts                 # config.json: opciones de carta por defecto (sistema de casas, nodos; el flag gana)
 │
 ├── commands/                     # 🔌 COMANDOS AXI DELGADOS (Parseo, llamado a core, TOON stdout)
 │   ├── soul.ts                   # `lumen soul <profile>`
 │   ├── journey.ts                # `lumen journey progressed|stations <profile>`
 │   ├── karma.ts                  # `lumen karma pair --a <id> --b <id>`
-│   ├── consulta.ts               # `lumen consulta abrir|preparar|leer|confirmar|cerrar`
 │   ├── profile.ts                # `lumen profile add|list|show|remove`
 │   ├── intake.ts                 # Intake natal compartido: zod + resolución de nacimiento (el único seam)
 │   ├── chart.ts                  # `lumen chart natal|draconic` (insumo base + experimento etiquetado)
 │   └── setup.ts                  # `lumen setup hooks` (Idempotente, Claude/Codex/OpenCode)
 │
-├── cli.ts                        # Enrutador axi-sdk-js con Home / Agenda de consultas del día
+├── cli.ts                        # Enrutador axi-sdk-js con Home
 └── version.ts
 ```
 
@@ -73,9 +71,8 @@ evolutionaryMechanics:
   nodalRulers:
     southNodeRuler: "Neptune in Capricorn/H10 (Direct)"
     northNodeRuler: "Mercury in Sagittarius/H9 (Direct)"
-help[2]:
+help[1]:
   Run `lumen soul silvia --full` for dispositor chains, prenatal eclipses and fine orbs
-  Run `lumen consulta abrir silvia --motivo "..."` to begin consultation
 ```
 
 ---
@@ -99,59 +96,16 @@ Acuerdos y contratos evolutivos entre dos Almas.
 
 ---
 
----
-
-### D. `lumen consulta <subcommand> <client>`
-El ciclo de registro del diálogo e hipótesis clínicas.
-*(El expediente de consulta es un flujo puramente administrativo/técnico de sesión: `abierta` ➔ `cerrada`. No evalúa ni califica al consultante).*
-
-```text
-lumen consulta
-├── abrir <client> --motivo "..."
-├── preparar <client>
-├── leer <client> --capa evidencia|arquetipo|preguntas
-├── confirmar <client> --hipotesis <ID> --respuesta <enum> [--nota "..."]
-└── cerrar <client> --sintesis "..." --tarea "..."
-```
-
-#### Flujo de Hipótesis (`preparar` ➔ `confirmar`):
-
-1. **`lumen consulta preparar silvia`**:
-```text
-consulta:
-  client: silvia
-  session: open
-hipotesis[2]{id,campo,pregunta,respuestasValidas}:
-  H1,pluton_nodo_sur,"¿El consultante describe patrones de repetición o de cosecha en esta temática?",reliving|fruition|dual
-  H2,skipped_step_mars,"¿Cómo se canaliza la acción/deseo según el relato del consultante?",activo|en_proceso|integrado
-help[2]:
-  Run `lumen consulta confirmar silvia --hipotesis H1 --respuesta reliving`
-  Run `lumen consulta leer silvia --capa preguntas` for the full dialogue guide
-```
-
-2. **`lumen consulta confirmar silvia --hipotesis H1 --respuesta reliving --nota "El consultante refiere repetición de patrones de subordinación"`**:
-   - Enums cerrados doctrinales a nivel de tipo (`reliving | fruition | dual` para Plutón-SN; `activo | en_proceso | integrado` para skipped steps; `polo_sur | en_transicion | polo_norte` para integración nodal).
-   - `leer --capa` solo acepta `evidencia | arquetipo | preguntas` y rechaza cualquier otro valor con `VALIDATION_ERROR`.
-   - `--nota` libre para registrar las palabras del consultante.
-   - Idempotente: confirmar la misma hipótesis actualiza la respuesta registrada.
-   - Si la hipótesis no existe, error AXI estructurado con la lista de IDs válidos.
-
----
-
-### E. `lumen profile <action>`
+### D. `lumen profile <action>`
 - `add <id> --when "..." --place "..."`: Si el ID existe, actualiza (no-op/update idempotente).
-- `list`: Respeta privacidad AXI. Lista solo `id`, `provenance` (estado `ok | ambiguous | nonexistent`) y `session` (`open | closed | none`). Cero fechas de nacimiento en contexto ambiente.
-- `show <id>` es el único comando que expone la fecha de nacimiento y las opciones de carta; el Home mantiene la misma privacidad.
-- `show <id>`: Detalle de datos de nacimiento del consultante.
+- `list`: Respeta privacidad AXI. Lista solo `id` y `provenance` (estado `ok | ambiguous | nonexistent`). Cero fechas de nacimiento en contexto ambiente.
+- `show <id>`: Único comando que expone los datos de nacimiento; el Home mantiene la misma privacidad.
 - `remove <id>`: Idempotente (exit 0 si ya fue eliminado).
 
 ---
 
 ## 3. Invariantes de Sistema y Ética
 
-1. **Privacidad de Grado Clínico**: Perfiles en `~/.config/lumen/lumen.db` (bun:sqlite, permisos `0600`, migraciones con `PRAGMA user_version`); el expediente de consultas conserva su propio store con escrituras atómicas (`tmp + rename`) y versionado de esquema.
-2. **Idempotencia en Sesión**:
-   - `consulta abrir` sobre sesión ya abierta = No-op exitoso (`session: open`).
-   - `consulta cerrar` sobre sesión ya cerrada = No-op exitoso (`session: closed`).
-3. **Cero Determinismo sobre la Conciencia**:
-   - Lumen jamás intenta clasificar, etiquetar ni calcular el nivel o estado evolutivo de conciencia de una persona. La carta natal solo contiene geometría y tiempo astronómico; el significado de cómo el individuo vive esa geometría solo existe en el diálogo y la vida real del consultante.
+1. **Privacidad de los datos personales**: Perfiles en `~/.config/lumen/lumen.db` (bun:sqlite, permisos `0600`, migraciones con `PRAGMA user_version`).
+2. **Cero Determinismo sobre la Conciencia**:
+   - Lumen jamás intenta clasificar, etiquetar ni calcular el nivel o estado evolutivo de conciencia de una persona. La carta natal solo contiene geometría y tiempo astronómico; el significado de cómo el individuo vive esa geometría solo existe en el diálogo y la vida real de la persona.

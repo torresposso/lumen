@@ -5,12 +5,10 @@ import type { CliContext } from "../../src/commands/intake";
 import { profileCommand } from "../../src/commands/profile";
 import { soulCommand } from "../../src/commands/soul";
 import { ConfigStore } from "../../src/storage/config";
-import { ConsultationStore } from "../../src/storage/consultation-store";
 import { ProfileStore } from "../../src/storage/profile-store";
 
 const DB_FILE = "/tmp/lumen-profile-command-test.db";
 const CONFIG_FILE = "/tmp/lumen-profile-command-config.json";
-const CONSULTATIONS_FILE = "/tmp/lumen-profile-command-consultations-test.json";
 const TAMPA_ARGS = [
 	"--year",
 	"1990",
@@ -31,7 +29,6 @@ const TAMPA_ARGS = [
 function context(): CliContext {
 	return {
 		profiles: new ProfileStore(DB_FILE),
-		consultations: new ConsultationStore(CONSULTATIONS_FILE),
 	};
 }
 
@@ -41,7 +38,6 @@ afterEach(() => {
 	rmSync(`${DB_FILE}-wal`, { force: true });
 	rmSync(`${DB_FILE}-shm`, { force: true });
 	rmSync(CONFIG_FILE, { force: true });
-	rmSync(CONSULTATIONS_FILE, { force: true });
 });
 
 describe("profileCommand", () => {
@@ -62,12 +58,9 @@ describe("profileCommand", () => {
 			profiles: Array<{
 				id: string;
 				provenance: string;
-				session: string;
 			}>;
 		};
-		expect(listed.profiles).toEqual([
-			{ id: "erik", provenance: "ok", session: "none" },
-		]);
+		expect(listed.profiles).toEqual([{ id: "erik", provenance: "ok" }]);
 
 		const shown = (await profileCommand(["show", "erik"], ctx)) as {
 			profile: { id: string; birth: { zone: string } };

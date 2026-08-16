@@ -1,8 +1,8 @@
 # Lumen
 
-Western evolutionary astrology CLI built on the caelus ephemeris engine — the personal instrument for learning the tradition (Green's Pluto lens and Forrest's nodal lens) by practicing on one's own chart, family, and future clients.
+Western evolutionary astrology CLI built on the caelus ephemeris engine — the personal instrument for learning the tradition (Green's Pluto lens and Forrest's nodal lens) by practicing on one's own chart and one's family before applying it with others.
 
-> **Arquitectura de referencia**: `src/core/` es cálculo puro (sin I/O, zod o AxiError); `src/adapters/` aísla Open-Meteo y Caelus; `src/storage/` persiste en XDG con `0600` y escritura atómica; `src/commands/` son comandos AXI delgados; `src/cli.ts` enruta los 7 comandos AXI. La especificación definitiva vive en `DOMAIN.md` y la implementación en `SPEC.md`.
+> **Arquitectura de referencia**: `src/core/` es cálculo puro (sin I/O, zod o AxiError); `src/adapters/` aísla Open-Meteo y Caelus; `src/storage/` persiste en XDG con `0600` y escritura atómica; `src/commands/` son comandos AXI delgados; `src/cli.ts` enruta los 6 comandos AXI. La especificación definitiva vive en `DOMAIN.md` y la implementación en `SPEC.md`.
 
 ## Language
 

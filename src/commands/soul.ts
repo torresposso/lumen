@@ -29,22 +29,22 @@ export const soulCommand: AxiCliCommand<CliContext> = async (args, context) => {
 	const isFull = args.includes("--full");
 	const filteredArgs = args.filter((a) => a !== "--full");
 
-	let clientId: string | undefined;
+	let profileId: string | undefined;
 	let request: NatalRequest;
 
 	const first = filteredArgs[0];
 	if (first !== undefined && !first.startsWith("-")) {
-		// Positional client ID
-		clientId = first;
+		// Positional profile id
+		profileId = first;
 		const rest = filteredArgs.slice(1);
 		if (rest.length > 0) {
 			throw new AxiError(
 				"Cannot combine positional profile id with extra flags",
 				"VALIDATION_ERROR",
-				[`Use \`lumen soul ${clientId}\` or inline birth flags`],
+				[`Use \`lumen soul ${profileId}\` or inline birth flags`],
 			);
 		}
-		request = requestFromProfile(context, clientId);
+		request = requestFromProfile(context, profileId);
 	} else {
 		const { name, rest } = takeProfileArg(filteredArgs);
 		if (name !== undefined) {
@@ -55,7 +55,7 @@ export const soulCommand: AxiCliCommand<CliContext> = async (args, context) => {
 					[`Use \`lumen soul ${name}\` or inline birth flags`],
 				);
 			}
-			clientId = name;
+			profileId = name;
 			request = requestFromProfile(context, name);
 		} else {
 			const result = await NatalIntake.process(
@@ -98,7 +98,7 @@ export const soulCommand: AxiCliCommand<CliContext> = async (args, context) => {
 	const phase =
 		sun && moon ? computeSolLunaPhase(sun.lon, moon.lon).name : "Balsamic";
 
-	const clientName = clientId ?? "inline";
+	const profileName = profileId ?? "inline";
 	const ppp = soulReading.ppp;
 	const pluto = soulReading.pluto;
 	const nnObj = nodalReading.northNode;
@@ -118,7 +118,7 @@ export const soulCommand: AxiCliCommand<CliContext> = async (args, context) => {
 
 	return {
 		soul: {
-			profile: clientName,
+			profile: profileName,
 			pluto: `${pluto.sign}/H${pluto.house}`,
 			ppp: ppp.active ? `${ppp.sign}/H${ppp.house}` : ppp.description,
 			southNode: `${snObj.sign}/H${snObj.house}`,
@@ -161,14 +161,13 @@ export const soulCommand: AxiCliCommand<CliContext> = async (args, context) => {
 					}
 				: {}),
 		},
-		help: clientId
+		help: profileId
 			? [
-					`Run \`lumen soul ${clientId} --full\` for dispositor chains and fine orbs`,
-					`Run \`lumen consulta abrir ${clientId} --motivo "..."\` to begin consultation`,
+					`Run \`lumen soul ${profileId} --full\` for dispositor chains and fine orbs`,
 				]
 			: [
 					`Run \`lumen soul ${inlineFlags} --full\` for dispositor chains and fine orbs`,
-					`Run \`lumen profile add <id> ${inlineFlags}\` to save this profile, then \`lumen consulta abrir <id>\``,
+					`Run \`lumen profile add <id> ${inlineFlags}\` to save this profile`,
 				],
 	};
 };
