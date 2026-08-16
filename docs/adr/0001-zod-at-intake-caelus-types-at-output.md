@@ -20,8 +20,10 @@ structured `AxiError(message, code, suggestions)`.
   (`src/lib/schema.ts`): `birthSchema` and `optionsSchema` parse string values
   into typed domain values via `z.infer`, with type-guard refinements against
   caelus's exact unions (no `as` casts).
-- `parseWith()` maps zod issues to `AxiError` with the SDK's error codes
-  (`MISSING_FLAG` / `INVALID_VALUE`) and per-flag suggestions, preserving CLI UX.
+- `parseWith()` maps zod issues to `AxiError` with code
+  `VALIDATION_ERROR` and per-flag suggestions. The SDK maps only
+  `VALIDATION_ERROR` to exit code 2, which is the contract for CLI usage
+  errors; true domain/engine failures keep non-validation codes and exit 1.
 - Keep caelus's exported types as the single source of truth: `ResolvedBirth`'s
   status reuses `UTResult["status"]`, `bodies` are `BodyId[]`, and the chart
   output reuses `ChartBody` instead of `unknown`.

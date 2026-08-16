@@ -77,6 +77,14 @@ describe("fact-atoms", () => {
 					signDeg: 10,
 					house: 8,
 					retrograde: true,
+					aspects: [],
+					aspectCount: 0,
+					stressfulAspects: 0,
+					nonstressfulAspects: 0,
+					nodalRelationship: {
+						aspect: "conjunct_south_node",
+						polarityPointApplies: true,
+					},
 					nodalConjunction: "south_node",
 				},
 				polarityPoint: {
@@ -87,13 +95,20 @@ describe("fact-atoms", () => {
 					isOperative: true,
 				},
 				nodes: {
-					northNode: { sign: "Taurus", signDeg: 15, house: 2, ruler: "venus" },
+					northNode: {
+						sign: "Taurus",
+						signDeg: 15,
+						house: 2,
+						ruler: "venus",
+						aspects: [],
+					},
 					southNode: {
 						lon: 225,
 						sign: "Scorpio",
 						signDeg: 15,
 						house: 8,
 						ruler: "pluto",
+						aspects: [],
 					},
 					motionStatus: "stationary",
 				},
@@ -101,16 +116,8 @@ describe("fact-atoms", () => {
 					{
 						body: "mars",
 						aspect: "square",
-						target: "north_node",
+						target: "nodal_axis",
 						orb: 1.2,
-						resolutionNode: "north_node",
-					},
-					{
-						body: "mars",
-						aspect: "square",
-						target: "south_node",
-						orb: 1.2,
-						resolutionNode: "north_node",
 					},
 				],
 				solLunaPhase: { name: "Full", angle: 180 },
@@ -125,12 +132,16 @@ describe("fact-atoms", () => {
 
 		expect(context.atoms).toContain("pluto_sign_scorpio");
 		expect(context.atoms).toContain("pluto_house_8");
+		expect(context.atoms).toContain("pluto_nodal_conjunct_south_node");
 		expect(context.atoms).toContain("pluto_conjunct_south_node");
 		expect(context.atoms).toContain("pluto_polarity_point_sign_taurus");
 		expect(context.atoms).toContain("pluto_polarity_point_house_2");
 		expect(context.atoms).toContain("pluto_polarity_point_operative");
 		expect(context.atoms).toContain("node_motion_stationary");
-		expect(context.atoms).toContain("skipped_step_mars_resolves_north_node");
+		expect(context.atoms).toContain("skipped_step_mars");
+		expect(context.atoms).not.toContain(
+			"skipped_step_mars_resolves_north_node",
+		);
 		expect(context.atoms).toContain("sol_luna_phase_full");
 		expect(context.atoms).toContain("dominant_element_fire");
 		expect(context.atoms).toContain("dominant_hemisphere_eastern");

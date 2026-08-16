@@ -146,6 +146,26 @@ describe("chartCommand", () => {
 		).rejects.toThrow(AxiError);
 	});
 
+	test("classifies invalid flag values as validation errors", async () => {
+		const cases = [
+			[...TAMPA_ARGS, "--house-system", "foo"],
+			[...TAMPA_ARGS, "--zodiac", "sidereal"],
+			["--when", "nope", "--lat", "27.95", "--lon", "-82.46"],
+			[...TAMPA_ARGS, "--draconic=maybe"],
+			[...TAMPA_ARGS, "--when", "1990-06-10T14:30"],
+		];
+
+		for (const args of cases) {
+			try {
+				await chartCommand(args, undefined);
+				expect.unreachable();
+			} catch (error) {
+				expect(error).toBeInstanceOf(AxiError);
+				expect((error as AxiError).code).toBe("VALIDATION_ERROR");
+			}
+		}
+	});
+
 	test("throws a validation error for an unknown flag", async () => {
 		try {
 			await chartCommand([...TAMPA_ARGS, "--stat", "closed"], undefined);

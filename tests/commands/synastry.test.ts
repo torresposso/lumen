@@ -124,4 +124,24 @@ describe("synastryCommand", () => {
 			synastryCommand(["self", "--focus", "romantico"], context()),
 		).rejects.toThrow(/Invalid focus/);
 	});
+
+	test("returns focused help for self and pair", async () => {
+		const selfHelp = await synastryCommand(["self", "--help"], undefined);
+		const pairHelp = await synastryCommand(["pair", "--help"], undefined);
+		expect(typeof selfHelp).toBe("string");
+		expect((selfHelp as string).startsWith("lumen synastry self")).toBe(true);
+		expect((pairHelp as string).startsWith("lumen synastry pair")).toBe(true);
+	});
+
+	test("rejects duplicate synastry flags", async () => {
+		await expect(
+			synastryCommand(["self", "--orb", "3", "--orb", "4"], context()),
+		).rejects.toThrow(/--orb was provided more than once/);
+		await expect(
+			synastryCommand(
+				["pair", "--a", "erik", "--a", "kary", "--b", "erik"],
+				context(),
+			),
+		).rejects.toThrow(/--a was provided more than once/);
+	});
 });

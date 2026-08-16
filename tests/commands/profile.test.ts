@@ -59,6 +59,20 @@ describe("profileCommand", () => {
 		expect(noop.status).toBe("already absent (no-op)");
 	});
 
+	test("returns focused help for profile subcommands", async () => {
+		const listHelp = (await profileCommand(
+			["list", "--help"],
+			undefined,
+		)) as string;
+		const addHelp = (await profileCommand(
+			["add", "--help"],
+			undefined,
+		)) as string;
+		expect(listHelp).toContain("lumen profile list");
+		expect(listHelp).not.toContain("lumen profile show");
+		expect(addHelp).toContain("--evolutionary");
+	});
+
 	test("rejects missing profile ids with validation errors", async () => {
 		await expect(
 			profileCommand(["show", "missing"], context()),

@@ -7,8 +7,8 @@ import {
 	type HouseSystem,
 	normalizeHouseSystem,
 } from "caelus";
-import { type Geocoder, openMeteoGeocoder } from "caelus-birth/geocode";
 import { z } from "zod";
+import { type Geocoder, openMeteoGeocoder } from "../adapters/geocode";
 import {
 	type BirthClockFields,
 	type BirthFields,
@@ -19,7 +19,7 @@ import {
 	parseWith,
 	type ResolvedBirth,
 	resolveBirth,
-} from "./birth-resolver";
+} from "../core/birth";
 
 export type { BirthClockFields, BirthFields, BirthStatus, ResolvedBirth };
 export { birthSchema, birthSuggestions, parseWith };
@@ -170,9 +170,11 @@ function parseBooleanFlag(name: string, raw: string): boolean {
 	const value = raw.trim().toLowerCase();
 	if (value === "true") return true;
 	if (value === "false") return false;
-	throw new AxiError(`Flag --${name} expects true or false`, "INVALID_VALUE", [
-		`Example: --${name}=true`,
-	]);
+	throw new AxiError(
+		`Flag --${name} expects true or false`,
+		"VALIDATION_ERROR",
+		[`Example: --${name}=true`],
+	);
 }
 
 function parseFlags(args: string[], spec?: FlagSpec): ParsedArgs {
@@ -230,9 +232,11 @@ function assertKnownFlags(
 
 	for (const name of parsed.flags) {
 		if (spec.value.includes(name)) {
-			throw new AxiError(`Flag --${name} requires a value`, "INVALID_VALUE", [
-				`Example: --${name} <value>`,
-			]);
+			throw new AxiError(
+				`Flag --${name} requires a value`,
+				"VALIDATION_ERROR",
+				[`Example: --${name} <value>`],
+			);
 		}
 	}
 
@@ -315,8 +319,9 @@ export async function resolveNatalRequest(
 export async function resolveNatalRequestFromArgs(
 	args: string[],
 	geocoder: Geocoder = openMeteoGeocoder,
+	command = "chart",
 ): Promise<IntakeResult> {
-	const parsed = parseAndAssertFlags(args, chartFlagSpec, "chart");
+	const parsed = parseAndAssertFlags(args, chartFlagSpec, command);
 
 	if (parsed.flags.has("help")) {
 		return { kind: "help" };
@@ -339,9 +344,14 @@ export const NatalIntake = {
 	/** Parses raw CLI arguments into a validated NatalRequest or help signal. */
 	async process(
 		args: string[],
-		geocoder: Geocoder = openMeteoGeocoder,
+		geocoder: Geocoder | undefined = openMeteoGeocoder,
+		command = "chart",
 	): Promise<IntakeResult> {
-		return resolveNatalRequestFromArgs(args, geocoder);
+		return resolveNatalRequestFromArgs(
+			args,
+			geocoder ?? openMeteoGeocoder,
+			command,
+		);
 	},
 
 	/** Resolves validated birth data and chart options from parsed key-value inputs and flags. */

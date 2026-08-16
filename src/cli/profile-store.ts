@@ -1,4 +1,5 @@
 import {
+	chmodSync,
 	existsSync,
 	mkdirSync,
 	readFileSync,
@@ -8,6 +9,7 @@ import {
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { AxiError } from "axi-sdk-js";
+import { z } from "zod";
 import type { ChartRequestOptions, NatalRequest } from "./natal-intake";
 
 export interface StoredProfile {
@@ -48,14 +50,65 @@ function emptyFile(): ProfileFile {
 	return { version: 1, profiles: {} };
 }
 
+const profileFileSchema = z.object({
+	version: z.literal(1),
+	profiles: z.record(
+		z.string(),
+		z.object({
+			id: z.string(),
+			birth: z.object({
+				jdUt: z.number(),
+				lat: z.number(),
+				lon: z.number(),
+				local: z.object({
+					year: z.number(),
+					month: z.number(),
+					day: z.number(),
+					hour: z.number(),
+					minute: z.number(),
+				}),
+				zone: z.string(),
+				offsetMinutes: z.number(),
+				dst: z.boolean(),
+				status: z.string(),
+			}),
+			options: z.object({
+				houseSystem: z.string(),
+				zodiac: z.literal("tropical"),
+				node: z.enum(["both", "mean", "true"]),
+				bodies: z.array(z.string()),
+				topocentric: z.boolean(),
+				draconic: z.boolean(),
+				eclipses: z.boolean(),
+				lots: z.boolean(),
+				stars: z.boolean(),
+				evolutionary: z.boolean(),
+			}),
+			createdAt: z.string(),
+			updatedAt: z.string(),
+		}),
+	),
+});
+
+function parseFile(contents: string): ProfileFile {
+	const parsed: unknown = JSON.parse(contents);
+	const result = profileFileSchema.safeParse(parsed);
+	if (!result.success) {
+		throw new Error("unsupported profile file");
+	}
+	return result.data as ProfileFile;
+}
+
 function readFile(filePath: string): ProfileFile {
 	if (!existsSync(filePath)) return emptyFile();
 	try {
-		const parsed = JSON.parse(readFileSync(filePath, "utf8")) as ProfileFile;
-		if (parsed?.version !== 1 || typeof parsed.profiles !== "object") {
-			throw new Error("unsupported profile file");
+		const file = parseFile(readFileSync(filePath, "utf8"));
+		try {
+			chmodSync(filePath, 0o600);
+		} catch {
+			// Reading still succeeded; keep the store usable on read-only filesystems.
 		}
-		return parsed;
+		return file;
 	} catch (err) {
 		throw new AxiError(
 			`Could not read profile store: ${err instanceof Error ? err.message : String(err)}`,
@@ -66,10 +119,21 @@ function readFile(filePath: string): ProfileFile {
 }
 
 function writeFile(filePath: string, data: ProfileFile): void {
-	mkdirSync(dirname(filePath), { recursive: true });
+	const dir = dirname(filePath);
 	const tmp = `${filePath}.tmp`;
-	writeFileSync(tmp, `${JSON.stringify(data, null, "\t")}\n`);
-	renameSync(tmp, filePath);
+	try {
+		mkdirSync(dir, { recursive: true, mode: 0o700 });
+		writeFileSync(tmp, `${JSON.stringify(data, null, "\t")}\n`, {
+			mode: 0o600,
+		});
+		renameSync(tmp, filePath);
+	} catch (err) {
+		throw new AxiError(
+			`Could not write profile store: ${err instanceof Error ? err.message : String(err)}`,
+			"PROFILE_ERROR",
+			["Check that the profile directory is writable"],
+		);
+	}
 }
 
 /** Local JSON store for saved birth profiles. Kept deliberately small so the

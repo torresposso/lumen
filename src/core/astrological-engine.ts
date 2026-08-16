@@ -5,12 +5,6 @@ import type {
 	HouseSystem,
 	Zodiac,
 } from "caelus";
-import type {
-	BirthStatus,
-	ChartRequestOptions,
-	NatalRequest,
-	ResolvedBirth,
-} from "../cli/natal-intake";
 import { projectPoint, roundPrecision as round } from "./celestial-coordinates";
 import {
 	type AspectPattern,
@@ -38,6 +32,12 @@ import {
 	type EclipseInfo,
 	type EclipsesResult,
 } from "./prenatal-eclipses";
+import type {
+	BirthStatus,
+	ChartRequestOptions,
+	NatalRequest,
+	ResolvedBirth,
+} from "./types";
 
 export type {
 	AspectPattern,
@@ -379,6 +379,11 @@ export class AstrologicalEngine {
 		if (request.birth.status !== "ok") {
 			help.push(
 				`Timezone resolution provenance status: ${request.birth.status}`,
+			);
+		}
+		if (options.evolutionary) {
+			help.push(
+				"The four natural evolutionary conditions (dimly evolved, herd, individuated, spiritual) cannot be determined from the chart alone; the evolutionary reading reports evidence, not a final condition.",
 			);
 		}
 

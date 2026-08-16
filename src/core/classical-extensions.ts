@@ -1,5 +1,4 @@
 import type { Chart, ChartBody } from "caelus";
-import type { ResolvedBirth } from "../cli/natal-intake";
 import {
 	angularDistance,
 	isOrbWithin,
@@ -10,6 +9,7 @@ import {
 	signOf,
 } from "./celestial-coordinates";
 import type { Ephemeris } from "./ephemeris-gateway";
+import type { ResolvedBirth } from "./types";
 
 export interface LotsResult {
 	spirit: ProjectedEclipticPoint;

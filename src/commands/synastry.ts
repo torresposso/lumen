@@ -13,6 +13,14 @@ import {
 	toSynastryChart,
 } from "../core/synastry";
 
+const SYNASTRY_FLAGS_HELP = [
+	"Flags:",
+	"  --focus   evolutionary (default) | classical | all",
+	"  --orb     Orbe máximo en grados, 0-180 (default 3)",
+	"  --limit   Contactos mostrados por defecto (default 12)",
+	"  --full    Incluye overlays de casas y campos completos",
+].join("\n");
+
 export const synastryUsage = [
 	"lumen synastry self --profile <id> [--focus evolutionary|classical|all] [--orb 3] [--limit 12] [--full]",
 	"lumen synastry pair --a <id> --b <id> [--focus evolutionary|classical|all] [--orb 3] [--limit 12] [--full]",
@@ -20,11 +28,25 @@ export const synastryUsage = [
 	"self: compara la carta natal con la draconic de la misma persona.",
 	"pair: compara las cartas de dos perfiles guardados.",
 	"",
-	"Flags:",
-	"  --focus   evolutionary (default) | classical | all",
-	"  --orb     Orbe máximo en grados (default 3)",
-	"  --limit   Contactos mostrados por defecto (default 12)",
-	"  --full    Incluye overlays de casas y campos completos",
+	SYNASTRY_FLAGS_HELP,
+].join("\n");
+
+export const synastrySelfUsage = [
+	"lumen synastry self --profile <id> [--focus evolutionary|classical|all] [--orb 3] [--limit 12] [--full]",
+	"",
+	"Compara la carta natal con la proyección draconic de la misma persona.",
+	"También acepta flags de nacimiento inline en lugar de --profile.",
+	"",
+	SYNASTRY_FLAGS_HELP,
+].join("\n");
+
+export const synastryPairUsage = [
+	"lumen synastry pair --a <id> --b <id> [--focus evolutionary|classical|all] [--orb 3] [--limit 12] [--full]",
+	"",
+	"Compara las cartas de dos perfiles guardados.",
+	"",
+	"  --a, --b   Perfiles guardados con `lumen profile add`",
+	SYNASTRY_FLAGS_HELP,
 ].join("\n");
 
 const VALID_FOCUS = new Set<NonNullable<SynastryOptions["focus"]>>([
@@ -40,13 +62,25 @@ interface SynastryFlags {
 	full: boolean;
 }
 
-function parseIntFlag(name: string, raw: string, fallback: number): number {
+function parseOrb(raw: string): number {
 	const value = Number(raw);
-	if (!Number.isFinite(value) || value <= 0) {
+	if (!Number.isFinite(value) || value <= 0 || value > 180) {
 		throw new AxiError(
-			`Flag --${name} expects a positive number`,
+			"Flag --orb expects a positive number of degrees (max 180)",
 			"VALIDATION_ERROR",
-			[`Example: --${name} ${fallback}`],
+			["Example: --orb 3"],
+		);
+	}
+	return value;
+}
+
+function parseLimit(raw: string): number {
+	const value = Number(raw);
+	if (!Number.isInteger(value) || value <= 0) {
+		throw new AxiError(
+			"Flag --limit expects a positive integer",
+			"VALIDATION_ERROR",
+			["Example: --limit 12"],
 		);
 	}
 	return value;
@@ -75,6 +109,28 @@ function takeFlagValue(
 	return { value: next, next: index + 1 };
 }
 
+function assertOnce(seen: Set<string>, flag: string): void {
+	if (seen.has(flag)) {
+		throw new AxiError(
+			`Flag ${flag} was provided more than once`,
+			"VALIDATION_ERROR",
+			[`Use ${flag} exactly once`],
+		);
+	}
+	seen.add(flag);
+}
+
+function parseOptionalValue(arg: string, name: string): string | undefined {
+	if (!arg.startsWith(`--${name}=`)) return undefined;
+	const value = arg.slice(name.length + 3);
+	if (value === "") {
+		throw new AxiError(`Flag --${name} requires a value`, "VALIDATION_ERROR", [
+			`Example: --${name} <value>`,
+		]);
+	}
+	return value;
+}
+
 function extractSelfFlags(args: string[]): {
 	chartArgs: string[];
 	flags: SynastryFlags;
@@ -84,44 +140,57 @@ function extractSelfFlags(args: string[]): {
 	let focus: NonNullable<SynastryOptions["focus"]> = "evolutionary";
 	let limit = 12;
 	let full = false;
+	const seen = new Set<string>();
 
 	for (let i = 0; i < args.length; i++) {
 		const arg = args[i];
 		if (arg === undefined) continue;
-		if (arg === "--orb" || arg.startsWith("--orb=")) {
+
+		const inlineOrb = parseOptionalValue(arg, "orb");
+		if (arg === "--orb" || inlineOrb !== undefined) {
+			assertOnce(seen, "--orb");
 			if (arg === "--orb") {
 				const taken = takeFlagValue(args, i, "orb");
-				orb = parseIntFlag("orb", taken.value, 3);
+				orb = parseOrb(taken.value);
 				i = taken.next;
 			} else {
-				orb = parseIntFlag("orb", arg.slice("--orb=".length), 3);
+				orb = parseOrb(inlineOrb as string);
 			}
 			continue;
 		}
-		if (arg === "--focus" || arg.startsWith("--focus=")) {
+
+		const inlineFocus = parseOptionalValue(arg, "focus");
+		if (arg === "--focus" || inlineFocus !== undefined) {
+			assertOnce(seen, "--focus");
 			if (arg === "--focus") {
 				const taken = takeFlagValue(args, i, "focus");
 				focus = parseFocus(taken.value);
 				i = taken.next;
 			} else {
-				focus = parseFocus(arg.slice("--focus=".length));
+				focus = parseFocus(inlineFocus as string);
 			}
 			continue;
 		}
-		if (arg === "--limit" || arg.startsWith("--limit=")) {
+
+		const inlineLimit = parseOptionalValue(arg, "limit");
+		if (arg === "--limit" || inlineLimit !== undefined) {
+			assertOnce(seen, "--limit");
 			if (arg === "--limit") {
 				const taken = takeFlagValue(args, i, "limit");
-				limit = parseIntFlag("limit", taken.value, 12);
+				limit = parseLimit(taken.value);
 				i = taken.next;
 			} else {
-				limit = parseIntFlag("limit", arg.slice("--limit=".length), 12);
+				limit = parseLimit(inlineLimit as string);
 			}
 			continue;
 		}
+
 		if (arg === "--full") {
+			assertOnce(seen, "--full");
 			full = true;
 			continue;
 		}
+
 		chartArgs.push(arg);
 	}
 
@@ -139,74 +208,82 @@ function parsePairFlags(args: string[]): {
 	let focus: NonNullable<SynastryOptions["focus"]> = "evolutionary";
 	let limit = 12;
 	let full = false;
+	const seen = new Set<string>();
 
 	for (let i = 0; i < args.length; i++) {
 		const arg = args[i];
 		if (arg === undefined) continue;
 
-		if (arg === "--a" || arg.startsWith("--a=")) {
-			if (arg === "--a") {
-				const taken = takeFlagValue(args, i, "a");
-				a = taken.value;
-				i = taken.next;
-			} else {
-				a = arg.slice("--a=".length);
-			}
+		const inlineA = parseOptionalValue(arg, "a");
+		if (arg === "--a" || inlineA !== undefined) {
+			assertOnce(seen, "--a");
+			a =
+				arg === "--a" ? takeFlagValue(args, i, "a").value : (inlineA as string);
+			if (arg === "--a") i++;
 			continue;
 		}
-		if (arg === "--b" || arg.startsWith("--b=")) {
-			if (arg === "--b") {
-				const taken = takeFlagValue(args, i, "b");
-				b = taken.value;
-				i = taken.next;
-			} else {
-				b = arg.slice("--b=".length);
-			}
+
+		const inlineB = parseOptionalValue(arg, "b");
+		if (arg === "--b" || inlineB !== undefined) {
+			assertOnce(seen, "--b");
+			b =
+				arg === "--b" ? takeFlagValue(args, i, "b").value : (inlineB as string);
+			if (arg === "--b") i++;
 			continue;
 		}
-		if (arg === "--orb" || arg.startsWith("--orb=")) {
-			if (arg === "--orb") {
-				const taken = takeFlagValue(args, i, "orb");
-				orb = parseIntFlag("orb", taken.value, 3);
-				i = taken.next;
-			} else {
-				orb = parseIntFlag("orb", arg.slice("--orb=".length), 3);
-			}
+
+		const inlineOrb = parseOptionalValue(arg, "orb");
+		if (arg === "--orb" || inlineOrb !== undefined) {
+			assertOnce(seen, "--orb");
+			orb =
+				arg === "--orb"
+					? parseOrb(takeFlagValue(args, i, "orb").value)
+					: parseOrb(inlineOrb as string);
+			if (arg === "--orb") i++;
 			continue;
 		}
-		if (arg === "--focus" || arg.startsWith("--focus=")) {
-			if (arg === "--focus") {
-				const taken = takeFlagValue(args, i, "focus");
-				focus = parseFocus(taken.value);
-				i = taken.next;
-			} else {
-				focus = parseFocus(arg.slice("--focus=".length));
-			}
+
+		const inlineFocus = parseOptionalValue(arg, "focus");
+		if (arg === "--focus" || inlineFocus !== undefined) {
+			assertOnce(seen, "--focus");
+			focus =
+				arg === "--focus"
+					? parseFocus(takeFlagValue(args, i, "focus").value)
+					: parseFocus(inlineFocus as string);
+			if (arg === "--focus") i++;
 			continue;
 		}
-		if (arg === "--limit" || arg.startsWith("--limit=")) {
-			if (arg === "--limit") {
-				const taken = takeFlagValue(args, i, "limit");
-				limit = parseIntFlag("limit", taken.value, 12);
-				i = taken.next;
-			} else {
-				limit = parseIntFlag("limit", arg.slice("--limit=".length), 12);
-			}
+
+		const inlineLimit = parseOptionalValue(arg, "limit");
+		if (arg === "--limit" || inlineLimit !== undefined) {
+			assertOnce(seen, "--limit");
+			limit =
+				arg === "--limit"
+					? parseLimit(takeFlagValue(args, i, "limit").value)
+					: parseLimit(inlineLimit as string);
+			if (arg === "--limit") i++;
 			continue;
 		}
+
 		if (arg === "--full") {
+			assertOnce(seen, "--full");
 			full = true;
 			continue;
 		}
 
-		throw new AxiError(
-			`Unknown flag --${arg.startsWith("--") ? arg.slice(2) : arg} for \`synastry pair\``,
-			"VALIDATION_ERROR",
-			[
-				"Valid flags: --a, --b, --focus, --orb, --limit, --full",
-				"Run `lumen synastry pair --help`",
-			],
-		);
+		if (arg.startsWith("-")) {
+			throw new AxiError(
+				`Unknown flag --${arg.startsWith("--") ? arg.slice(2) : arg.slice(1)} for \`synastry pair\``,
+				"VALIDATION_ERROR",
+				[
+					"Valid flags: --a, --b, --focus, --orb, --limit, --full",
+					"Run `lumen synastry pair --help`",
+				],
+			);
+		}
+		throw new AxiError(`Unexpected argument: ${arg}`, "VALIDATION_ERROR", [
+			"Run `lumen synastry pair --help`",
+		]);
 	}
 
 	return { a, b, flags: { orb, focus, limit, full } };
@@ -277,7 +354,7 @@ async function resolveSelfRequest(
 		return requestFromProfile(context, name);
 	}
 
-	const result = await NatalIntake.process(rest);
+	const result = await NatalIntake.process(rest, undefined, "synastry self");
 	if (result.kind === "help") {
 		throw new AxiError("Missing required birth flags", "VALIDATION_ERROR", [
 			"Run `lumen synastry self --help`",
@@ -297,30 +374,35 @@ export const synastryCommand: AxiCliCommand<CliContext> = async (
 	}
 
 	if (sub === "self") {
-		if (rest.includes("--help")) return synastryUsage;
+		if (rest.includes("--help")) return synastrySelfUsage;
 		const { chartArgs, flags } = extractSelfFlags(rest);
 		const request = await resolveSelfRequest(chartArgs, context);
 		const engine = new AstrologicalEngine();
 		const natal = engine.chartFor(request);
 		const draconic = toDraconicChart(natal, request.options.node);
 		const result = computeSynastry(
-			toSynastryChart("natal", natal),
-			toSynastryChart("draconic", draconic),
+			toSynastryChart("natal", natal, request.options.node),
+			toSynastryChart("draconic", draconic, request.options.node),
 			{ orb: flags.orb, focus: flags.focus },
 		);
 		const rendered = renderContacts(result, flags, "self");
+		const help = [
+			"lumen synastry self (natal vs draconic) is an experimental extension and is not part of Jeffrey Wolf Green synastry doctrine.",
+			...(rendered.help ?? []),
+		];
 		return {
 			synastry: {
 				pair: result.pair,
 				summary: result.summary,
-				...rendered,
+				contacts: rendered.contacts,
 				...(flags.full ? { overlays: result.overlays } : {}),
+				help,
 			},
 		};
 	}
 
 	if (sub === "pair") {
-		if (rest.includes("--help")) return synastryUsage;
+		if (rest.includes("--help")) return synastryPairUsage;
 		const { a, b, flags } = parsePairFlags(rest);
 		if (a === undefined || b === undefined) {
 			throw new AxiError(
@@ -335,17 +417,22 @@ export const synastryCommand: AxiCliCommand<CliContext> = async (
 		const chartA = engine.chartFor(requestA);
 		const chartB = engine.chartFor(requestB);
 		const result = computeSynastry(
-			toSynastryChart(a, chartA),
-			toSynastryChart(b, chartB),
+			toSynastryChart(a, chartA, requestA.options.node),
+			toSynastryChart(b, chartB, requestB.options.node),
 			{ orb: flags.orb, focus: flags.focus },
 		);
 		const rendered = renderContacts(result, flags, "pair");
+		const help = [
+			"Jeffrey Wolf Green synastry reads Pluto-to-Pluto, Pluto-to-node, nodal ruler and house overlay evidence; the evolutionary condition of each person is required for a definitive reading.",
+			...(rendered.help ?? []),
+		];
 		return {
 			synastry: {
 				pair: result.pair,
 				summary: result.summary,
-				...rendered,
+				contacts: rendered.contacts,
 				...(flags.full ? { overlays: result.overlays } : {}),
+				help,
 			},
 		};
 	}

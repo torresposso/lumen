@@ -35,7 +35,7 @@ The assembled output of the `--evolutionary` flag: Pluto's placement and Polarit
 The point diametrically opposite Pluto (Pluto longitude + 180°), representing the evolutionary direction the soul is moving toward. Deactivated when Pluto is conjunct the North Node (as evolution channels directly through the North Node and its ruler).
 
 **Pluto Polarity Point aspects**:
-Major planetary aspects (orb ≤ 5°) formed directly to the Pluto Polarity Point, identifying specific psychological archetypes accelerating or facilitating evolutionary growth.
+Major planetary aspects (orb ≤ 5°) formed directly to the Pluto Polarity Point, identifying specific psychological archetypes accelerating or facilitating evolutionary growth. The polarity point does not apply when Pluto is conjunct the North Node.
 
 **Node motion status**:
 The motion state of the lunar node axis (`retrograde`, `direct`, or `stationary`), where stationary nodes mark pivotal karmic turning-point incarnations.
@@ -51,7 +51,7 @@ The point diametrically opposite the North Node (North Node longitude + 180°), 
 _Avoid_: descending node, Ketu
 
 **Skipped Steps**:
-Planets that square the nodal axis or Pluto (orb ≤ 5°), indicating unresolved evolutionary dynamics from prior lives.
+Planets that square the lunar nodal axis (orb ≤ 7°), indicating unresolved evolutionary dynamics from prior lives. A square to Pluto by itself is a Pluto aspect, not a skipped step.
 
 **Dispositor chain**:
 The sequence of planetary sign rulers traced from a body to its final dispositor or mutual reception loop, revealing the underlying psychological driver.

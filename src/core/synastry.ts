@@ -73,13 +73,6 @@ const EVOLUTIONARY_POINTS = new Set([
 	"polarity_point",
 ]);
 
-const OVERLAY_POINTS = [
-	"pluto",
-	"north_node",
-	"south_node",
-	"polarity_point",
-] as const;
-
 function pointFromBody(id: string, body: ChartBody): SynastryPoint {
 	return {
 		id,
@@ -105,10 +98,17 @@ function derivedPoint(id: string, lon: number, cusps: number[]): SynastryPoint {
 
 /** Normalizes a natal or draconic chart into a frame-agnostic set of points
  *  ready for cross-chart comparison. */
-export function toSynastryChart(id: string, chart: ChartLike): SynastryChart {
+export function toSynastryChart(
+	id: string,
+	chart: ChartLike,
+	nodeMode: "both" | "mean" | "true" = "both",
+): SynastryChart {
 	const points: SynastryPoint[] = [];
 	const bodies = chart.bodies;
-	const northNode = bodies.true_node ?? bodies.mean_node;
+	const northNode =
+		nodeMode === "mean"
+			? (bodies.mean_node ?? bodies.true_node)
+			: (bodies.true_node ?? bodies.mean_node);
 
 	for (const [bodyId, body] of Object.entries(bodies)) {
 		if (body === undefined) continue;
@@ -171,6 +171,14 @@ function contactMatchesFocus(
 	return focus === kind;
 }
 
+function overlayMatchesFocus(
+	pointId: string,
+	focus: NonNullable<SynastryOptions["focus"]>,
+): boolean {
+	if (focus === "all") return true;
+	return focus === (isEvolutionary(pointId) ? "evolutionary" : "classical");
+}
+
 /** Computes cross-aspect contacts and house overlays between two charts.
  *  The default focus is evolutionary: contacts involving Pluto, the nodes,
  *  the derived South Node, or the Pluto Polarity Point. */
@@ -213,11 +221,7 @@ export function computeSynastry(
 		[chartB, chartA],
 	] as const) {
 		for (const point of fromChart.points) {
-			if (
-				!OVERLAY_POINTS.includes(point.id as (typeof OVERLAY_POINTS)[number])
-			) {
-				continue;
-			}
+			if (!overlayMatchesFocus(point.id, focus)) continue;
 			const house = houseOf(toChart.cusps, point.lon);
 			overlays.push({
 				body: `${fromChart.id}.${point.id}`,

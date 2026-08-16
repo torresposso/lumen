@@ -31,15 +31,21 @@ function input(bodies: Record<string, ChartBody>): EvolutionaryInput {
 	};
 }
 
-// Pluto at 210° Scorpio, North Node at 30° Taurus.
-const natal = {
+// Pluto at 210° Scorpio, North Node at 30° Taurus -> South Node at 210° Scorpio.
+const plutoConjunctSouthNode = {
 	pluto: body({ lon: 210, sign: "Scorpio", signDeg: 0, house: 8 }),
-	true_node: body({ lon: 30, sign: "Taurus", signDeg: 0, house: 2 }),
+	true_node: body({
+		lon: 30,
+		sign: "Taurus",
+		signDeg: 0,
+		house: 2,
+		speed: -0.05,
+	}),
 };
 
 describe("computeEvolutionaryReading", () => {
 	test("places the Pluto Polarity Point opposite Pluto", () => {
-		const evo = computeEvolutionaryReading(input(natal));
+		const evo = computeEvolutionaryReading(input(plutoConjunctSouthNode));
 
 		expect(evo.polarityPoint).toEqual({
 			lon: 30,
@@ -50,8 +56,8 @@ describe("computeEvolutionaryReading", () => {
 		});
 	});
 
-	test("derives the South Node from the North Node", () => {
-		const evo = computeEvolutionaryReading(input(natal));
+	test("derives the South Node from the selected North Node", () => {
+		const evo = computeEvolutionaryReading(input(plutoConjunctSouthNode));
 
 		expect(evo.nodes.southNode?.lon).toBe(210);
 		expect(evo.nodes.southNode?.sign).toBe("Scorpio");
@@ -61,12 +67,13 @@ describe("computeEvolutionaryReading", () => {
 	test("honors the requested node mode", () => {
 		const evo = computeEvolutionaryReading(
 			input({
-				...natal,
+				...plutoConjunctSouthNode,
 				mean_node: body({
 					lon: 40,
 					sign: "Taurus",
 					signDeg: 10,
 					house: 2,
+					speed: -0.05,
 				}),
 			}),
 			"mean",
@@ -77,28 +84,83 @@ describe("computeEvolutionaryReading", () => {
 		expect(evo.nodes.southNode?.lon).toBe(220);
 	});
 
-	test("flags bodies squaring Pluto as skipped steps", () => {
+	test("flags squares to the nodal axis as one skipped step per body", () => {
+		// Pluto at 45°, NN at 0°/SN at 180°. Venus at 135° squares Pluto but not
+		// the nodal axis: it must NOT be a skipped step. Mars at 90° squares both
+		// nodes and is one skipped step against the axis.
 		const evo = computeEvolutionaryReading(
 			input({
-				...natal,
-				moon: body({ lon: 300, sign: "Aquarius", signDeg: 0, house: 11 }),
+				pluto: body({ lon: 45, sign: "Taurus", signDeg: 15, house: 2 }),
+				true_node: body({
+					lon: 0,
+					sign: "Aries",
+					signDeg: 0,
+					house: 1,
+					speed: -0.05,
+				}),
+				mars: body({ lon: 90, sign: "Cancer", signDeg: 0, house: 4 }),
+				venus: body({ lon: 135, sign: "Leo", signDeg: 15, house: 5 }),
 			}),
 		);
 
 		expect(
-			evo.skippedSteps.some((s) => s.body === "moon" && s.target === "pluto"),
+			evo.skippedSteps.some(
+				(step) => step.body === "mars" && step.target === "nodal_axis",
+			),
 		).toBe(true);
+		expect(evo.skippedSteps.some((step) => step.body === "venus")).toBe(false);
+		expect(evo.skippedSteps.filter((step) => step.body === "mars").length).toBe(
+			1,
+		);
+	});
+
+	test("classifies Pluto aspects as stressful or nonstressful", () => {
+		const evo = computeEvolutionaryReading(
+			input({
+				pluto: body({ lon: 45, sign: "Taurus", signDeg: 15, house: 2 }),
+				true_node: body({
+					lon: 0,
+					sign: "Aries",
+					signDeg: 0,
+					house: 1,
+					speed: -0.05,
+				}),
+				venus: body({
+					lon: 135,
+					sign: "Leo",
+					signDeg: 15,
+					house: 5,
+					speed: 1,
+				}),
+				jupiter: body({
+					lon: 165,
+					sign: "Virgo",
+					signDeg: 15,
+					house: 6,
+					speed: 0.5,
+				}),
+			}),
+		);
+
+		const venus = evo.pluto?.aspects.find((a) => a.body === "venus");
+		expect(venus?.aspect).toBe("square");
+		expect(venus?.stress).toBe("stressful");
+
+		const jupiter = evo.pluto?.aspects.find((a) => a.body === "jupiter");
+		expect(jupiter?.aspect).toBe("trine");
+		expect(jupiter?.stress).toBe("nonstressful");
+		expect(evo.pluto?.aspectCount).toBe(2);
 	});
 
 	test("computes the Pluto–North Node midpoint", () => {
-		const evo = computeEvolutionaryReading(input(natal));
+		const evo = computeEvolutionaryReading(input(plutoConjunctSouthNode));
 
 		expect(evo.plutoNorthNodeMidpoint?.lon).toBe(120);
 		expect(evo.plutoNorthNodeMidpoint?.sign).toBe("Leo");
 	});
 
 	test("traces the Pluto dispositor chain", () => {
-		const evo = computeEvolutionaryReading(input(natal));
+		const evo = computeEvolutionaryReading(input(plutoConjunctSouthNode));
 
 		expect(evo.dispositorChains?.pluto).toEqual([
 			{ body: "pluto", sign: "Scorpio", ruler: "pluto" },
@@ -106,15 +168,13 @@ describe("computeEvolutionaryReading", () => {
 	});
 
 	test("evaluates aspects to the Pluto Polarity Point (PPP)", () => {
-		// Pluto at 210° Scorpio -> PPP at 30° Taurus. Sun at 30° Taurus (conjunction orb 0).
 		const evo = computeEvolutionaryReading(
 			input({
-				...natal,
+				...plutoConjunctSouthNode,
 				sun: body({ lon: 30, sign: "Taurus", signDeg: 0, house: 2 }),
 			}),
 		);
 
-		expect(evo.polarityPoint?.aspects).toBeDefined();
 		expect(evo.polarityPoint?.aspects).toContainEqual({
 			body: "sun",
 			aspect: "conjunction",
@@ -123,10 +183,9 @@ describe("computeEvolutionaryReading", () => {
 	});
 
 	test("evaluates Node Motion Status and Sol-Luna Phase Mechanics", () => {
-		// Sun at 0° Aries, Moon at 45° Taurus -> Semi-sextile/crescent angle (45°) -> Crescent phase
 		const evo = computeEvolutionaryReading(
 			input({
-				...natal,
+				...plutoConjunctSouthNode,
 				true_node: body({
 					lon: 30,
 					speed: 0,
@@ -140,78 +199,75 @@ describe("computeEvolutionaryReading", () => {
 		);
 
 		expect(evo.nodes.motionStatus).toBe("stationary");
-		expect(evo.solLunaPhase).toBeDefined();
 		expect(evo.solLunaPhase?.name).toBe("Crescent");
 		expect(evo.solLunaPhase?.angle).toBe(45);
 	});
 
-	test("determines resolution vector for skipped steps based on planetary motion", () => {
-		// NN at 0° Aries (lon 0), SN at 180° Libra (lon 180)
-		// Mars at 90° Cancer (direct): distance SN(180)->Mars(90) is 270° (>= 180), heading toward South Node -> resolutionNode: south_node
-		// Venus at 270° Capricorn (direct): distance SN(180)->Venus(270) is 90° (< 180), heading toward North Node -> resolutionNode: north_node
-		// Jupiter at 270° Capricorn (retrograde): distance SN(180)->Jupiter(270) is 90° (< 180), moving backwards toward South Node -> resolutionNode: south_node
+	test("detects Pluto square the nodal axis and the node Pluto applies to", () => {
+		// Jeffrey Wolf Green's example: Pluto 16° Leo, South Node 16° Taurus,
+		// North Node 16° Scorpio. The retrograde North Node applies to Pluto,
+		// while Pluto applies to the South Node.
 		const evo = computeEvolutionaryReading(
 			input({
-				pluto: body({ lon: 45, sign: "Taurus", signDeg: 15, house: 2 }),
-				true_node: body({ lon: 0, sign: "Aries", signDeg: 0, house: 1 }),
-				mars: body({
-					lon: 90,
-					speed: 0.5,
-					retrograde: false,
-					sign: "Cancer",
-					signDeg: 0,
-					house: 4,
-				}),
-				venus: body({
-					lon: 270,
-					speed: 1.0,
-					retrograde: false,
-					sign: "Capricorn",
-					signDeg: 0,
-					house: 10,
-				}),
-				jupiter: body({
-					lon: 270,
-					speed: -0.1,
-					retrograde: true,
-					sign: "Capricorn",
-					signDeg: 0,
-					house: 10,
+				pluto: body({ lon: 136, sign: "Leo", signDeg: 16, house: 5 }),
+				true_node: body({
+					lon: 226,
+					sign: "Scorpio",
+					signDeg: 16,
+					house: 8,
+					speed: -0.05,
 				}),
 			}),
 		);
 
-		const marsStep = evo.skippedSteps.find((s) => s.body === "mars");
-		expect(marsStep?.resolutionNode).toBe("south_node");
-
-		const venusStep = evo.skippedSteps.find((s) => s.body === "venus");
-		expect(venusStep?.resolutionNode).toBe("north_node");
-
-		const jupiterStep = evo.skippedSteps.find((s) => s.body === "jupiter");
-		expect(jupiterStep?.resolutionNode).toBe("south_node");
+		expect(evo.pluto?.nodalRelationship.aspect).toBe("square_nodal_axis");
+		expect(evo.pluto?.nodalRelationship.applyingNode).toBe("south_node");
+		expect(evo.pluto?.nodalRelationship.polarityPointApplies).toBe(true);
+		expect(evo.polarityPoint?.sign).toBe("Aquarius");
 	});
 
-	test("detects Pluto conjunction with South Node and flags PPP as operative", () => {
-		// Pluto at 210° Scorpio, NN at 30° Taurus -> SN is at 210° Scorpio (Pluto conjunct SN)
-		const evo = computeEvolutionaryReading(input(natal));
+	test("reports Pluto conjunct South Node as evidence, not a verdict", () => {
+		const evo = computeEvolutionaryReading(input(plutoConjunctSouthNode));
 
-		expect(evo.pluto?.nodalConjunction).toBe("south_node");
+		expect(evo.pluto?.nodalRelationship.aspect).toBe("conjunct_south_node");
+		expect(evo.pluto?.nodalRelationship.southNodeConjunction?.conclusion).toBe(
+			"requires_human_confirmation",
+		);
 		expect(evo.polarityPoint?.isOperative).toBe(true);
-		expect(evo.nodes.northNode?.ruler).toBe("venus");
-		expect(evo.nodes.southNode?.ruler).toBe("pluto");
-		expect(evo.nodes.southNode?.rulerPlacement?.house).toBe(8);
 	});
 
-	test("deactivates PPP when Pluto is conjunct the North Node", () => {
-		// Pluto at 30° Taurus, NN at 30° Taurus -> Pluto conjunct NN
+	test("deactivates the polarity point when Pluto is conjunct the North Node", () => {
 		const evo = computeEvolutionaryReading(
 			input({
 				pluto: body({ lon: 30, sign: "Taurus", signDeg: 0, house: 2 }),
-				true_node: body({ lon: 30, sign: "Taurus", signDeg: 0, house: 2 }),
+				true_node: body({
+					lon: 30,
+					sign: "Taurus",
+					signDeg: 0,
+					house: 2,
+					speed: -0.05,
+				}),
 			}),
 		);
 
-		expect(evo.pluto?.nodalConjunction).toBe("north_node");
+		expect(evo.pluto?.nodalRelationship.aspect).toBe("conjunct_north_node");
+		expect(evo.pluto?.nodalRelationship.polarityPointApplies).toBe(false);
 		expect(evo.polarityPoint).toBeUndefined();
+	});
+
+	test("includes aspects to the North and South Nodes", () => {
+		const evo = computeEvolutionaryReading(
+			input({
+				...plutoConjunctSouthNode,
+				sun: body({ lon: 30, sign: "Taurus", signDeg: 0, house: 2 }),
+			}),
+		);
+
+		expect(evo.nodes.northNode?.aspects).toContainEqual({
+			body: "sun",
+			aspect: "conjunction",
+			orb: 0,
+			stress: "stressful",
+		});
 	});
 });

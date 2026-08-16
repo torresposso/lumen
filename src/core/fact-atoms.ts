@@ -88,8 +88,33 @@ export function generateFactAtoms(
 		if (evo.pluto) {
 			atoms.push(`pluto_sign_${evo.pluto.sign.toLowerCase()}`);
 			atoms.push(`pluto_house_${evo.pluto.house}`);
+			atoms.push(`pluto_nodal_${evo.pluto.nodalRelationship.aspect}`);
 			if (evo.pluto.nodalConjunction) {
 				atoms.push(`pluto_conjunct_${evo.pluto.nodalConjunction}`);
+			}
+			if (evo.pluto.nodalRelationship.aspect !== "none") {
+				atoms.push(
+					`pluto_polarity_point_${
+						evo.pluto.nodalRelationship.polarityPointApplies
+							? "applies"
+							: "does_not_apply"
+					}`,
+				);
+			}
+			if (evo.pluto.nodalRelationship.applyingNode) {
+				atoms.push(
+					`pluto_applying_to_${evo.pluto.nodalRelationship.applyingNode}`,
+				);
+			}
+			if (evo.pluto.nodalRelationship.southNodeConjunction) {
+				atoms.push("pluto_south_node_condition_requires_human_confirmation");
+			}
+			for (const aspect of evo.pluto.aspects) {
+				atoms.push(
+					`pluto_aspect_${aspect.body}_${aspect.aspect}_${aspect.stress}${
+						aspect.phase ? `_${aspect.phase}` : ""
+					}`,
+				);
 			}
 		}
 		if (evo.polarityPoint) {
@@ -106,23 +131,27 @@ export function generateFactAtoms(
 		if (evo.nodes.northNode) {
 			atoms.push(`north_node_sign_${evo.nodes.northNode.sign.toLowerCase()}`);
 			atoms.push(`north_node_house_${evo.nodes.northNode.house}`);
+			for (const aspect of evo.nodes.northNode.aspects) {
+				atoms.push(
+					`north_node_aspect_${aspect.body}_${aspect.aspect}_${aspect.stress}`,
+				);
+			}
 		}
 		if (evo.nodes.southNode) {
 			atoms.push(`south_node_sign_${evo.nodes.southNode.sign.toLowerCase()}`);
 			atoms.push(`south_node_house_${evo.nodes.southNode.house}`);
+			for (const aspect of evo.nodes.southNode.aspects) {
+				atoms.push(
+					`south_node_aspect_${aspect.body}_${aspect.aspect}_${aspect.stress}`,
+				);
+			}
 		}
 		if (evo.nodes.motionStatus) {
 			atoms.push(`node_motion_${evo.nodes.motionStatus}`);
 		}
-		// Consolidated per-body skipped steps
-		const seenSkippedBodies = new Set<string>();
+		// One skipped step per body: the square is to the nodal axis as a whole.
 		for (const step of evo.skippedSteps) {
-			if (!seenSkippedBodies.has(step.body)) {
-				seenSkippedBodies.add(step.body);
-				atoms.push(
-					`skipped_step_${step.body}${step.resolutionNode ? `_resolves_${step.resolutionNode}` : ""}`,
-				);
-			}
+			atoms.push(`skipped_step_${step.body}`);
 		}
 		if (evo.solLunaPhase) {
 			atoms.push(

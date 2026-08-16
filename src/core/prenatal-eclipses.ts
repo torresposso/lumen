@@ -1,8 +1,8 @@
 import { AxiError } from "axi-sdk-js";
 import type { HouseSystem } from "caelus";
-import type { ResolvedBirth } from "../cli/natal-intake";
 import { projectPoint, roundPrecision } from "./celestial-coordinates";
 import type { Ephemeris } from "./ephemeris-gateway";
+import type { ResolvedBirth } from "./types";
 
 export interface EclipseInfo {
 	tMax: number;

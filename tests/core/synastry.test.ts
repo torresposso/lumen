@@ -103,4 +103,71 @@ describe("synastry core", () => {
 			result.contacts.every((contact) => contact.kind === "classical"),
 		).toBe(true);
 	});
+
+	test("honors the selected node mode when both nodes are present", () => {
+		const source = chart({
+			true_node: body({ lon: 10, sign: "Aries", house: 1 }),
+			mean_node: body({ lon: 20, sign: "Aries", house: 1 }),
+		});
+
+		const mean = toSynastryChart("x", source, "mean");
+		const trueNode = toSynastryChart("x", source, "true");
+		const both = toSynastryChart("x", source, "both");
+
+		expect(mean.points.find((point) => point.id === "north_node")?.lon).toBe(
+			20,
+		);
+		expect(
+			trueNode.points.find((point) => point.id === "north_node")?.lon,
+		).toBe(10);
+		expect(both.points.find((point) => point.id === "north_node")?.lon).toBe(
+			10,
+		);
+		expect(
+			mean.points.filter((point) => point.id === "north_node").length,
+		).toBe(1);
+	});
+
+	test("filters overlays by focus", () => {
+		const result = computeSynastry(
+			toSynastryChart(
+				"a",
+				chart({
+					sun: body({ lon: 0, sign: "Aries", house: 1 }),
+					pluto: body({ lon: 10, sign: "Aries", house: 1 }),
+					true_node: body({ lon: 180, sign: "Libra", house: 7 }),
+				}),
+			),
+			toSynastryChart(
+				"b",
+				chart({
+					sun: body({ lon: 0, sign: "Aries", house: 1 }),
+					pluto: body({ lon: 10, sign: "Aries", house: 1 }),
+					true_node: body({ lon: 180, sign: "Libra", house: 7 }),
+				}),
+			),
+			{ orb: 3, focus: "classical" },
+		);
+
+		const evolutionaryIds = new Set([
+			"pluto",
+			"north_node",
+			"south_node",
+			"polarity_point",
+		]);
+		expect(result.overlays.length).toBe(2);
+		expect(
+			result.overlays.every((overlay) => {
+				const id = overlay.body.split(".").at(-1) ?? "";
+				return !evolutionaryIds.has(id);
+			}),
+		).toBe(true);
+
+		const all = computeSynastry(
+			toSynastryChart("a", chart({ sun: body({ lon: 0, sign: "Aries" }) })),
+			toSynastryChart("b", chart({ sun: body({ lon: 0, sign: "Aries" }) })),
+			{ orb: 3, focus: "all" },
+		);
+		expect(all.summary.overlays).toBe(2);
+	});
 });
