@@ -58,7 +58,12 @@ export const soulCommand: AxiCliCommand<CliContext> = async (args, context) => {
 			clientId = name;
 			request = requestFromProfile(context, name);
 		} else {
-			const result = await NatalIntake.process(rest, undefined, "soul");
+			const result = await NatalIntake.process(
+				rest,
+				undefined,
+				"soul",
+				context?.config,
+			);
 			if (result.kind === "help") {
 				return soulUsage;
 			}

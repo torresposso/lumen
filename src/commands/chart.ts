@@ -420,7 +420,12 @@ async function resolveRequest(
 		return requestFromProfile(context, name);
 	}
 
-	const result = await NatalIntake.process(rest);
+	const result = await NatalIntake.process(
+		rest,
+		undefined,
+		"chart",
+		context?.config,
+	);
 	if (result.kind === "help") {
 		throw new AxiError("Missing required birth flags", "VALIDATION_ERROR", [
 			"Run `lumen chart natal --help` for chart options",

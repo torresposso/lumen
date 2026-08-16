@@ -6,6 +6,7 @@ import { karmaCommand } from "./commands/karma";
 import { profileCommand } from "./commands/profile";
 import { setupCommand } from "./commands/setup";
 import { soulCommand } from "./commands/soul";
+import { ConfigStore } from "./storage/config";
 import { ConsultationStore } from "./storage/consultation-store";
 import { ProfileStore } from "./storage/profile-store";
 import { VERSION } from "./version";
@@ -24,16 +25,18 @@ const topLevelHelp = [
 export async function main(): Promise<void> {
 	const profiles = new ProfileStore();
 	const consultations = new ConsultationStore();
+	const config = new ConfigStore();
 
 	await runAxiCli<{
 		profiles: ProfileStore;
 		consultations: ConsultationStore;
+		config: ConfigStore;
 	}>({
 		description: "Astrología evolutiva computacional desde la terminal",
 		version: VERSION,
 		argv: process.argv.slice(2),
 		topLevelHelp,
-		resolveContext: async () => ({ profiles, consultations }),
+		resolveContext: async () => ({ profiles, consultations, config }),
 		commands: {
 			soul: soulCommand,
 			journey: journeyCommand,

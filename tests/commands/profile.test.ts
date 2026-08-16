@@ -1,12 +1,15 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { rmSync } from "node:fs";
+import { rmSync, writeFileSync } from "node:fs";
 import { chartCommand } from "../../src/commands/chart";
 import type { CliContext } from "../../src/commands/intake";
 import { profileCommand } from "../../src/commands/profile";
+import { soulCommand } from "../../src/commands/soul";
+import { ConfigStore } from "../../src/storage/config";
 import { ConsultationStore } from "../../src/storage/consultation-store";
 import { ProfileStore } from "../../src/storage/profile-store";
 
 const DB_FILE = "/tmp/lumen-profile-command-test.db";
+const CONFIG_FILE = "/tmp/lumen-profile-command-config.json";
 const CONSULTATIONS_FILE = "/tmp/lumen-profile-command-consultations-test.json";
 const TAMPA_ARGS = [
 	"--year",
@@ -37,6 +40,7 @@ afterEach(() => {
 	rmSync(`${DB_FILE}-journal`, { force: true });
 	rmSync(`${DB_FILE}-wal`, { force: true });
 	rmSync(`${DB_FILE}-shm`, { force: true });
+	rmSync(CONFIG_FILE, { force: true });
 	rmSync(CONSULTATIONS_FILE, { force: true });
 });
 
@@ -133,5 +137,44 @@ describe("profileCommand", () => {
 		};
 
 		expect(reading.chart.birth.zone).toBe("America/New_York");
+	});
+
+	test("soul uses the config house system when no flag is passed", async () => {
+		const ctx = context();
+		ctx.config = new ConfigStore(CONFIG_FILE);
+		await profileCommand(
+			[
+				"add",
+				"silvia",
+				"--year",
+				"1981",
+				"--month",
+				"1",
+				"--day",
+				"26",
+				"--hour",
+				"0",
+				"--minute",
+				"50",
+				"--lat",
+				"9.15",
+				"--lon",
+				"-74.75",
+			],
+			ctx,
+		);
+
+		writeFileSync(CONFIG_FILE, JSON.stringify({ houseSystem: "whole_sign" }));
+		const fromConfig = (await soulCommand(["silvia"], ctx)) as {
+			soul: { southNode: string };
+		};
+
+		rmSync(CONFIG_FILE, { force: true });
+		const fromDefaults = (await soulCommand(["silvia"], ctx)) as {
+			soul: { southNode: string };
+		};
+
+		expect(fromConfig.soul.southNode).toBe("Aquarius/H4");
+		expect(fromDefaults.soul.southNode).toBe("Aquarius/H3");
 	});
 });

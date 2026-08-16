@@ -1,7 +1,7 @@
 ---
 id: 05-global-config
 title: 'config.json — defaults de opciones de carta (config global + flag gana)'
-status: ready-for-agent
+status: resolved
 blockers: [03]
 ---
 
@@ -37,3 +37,18 @@ del schema.
 - Spec: `.scratch/persistence/spec.md` (Q7 — "config global única o flag;
   el flag gana"). Fue el único punto cerrado como suposición en el grilling
   (asumido en el resumen, confirmado por el usuario).
+- CERRADO 2026-08-16: `check:docs` verde — cierre de la cadena. Notas de la
+  revisión (2 ejes, 0 violaciones duras, 0 requisitos faltantes tras corregir):
+  1) El `0600` de config.json estaba sin aplicar (lumen nunca crea el archivo);
+     se implementó espejando a profile-store: `chmodSync(0600)` best-effort en
+     la lectura (nunca rompe el arranque) + assert de permisos en
+     `config.test.ts`.
+  2) El dropping por valor inválido (house system desconocido / node malo) con
+     aviso individual excede literalmente "archivo inválido → aviso y
+     defaults", pero es la misma postura tolerante — aceptado.
+  3) `profile add --house-system <X>` se rechaza aunque `<X>` sea exactamente
+     la config del usuario: es el comportamiento de Q7 (profile no guarda
+     opciones), no un fallo de 05 — se deja documentado aquí.
+  En vivo verificado: config `whole_sign` sin flag → houseSystem whole_sign;
+  `--house-system equal` gana a la config; `node: mean` → chart con mean_node;
+  config inválido → aviso y sigue funcionando. SPEC §6.1: 184 tests / 592.

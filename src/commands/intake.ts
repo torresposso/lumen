@@ -21,6 +21,7 @@ import type {
 	NatalRequest as CoreNatalRequest,
 	ResolvedBirth,
 } from "../core/types";
+import type { ConfigStore } from "../storage/config";
 import type { ConsultationStore } from "../storage/consultation-store";
 import type { ProfileStore } from "../storage/profile-store";
 
@@ -30,6 +31,9 @@ export type { BirthClockFields, BirthStatus, ResolvedBirth };
 export interface CliContext {
 	profiles: ProfileStore;
 	consultations: ConsultationStore;
+	/** Global chart-option defaults (`config.json`, ticket 05). Optional so
+	 *  tests can omit it: absent config behaves exactly like an empty one. */
+	config?: ConfigStore;
 }
 
 // ============================================================================
@@ -486,13 +490,15 @@ export type IntakeResult =
 function parseRequested(
 	values: Record<string, string>,
 	flags: Set<string>,
+	config?: ConfigStore,
 ): ChartRequestOptions {
+	const chartConfig = config?.load() ?? {};
 	return parseWith(
 		optionsSchema,
 		{
-			houseSystem: values["house-system"],
+			houseSystem: values["house-system"] ?? chartConfig.houseSystem,
 			zodiac: values.zodiac,
-			node: values.node,
+			node: values.node ?? chartConfig.node,
 			bodies: values.bodies,
 			topocentric: flags.has("topocentric"),
 		},
@@ -500,21 +506,23 @@ function parseRequested(
 	);
 }
 
-/** Chart options with no flag given: the Q7 baseline. Config.json (ticket 05)
- *  and per-command flags override it; profiles never store it. */
-export function defaultChartOptions(): ChartRequestOptions {
-	return parseRequested({}, new Set());
+/** Chart options with no flag and no config given: the Q7 baseline. Per-command
+ *  flags win over config.json, which wins over these schema defaults. Profiles
+ *  never store options (Q7). */
+export function defaultChartOptions(config?: ConfigStore): ChartRequestOptions {
+	return parseRequested({}, new Set(), config);
 }
 
 export async function resolveNatalRequest(
 	values: Record<string, string>,
 	flags: Set<string>,
 	geocoder: Geocoder = openMeteoGeocoder,
+	config?: ConfigStore,
 ): Promise<NatalRequest> {
 	const merged = await mergeBirthInput(values, geocoder);
 	return {
 		birth: resolveBirth(merged),
-		options: parseRequested(values, flags),
+		options: parseRequested(values, flags, config),
 	};
 }
 
@@ -522,12 +530,18 @@ export async function resolveNatalRequestFromArgs(
 	args: string[],
 	geocoder: Geocoder = openMeteoGeocoder,
 	command = "chart",
+	config?: ConfigStore,
 ): Promise<IntakeResult> {
 	const parsed = parseAndAssertFlags(args, chartFlagSpec, command);
 	if (parsed.flags.has("help")) return { kind: "help" };
 	return {
 		kind: "request",
-		request: await resolveNatalRequest(parsed.values, parsed.flags, geocoder),
+		request: await resolveNatalRequest(
+			parsed.values,
+			parsed.flags,
+			geocoder,
+			config,
+		),
 	};
 }
 
@@ -541,11 +555,13 @@ export const NatalIntake = {
 		args: string[],
 		geocoder: Geocoder | undefined = openMeteoGeocoder,
 		command = "chart",
+		config?: ConfigStore,
 	): Promise<IntakeResult> {
 		return resolveNatalRequestFromArgs(
 			args,
 			geocoder ?? openMeteoGeocoder,
 			command,
+			config,
 		);
 	},
 
@@ -553,8 +569,9 @@ export const NatalIntake = {
 		values: Record<string, string>,
 		flags: Set<string>,
 		geocoder: Geocoder = openMeteoGeocoder,
+		config?: ConfigStore,
 	): Promise<NatalRequest> {
-		return resolveNatalRequest(values, flags, geocoder);
+		return resolveNatalRequest(values, flags, geocoder, config);
 	},
 
 	validateBirth(values: Record<string, unknown>): ResolvedBirth {
@@ -635,6 +652,6 @@ export function requestFromProfile(
 	}
 	return {
 		birth: profile.birth,
-		options: defaultChartOptions(),
+		options: defaultChartOptions(context?.config),
 	};
 }
