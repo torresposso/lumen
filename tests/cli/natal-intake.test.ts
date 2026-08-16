@@ -322,7 +322,7 @@ describe("resolveNatalRequest", () => {
 			expect(request.options.draconic).toBe(true);
 		});
 
-		test("parses evolutionary flags (--eclipses, --lots, --stars, --evolutionary)", async () => {
+		test("parses the --evolutionary flag", async () => {
 			const request = await resolveNatalRequest(
 				{
 					when: "1981-01-26T00:50",
@@ -330,11 +330,8 @@ describe("resolveNatalRequest", () => {
 					lon: "-74.755",
 					zone: "America/Bogota",
 				},
-				new Set(["eclipses", "lots", "stars", "evolutionary"]),
+				new Set(["evolutionary"]),
 			);
-			expect(request.options.eclipses).toBe(true);
-			expect(request.options.lots).toBe(true);
-			expect(request.options.stars).toBe(true);
 			expect(request.options.evolutionary).toBe(true);
 		});
 

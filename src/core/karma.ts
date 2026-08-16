@@ -1,18 +1,7 @@
-import { findAspect, houseOf } from "./types";
-
-// ============================================================================
-// Synastry primitives
-// ============================================================================
-
 import type { ChartBody } from "caelus";
-import {
-	type AspectDef,
-	normalizeLongitude,
-	projectPoint,
-	signOf,
-} from "./types";
+import { findAspect, houseOf, normalizeLongitude, projectPoint } from "./types";
 
-export interface SynastryPoint {
+export interface OverlayPoint {
 	id: string;
 	lon: number;
 	sign: string;
@@ -21,48 +10,10 @@ export interface SynastryPoint {
 	kind: "body" | "derived";
 }
 
-export interface SynastryChart {
+export interface OverlayChart {
 	id: string;
-	points: SynastryPoint[];
+	points: OverlayPoint[];
 	cusps: number[];
-}
-
-export interface SynastryContact {
-	a: string;
-	b: string;
-	aspect: string;
-	orb: number;
-	kind: "evolutionary" | "classical";
-	aSign?: string;
-	bSign?: string;
-	aHouse?: number;
-	bHouse?: number;
-}
-
-export interface SynastryOverlay {
-	body: string;
-	from: string;
-	to: string;
-	sign: string;
-	house: number;
-}
-
-export interface SynastryOptions {
-	orb?: number;
-	focus?: "evolutionary" | "classical" | "all";
-}
-
-export interface SynastryResult {
-	pair: string;
-	summary: {
-		contacts: number;
-		evolutionary: number;
-		classical: number;
-		overlays: number;
-		strongest?: string;
-	};
-	contacts: SynastryContact[];
-	overlays: SynastryOverlay[];
 }
 
 export interface ChartLike {
@@ -70,14 +21,7 @@ export interface ChartLike {
 	cusps: number[];
 }
 
-const EVOLUTIONARY_POINTS = new Set([
-	"pluto",
-	"north_node",
-	"south_node",
-	"polarity_point",
-]);
-
-function pointFromBody(id: string, body: ChartBody): SynastryPoint {
+function pointFromBody(id: string, body: ChartBody): OverlayPoint {
 	return {
 		id,
 		lon: body.lon,
@@ -88,7 +32,7 @@ function pointFromBody(id: string, body: ChartBody): SynastryPoint {
 	};
 }
 
-function derivedPoint(id: string, lon: number, cusps: number[]): SynastryPoint {
+function derivedPoint(id: string, lon: number, cusps: number[]): OverlayPoint {
 	const projected = projectPoint(lon, cusps);
 	return {
 		id,
@@ -100,13 +44,13 @@ function derivedPoint(id: string, lon: number, cusps: number[]): SynastryPoint {
 	};
 }
 
-/** Normalizes a natal or draconic chart into a frame-agnostic set of points. */
-export function toSynastryChart(
+/** Normalizes a natal chart into the frame-agnostic overlay used by karma. */
+export function toOverlayChart(
 	id: string,
 	chart: ChartLike,
 	nodeMode: "both" | "mean" | "true" = "both",
-): SynastryChart {
-	const points: SynastryPoint[] = [];
+): OverlayChart {
+	const points: OverlayPoint[] = [];
 	const bodies = chart.bodies;
 	const northNode =
 		nodeMode === "mean"
@@ -141,125 +85,6 @@ export function toSynastryChart(
 	}
 
 	return { id, points, cusps: chart.cusps };
-}
-
-const SYNASTRY_ASPECTS: AspectDef[] = [
-	{ name: "conjunction", target: 0, orb: 3 },
-	{ name: "opposition", target: 180, orb: 3 },
-	{ name: "square", target: 90, orb: 3 },
-	{ name: "trine", target: 120, orb: 3 },
-	{ name: "sextile", target: 60, orb: 3 },
-	{ name: "quincunx", target: 150, orb: 3 },
-];
-
-function aspectDefs(orb: number): AspectDef[] {
-	return SYNASTRY_ASPECTS.map((aspect) => ({ ...aspect, orb }));
-}
-
-function isEvolutionary(pointId: string): boolean {
-	return EVOLUTIONARY_POINTS.has(pointId);
-}
-
-function contactKind(a: SynastryPoint, b: SynastryPoint) {
-	return isEvolutionary(a.id) || isEvolutionary(b.id)
-		? "evolutionary"
-		: "classical";
-}
-
-function contactMatchesFocus(
-	kind: SynastryContact["kind"],
-	focus: NonNullable<SynastryOptions["focus"]>,
-): boolean {
-	if (focus === "all") return true;
-	return focus === kind;
-}
-
-function overlayMatchesFocus(
-	pointId: string,
-	focus: NonNullable<SynastryOptions["focus"]>,
-): boolean {
-	if (focus === "all") return true;
-	return focus === (isEvolutionary(pointId) ? "evolutionary" : "classical");
-}
-
-/** Computes cross-aspect contacts and house overlays between two charts. */
-export function computeSynastry(
-	chartA: SynastryChart,
-	chartB: SynastryChart,
-	options: SynastryOptions = {},
-): SynastryResult {
-	const orb = options.orb ?? 3;
-	const focus = options.focus ?? "evolutionary";
-	const defs = aspectDefs(orb);
-
-	const contacts: SynastryContact[] = [];
-	for (const pointA of chartA.points) {
-		for (const pointB of chartB.points) {
-			const match = findAspect(pointA.lon, pointB.lon, defs);
-			if (match === undefined) continue;
-			const kind = contactKind(pointA, pointB);
-			if (!contactMatchesFocus(kind, focus)) continue;
-			contacts.push({
-				a: `${chartA.id}.${pointA.id}`,
-				b: `${chartB.id}.${pointB.id}`,
-				aspect: match.aspect,
-				orb: match.orb,
-				kind,
-				aSign: pointA.sign,
-				bSign: pointB.sign,
-				aHouse: pointA.house,
-				bHouse: pointB.house,
-			});
-		}
-	}
-	contacts.sort(
-		(a, b) => a.orb - b.orb || a.a.localeCompare(b.a) || a.b.localeCompare(b.b),
-	);
-
-	const overlays: SynastryOverlay[] = [];
-	for (const [fromChart, toChart] of [
-		[chartA, chartB],
-		[chartB, chartA],
-	] as const) {
-		for (const point of fromChart.points) {
-			if (!overlayMatchesFocus(point.id, focus)) continue;
-			const house = houseOf(toChart.cusps, point.lon);
-			overlays.push({
-				body: `${fromChart.id}.${point.id}`,
-				from: fromChart.id,
-				to: toChart.id,
-				sign: signOf(point.lon),
-				house,
-			});
-		}
-	}
-	overlays.sort(
-		(a, b) =>
-			a.from.localeCompare(b.from) ||
-			a.to.localeCompare(b.to) ||
-			a.body.localeCompare(b.body),
-	);
-
-	const evolutionary = contacts.filter(
-		(contact) => contact.kind === "evolutionary",
-	).length;
-	const classical = contacts.length - evolutionary;
-	const strongest = contacts[0];
-
-	return {
-		pair: `${chartA.id} × ${chartB.id}`,
-		summary: {
-			contacts: contacts.length,
-			evolutionary,
-			classical,
-			overlays: overlays.length,
-			strongest: strongest
-				? `${strongest.a} ${strongest.aspect} ${strongest.b} (${strongest.orb.toFixed(2)}°)`
-				: undefined,
-		},
-		contacts,
-		overlays,
-	};
 }
 
 // ============================================================================
@@ -326,14 +151,14 @@ export function computeKarma(
 	chartB: ChartLike,
 	orb = 3,
 ): KarmaResult {
-	const synA = toSynastryChart(idA, chartA);
-	const synB = toSynastryChart(idB, chartB);
+	const overlayA = toOverlayChart(idA, chartA);
+	const overlayB = toOverlayChart(idB, chartB);
 	const defs = KARMA_ASPECT_DEFS(orb);
 
 	const contacts: KarmaContact[] = [];
 
-	for (const pA of synA.points) {
-		for (const pB of synB.points) {
+	for (const pA of overlayA.points) {
+		for (const pB of overlayB.points) {
 			const isEa = EA_KARMA_POINTS.has(pA.id) || EA_KARMA_POINTS.has(pB.id);
 			if (!isEa) continue;
 
@@ -357,17 +182,17 @@ export function computeKarma(
 
 	const overlays: NodalOverlay[] = [];
 
-	const nnA = synA.points.find((p) => p.id === "north_node");
-	const snA = synA.points.find((p) => p.id === "south_node");
-	const nnB = synB.points.find((p) => p.id === "north_node");
-	const snB = synB.points.find((p) => p.id === "south_node");
+	const nnA = overlayA.points.find((p) => p.id === "north_node");
+	const snA = overlayA.points.find((p) => p.id === "south_node");
+	const nnB = overlayB.points.find((p) => p.id === "north_node");
+	const snB = overlayB.points.find((p) => p.id === "south_node");
 
 	if (nnA) {
 		overlays.push({
 			node: "north_node",
 			fromPerson: idA,
 			inHouseOfPerson: idB,
-			house: houseOf(synB.cusps, nnA.lon),
+			house: houseOf(overlayB.cusps, nnA.lon),
 			sign: nnA.sign,
 		});
 	}
@@ -376,7 +201,7 @@ export function computeKarma(
 			node: "south_node",
 			fromPerson: idA,
 			inHouseOfPerson: idB,
-			house: houseOf(synB.cusps, snA.lon),
+			house: houseOf(overlayB.cusps, snA.lon),
 			sign: snA.sign,
 		});
 	}
@@ -385,7 +210,7 @@ export function computeKarma(
 			node: "north_node",
 			fromPerson: idB,
 			inHouseOfPerson: idA,
-			house: houseOf(synA.cusps, nnB.lon),
+			house: houseOf(overlayA.cusps, nnB.lon),
 			sign: nnB.sign,
 		});
 	}
@@ -394,7 +219,7 @@ export function computeKarma(
 			node: "south_node",
 			fromPerson: idB,
 			inHouseOfPerson: idA,
-			house: houseOf(synA.cusps, snB.lon),
+			house: houseOf(overlayA.cusps, snB.lon),
 			sign: snB.sign,
 		});
 	}

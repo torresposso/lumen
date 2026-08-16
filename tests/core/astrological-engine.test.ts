@@ -21,9 +21,6 @@ const request: NatalRequest = {
 		bodies: [],
 		topocentric: false,
 		draconic: false,
-		eclipses: false,
-		lots: false,
-		stars: false,
 		evolutionary: false,
 	},
 };
@@ -102,18 +99,6 @@ describe("AstrologicalEngine", () => {
 		expect(draconic?.bodies.true_node?.signDeg).toBeCloseTo(0, 4);
 	});
 
-	test("computes evolutionary features (--eclipses, --lots, --stars)", () => {
-		const reading = engine.compute({
-			...request,
-			options: { ...request.options, eclipses: true, lots: true, stars: true },
-		});
-		expect(reading.chart.eclipses?.solar).toBeDefined();
-		expect(reading.chart.eclipses?.lunar).toBeDefined();
-		expect(reading.chart.lots?.spirit).toBeDefined();
-		expect(reading.chart.lots?.fortune).toBeDefined();
-		expect(Array.isArray(reading.chart.stars)).toBe(true);
-	});
-
 	test("computes evolutionary module (--evolutionary)", () => {
 		const reading = engine.compute({
 			...request,
@@ -170,81 +155,11 @@ describe("AstrologicalEngine", () => {
 			}),
 			solarEclipses: () => [],
 			lunarEclipses: () => [],
-			lots: () => ({
-				day: true,
-				fortune: 234,
-				spirit: 123,
-				eros: 0,
-				necessity: 0,
-				courage: 0,
-				victory: 0,
-				nemesis: 0,
-			}),
-			starLongitude: () => 0,
-			fixedStars: () => ({}),
 		} as unknown as Ephemeris;
 
 		const customEngine = new AstrologicalEngine(mockEphemeris);
 		const reading = customEngine.compute(request);
 		expect(reading.chart.bodies.sun?.sign).toBe("Gemini");
-	});
-
-	test("extension features flow through the Ephemeris seam (no concrete Engine)", () => {
-		const mockEphemeris = {
-			chartAt: () => ({
-				jdUt: request.birth.jdUt,
-				zodiac: "tropical",
-				houseSystem: "placidus",
-				houseSystemRequested: "placidus",
-				unavailable: [],
-				bodies: {
-					sun: {
-						lon: 79.5,
-						sign: "Gemini",
-						signDeg: 19.5,
-						house: 9,
-						retrograde: false,
-						speed: 0.95,
-						lat: 0,
-						dist: 1,
-						ra: 78,
-						dec: 23,
-						dignities: [],
-					},
-				},
-				angles: { asc: 180, mc: 90, vertex: 200, eastPoint: 175 },
-				cusps: [180, 210, 240, 270, 300, 330, 0, 30, 60, 90, 120, 150],
-				aspects: [],
-			}),
-			solarEclipses: () => [
-				{ tMax: request.birth.jdUt, type: "total", gamma: 0, begin: 0, end: 1 },
-			],
-			lunarEclipses: () => [],
-			lots: () => ({
-				day: true,
-				fortune: 234,
-				spirit: 123,
-				eros: 0,
-				necessity: 0,
-				courage: 0,
-				victory: 0,
-				nemesis: 0,
-			}),
-			starLongitude: () => 0,
-			fixedStars: () => ({}),
-		} as unknown as Ephemeris;
-
-		const customEngine = new AstrologicalEngine(mockEphemeris);
-		const reading = customEngine.compute({
-			...request,
-			options: { ...request.options, eclipses: true, lots: true, stars: true },
-		});
-
-		expect(reading.chart.eclipses?.solar).toBeDefined();
-		expect(reading.chart.eclipses?.solar?.lon).toBe(79.5);
-		expect(reading.chart.lots?.spirit.lon).toBe(123);
-		expect(reading.chart.lots?.fortune.lon).toBe(234);
-		expect(reading.chart.stars).toEqual([]);
 	});
 
 	test("detects aspect patterns and computes chartSignature and interpretationContext", () => {

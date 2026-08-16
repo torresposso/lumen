@@ -1,12 +1,10 @@
 import type {
 	BodyId,
 	Chart,
-	ChartLots,
 	Engine,
 	HouseSystem,
 	LunarEclipse,
 	SolarEclipse,
-	StarEntry,
 	Zodiac,
 } from "caelus";
 import { SIGNS } from "caelus";
@@ -58,9 +56,6 @@ export interface ChartRequestOptions {
 	bodies: BodyId[];
 	topocentric: boolean;
 	draconic: boolean;
-	eclipses: boolean;
-	lots: boolean;
-	stars: boolean;
 	evolutionary: boolean;
 }
 
@@ -98,9 +93,6 @@ export interface Ephemeris {
 	): Chart;
 	solarEclipses(jdStart: number, jdEnd: number): SolarEclipse[];
 	lunarEclipses(jdStart: number, jdEnd: number): LunarEclipse[];
-	lots(jdUt: number, lat: number, lonEast: number): ChartLots;
-	starLongitude(entry: StarEntry, jdUt: number): number;
-	fixedStars(): Record<string, StarEntry>;
 	progressedLongitude?(body: BodyId, natalJd: number, targetJd: number): number;
 	stations?(
 		body: BodyId,
@@ -257,8 +249,6 @@ export interface ProjectedEclipticPoint {
 	signDeg: number;
 	house: number;
 }
-
-export type LotInfo = ProjectedEclipticPoint;
 
 /** Normalizes any ecliptic degree value into the canonical astronomical range [0, 360). */
 export function normalizeLongitude(lon: number): number {

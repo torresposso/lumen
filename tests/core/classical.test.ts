@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { julianDay } from "caelus";
 import { CaelusEphemeris } from "../../src/adapters/ephemeris-gateway";
-import { computeClassicalProjections } from "../../src/core/classical";
+import { toDraconicChart } from "../../src/core/classical";
 import type { ResolvedBirth } from "../../src/core/types";
 
 describe("core/classical", () => {
@@ -17,16 +17,13 @@ describe("core/classical", () => {
 		status: "ok",
 	};
 
-	it("computes unified classical projections (draconic, lots, stars)", () => {
+	it("projects the chart onto the draconic zodiac (0° Aries North Node)", () => {
 		const chart = ephemeris.chartAt(birth.jdUt, birth.lat, birth.lon);
-		const projections = computeClassicalProjections(chart, birth, ephemeris, {
-			draconic: true,
-			lots: true,
-			stars: true,
-		});
+		const draconic = toDraconicChart(chart, "both");
 
-		expect(projections.draconic).toBeDefined();
-		expect(projections.lots).toBeDefined();
-		expect(projections.stars).toBeDefined();
+		expect(draconic.nodeUsed).toBe("true_node");
+		expect(draconic.bodies.true_node?.lon).toBeCloseTo(0, 4);
+		expect(draconic.bodies.true_node?.sign).toBe("Aries");
+		expect(draconic.bodies.sun?.sign).toBeDefined();
 	});
 });

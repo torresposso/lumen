@@ -1,7 +1,7 @@
 import type { AxiCliCommand } from "axi-sdk-js";
 import { AxiError } from "axi-sdk-js";
 import { CaelusEphemeris } from "../adapters/ephemeris-gateway";
-import { computeNodalReading } from "../core/nodes";
+import { computeNodalReading, computePrenatalEclipses } from "../core/nodes";
 import { computeSolLunaPhase } from "../core/phases";
 import { computeSoulReading } from "../core/soul";
 import type { CliContext } from "./client";
@@ -18,6 +18,7 @@ export const soulUsage = [
 	"",
 	"Radiografía del estado basal del Alma y la intención evolutiva (JWG).",
 	"Calcula el paradigma de Plutón, Punto de Polaridad, Eje Nodal, Pasos Omitidos y Regentes.",
+	"Con --full: cadenas de dispositores, aspectos finos y eclipses prenatales (solar y lunar).",
 ].join("\n");
 
 export const soulCommand: AxiCliCommand<CliContext> = async (args, context) => {
@@ -136,6 +137,13 @@ export const soulCommand: AxiCliCommand<CliContext> = async (args, context) => {
 							northNode: nnObj.aspects,
 							southNode: snObj.aspects,
 						},
+						prenatalEclipses: computePrenatalEclipses(
+							ephemeris,
+							request.birth,
+							natal.cusps,
+							request.options.houseSystem,
+							request.options.topocentric,
+						),
 					}
 				: {}),
 		},

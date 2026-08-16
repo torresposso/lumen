@@ -77,25 +77,6 @@ describe("chartCommand", () => {
 		expect(result.chart.draconic.nodeUsed).toBe("true_node");
 	});
 
-	test("computes evolutionary features (--eclipses --lots --stars)", async () => {
-		const result = (await chartCommand(
-			[...TAMPA_ARGS, "--eclipses", "--lots", "--stars"],
-			undefined,
-		)) as {
-			chart: {
-				eclipses: { solar?: unknown; lunar?: unknown };
-				lots: { spirit: unknown; fortune: unknown };
-				stars: unknown[];
-			};
-		};
-
-		expect(result.chart.eclipses?.solar).toBeDefined();
-		expect(result.chart.eclipses?.lunar).toBeDefined();
-		expect(result.chart.lots?.spirit).toBeDefined();
-		expect(result.chart.lots?.fortune).toBeDefined();
-		expect(Array.isArray(result.chart.stars)).toBe(true);
-	});
-
 	test("computes the evolutionary reading (--evolutionary)", async () => {
 		const result = (await chartCommand(
 			[...TAMPA_ARGS, "--evolutionary"],
@@ -175,6 +156,19 @@ describe("chartCommand", () => {
 			expect((error as AxiError).code).toBe("VALIDATION_ERROR");
 		}
 	});
+
+	test.each(["--lots", "--stars", "--eclipses"])(
+		"rejects removed flag %s as unknown",
+		async (flag) => {
+			try {
+				await chartCommand([...TAMPA_ARGS, flag], undefined);
+				expect.unreachable();
+			} catch (error) {
+				expect(error).toBeInstanceOf(AxiError);
+				expect((error as AxiError).code).toBe("VALIDATION_ERROR");
+			}
+		},
+	);
 
 	test("usage text and flag spec name the same flags", () => {
 		const tokens = new Set(

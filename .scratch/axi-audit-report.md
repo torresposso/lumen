@@ -77,3 +77,25 @@ Overall Compatibility Rating: **10 / 10 Pass** (Full Compliance).
 ## Artifact & Log Locations
 - Audit Report: [.scratch/blindspot-audit/report.md](file:///home/erick/Projects/clis/lumen/.scratch/blindspot-audit/report.md)
 - Web Report: [.lavish/audit-20260813.html](file:///home/erick/Projects/clis/lumen/.lavish/audit-20260813.html)
+
+---
+
+## Re-audit: 2026-08-15 (post-realignment T1–T3)
+
+**Trigger**: SPEC §6.5 (auditoría AXI sin violaciones abiertas) — la superficie cambió con la remoción de synastry clásica, lots/stars y el traslado de eclipses a `soul --full`.
+
+Superficie re-verificada en vivo (`bun run bin/lumen.ts`):
+
+- **Home (content-first)**: `bin:`, `description:`, estado vivo (`agenda: 0 active consultations`, `clients: 0 clients found`) + `help[5]` con comandos accionables. ✅
+- **Fast-path**: `-v` → `0.1.0` sin evaluar el grafo CLI. ✅
+- **Errores estructurados**: `lumen synastry` → `error: "Unknown command: synastry"` + `code: VALIDATION_ERROR` + `help[1]` accionable; `classical chart --eclipses` → `error: "Unknown flag --eclipses for \`chart\`"` + lista de flags válidos (exit 2). ✅
+- **`--help` consistente**: `classical --help` (chart|draconic only), `soul --help` (flags + defaults + ejemplo `--full`). ✅
+- **TOON en stdout**: salidas sin decoración, colecciones compactas (`dispositorChains.pluto[3]{body,sign,ruler}`). ✅
+
+Obsolescencias del reporte original (2026-08-13), superadas por esta sección:
+
+- §2 ya no aplica `--eclipses`/`--lots`/`--stars` como flags opt-in del intake: solo `--evolutionary` queda en classical; los eclipses prenatales se entregan por `soul --full` (`evolutionaryMechanics.prenatalEclipses`).
+- §5 idem: los campos opcionales de salida ahora son `evolutionary`, `draconic` (classical) y `prenatalEclipses` (soul --full).
+- §10 refiere `chartUsage` del viejo `lumen chart`: la superficie de chart es `lumen classical chart|draconic` (andamiaje técnico), y `soul` es el reading evolutivo.
+
+**Veredicto**: 10/10 PASS sobre la superficie de SPEC §3 post-realineación; sin violaciones abiertas.

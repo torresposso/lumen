@@ -52,9 +52,6 @@ describe("journeyCommand", () => {
 					bodies: [],
 					topocentric: false,
 					draconic: false,
-					eclipses: false,
-					lots: false,
-					stars: false,
 					evolutionary: true,
 				},
 			});
@@ -98,9 +95,6 @@ describe("journeyCommand", () => {
 					bodies: [],
 					topocentric: false,
 					draconic: false,
-					eclipses: false,
-					lots: false,
-					stars: false,
 					evolutionary: true,
 				},
 			});

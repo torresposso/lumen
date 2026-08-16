@@ -1,102 +1,15 @@
-import type { Chart, ChartBody, HouseSystem } from "caelus";
+import type { Chart, ChartBody } from "caelus";
 import {
 	type ChartPattern as CaelusChartPattern,
 	detectPatternsIn as detectCaelusPatternsIn,
 } from "caelus";
 import type { EvolutionaryResult } from "./soul";
-import type { Ephemeris, ResolvedBirth } from "./types";
 import {
-	angularDistance,
 	findDeclinationAspect,
-	isOrbWithin,
-	normalizeLongitude,
-	type ProjectedEclipticPoint,
-	projectPoint,
-	roundPrecision,
 	SIGN_RULERS,
 	shiftLongitude,
 	signOf,
 } from "./types";
-
-export interface LotsResult {
-	spirit: ProjectedEclipticPoint;
-	fortune: ProjectedEclipticPoint;
-}
-
-export interface FixedStarMatch {
-	star: string;
-	body: string;
-	orb: number;
-	sign: string;
-}
-
-const FIXED_STAR_ORB = 1.5;
-const MAJOR_STAR_MAX_MAG = 2.5;
-
-/** Computes the Hermetic Lots (Lot of Spirit and Lot of Fortune). */
-export function computeHermeticLots(
-	ephemeris: Ephemeris,
-	birth: ResolvedBirth,
-	cusps: number[],
-): LotsResult {
-	const chartLots = ephemeris.lots(birth.jdUt, birth.lat, birth.lon);
-	return {
-		spirit: projectPoint(chartLots.spirit, cusps),
-		fortune: projectPoint(chartLots.fortune, cusps),
-	};
-}
-
-/** Evaluates major fixed-star conjunctions (orb <= 1.5°, magnitude <= 2.5). */
-export function computeFixedStarMatches(
-	ephemeris: Ephemeris,
-	birth: ResolvedBirth,
-	bodies: Partial<Record<string, ChartBody>>,
-	angles?: Chart["angles"],
-): FixedStarMatch[] {
-	const matches: FixedStarMatch[] = [];
-	const targets: Array<{ id: string; lon: number }> = [];
-
-	for (const [bodyId, body] of Object.entries(bodies)) {
-		if (body !== undefined) targets.push({ id: bodyId, lon: body.lon });
-	}
-	if (angles !== undefined) {
-		for (const angleId of ["asc", "mc", "vertex", "eastPoint"] as const) {
-			targets.push({ id: angleId, lon: angles[angleId] });
-		}
-	}
-
-	for (const [starName, starEntry] of Object.entries(ephemeris.fixedStars())) {
-		if (
-			typeof starEntry.mag !== "number" ||
-			starEntry.mag > MAJOR_STAR_MAX_MAG
-		) {
-			continue;
-		}
-
-		const starLon = normalizeLongitude(
-			ephemeris.starLongitude(starEntry, birth.jdUt),
-		);
-
-		for (const target of targets) {
-			if (isOrbWithin(target.lon, starLon, FIXED_STAR_ORB)) {
-				const diff = angularDistance(target.lon, starLon);
-				matches.push({
-					star: starName,
-					body: target.id,
-					orb: roundPrecision(diff),
-					sign: signOf(starLon),
-				});
-			}
-		}
-	}
-
-	return matches.sort(
-		(a, b) =>
-			a.orb - b.orb ||
-			a.star.localeCompare(b.star) ||
-			a.body.localeCompare(b.body),
-	);
-}
 
 // ---------------------------------------------------------------------------
 // Draconic projection
@@ -162,78 +75,6 @@ export function toDraconicChart(
 		bodies: shiftedBodies,
 		angles: shiftedAngles,
 		cusps: shiftedCusps,
-	};
-}
-
-// ---------------------------------------------------------------------------
-// Prenatal eclipses
-// ---------------------------------------------------------------------------
-
-export interface EclipseInfo {
-	tMax: number;
-	type: string;
-	lon: number;
-	sign: string;
-	signDeg: number;
-	house: number;
-}
-
-export interface EclipsesResult {
-	solar?: EclipseInfo;
-	lunar?: EclipseInfo;
-}
-
-/** Computes the prenatal solar and lunar eclipses within 180 days before birth. */
-export function computePrenatalEclipses(
-	ephemeris: Ephemeris,
-	birth: ResolvedBirth,
-	cusps: number[],
-	houseSystem: HouseSystem,
-	topocentric = false,
-): EclipsesResult {
-	const jdStart = birth.jdUt - 180;
-	const jdEnd = birth.jdUt;
-	const sEclipses = ephemeris.solarEclipses(jdStart, jdEnd);
-	const lEclipses = ephemeris.lunarEclipses(jdStart, jdEnd);
-
-	const lastSolar =
-		sEclipses.length > 0 ? sEclipses[sEclipses.length - 1] : undefined;
-	const lastLunar =
-		lEclipses.length > 0 ? lEclipses[lEclipses.length - 1] : undefined;
-
-	const formatEclipse = (
-		tMax: number,
-		type: string,
-		isLunar = false,
-	): EclipseInfo => {
-		const pos = ephemeris.chartAt(tMax, birth.lat, birth.lon, {
-			houseSystem,
-			topocentric,
-		});
-		const targetBody = isLunar ? pos.bodies.moon : pos.bodies.sun;
-		if (!targetBody) {
-			throw new Error(
-				`${isLunar ? "Moon" : "Sun"} position unavailable for eclipse calculation`,
-			);
-		}
-		const point = projectPoint(targetBody.lon, cusps);
-		return {
-			tMax: roundPrecision(tMax),
-			type,
-			lon: point.lon,
-			sign: point.sign,
-			signDeg: point.signDeg,
-			house: point.house,
-		};
-	};
-
-	return {
-		solar: lastSolar
-			? formatEclipse(lastSolar.tMax, lastSolar.type, false)
-			: undefined,
-		lunar: lastLunar
-			? formatEclipse(lastLunar.tMax, lastLunar.type, true)
-			: undefined,
 	};
 }
 
@@ -652,44 +493,4 @@ export function generateFactAtoms(
 	}
 
 	return { atoms };
-}
-
-export interface ClassicalProjections {
-	draconic?: DraconicChart;
-	lots?: LotsResult;
-	stars?: FixedStarMatch[];
-}
-
-/** High-level pure facade for auxiliary classical and draconic projections. */
-export function computeClassicalProjections(
-	chart: Chart,
-	birth: ResolvedBirth,
-	ephemeris: Ephemeris,
-	options: {
-		draconic?: boolean;
-		lots?: boolean;
-		stars?: boolean;
-		nodeMode?: "both" | "mean" | "true";
-	} = {},
-): ClassicalProjections {
-	const result: ClassicalProjections = {};
-
-	if (options.draconic) {
-		result.draconic = toDraconicChart(chart, options.nodeMode ?? "both");
-	}
-
-	if (options.lots) {
-		result.lots = computeHermeticLots(ephemeris, birth, chart.cusps);
-	}
-
-	if (options.stars) {
-		result.stars = computeFixedStarMatches(
-			ephemeris,
-			birth,
-			chart.bodies,
-			chart.angles,
-		);
-	}
-
-	return result;
 }

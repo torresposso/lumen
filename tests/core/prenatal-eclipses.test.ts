@@ -4,7 +4,7 @@ import { BODIES } from "caelus";
 import type { Ephemeris } from "../../src/adapters/ephemeris-gateway";
 import { CaelusEphemeris } from "../../src/adapters/ephemeris-gateway";
 import type { ResolvedBirth } from "../../src/commands/client";
-import { computePrenatalEclipses } from "../../src/core/classical";
+import { computePrenatalEclipses } from "../../src/core/nodes";
 
 const birth: ResolvedBirth = {
 	jdUt: 2448053.2708,
@@ -86,18 +86,6 @@ describe("computePrenatalEclipses", () => {
 				return [];
 			},
 			lunarEclipses: () => [],
-			lots: () => ({
-				day: true,
-				fortune: 0,
-				spirit: 0,
-				eros: 0,
-				necessity: 0,
-				courage: 0,
-				victory: 0,
-				nemesis: 0,
-			}),
-			starLongitude: () => 0,
-			fixedStars: () => ({}),
 		} satisfies Ephemeris;
 
 		computePrenatalEclipses(

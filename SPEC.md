@@ -78,8 +78,9 @@ Si la respuesta no es un sí sentido, la decisión es no.**
 
 ## 6. Criterios de Aceptación
 
-1. `bun test` en verde y `bun run typecheck` sin errores (el conteo de tests se
-   recalibra tras los tickets de remoción).
+1. `bun test` en verde (183 tests, 604 expect) y `bun run typecheck` sin
+   errores; el conteo se recalibra solo vía tickets de remoción con ticket del
+   norte.
 2. `bun run check` (biome) con 0 errores y 0 warnings.
 3. `src/core/` sin I/O, zod, AxiError ni imports fuera de core/caelus.
 4. La superficie de comandos es exactamente la de la sección 3.

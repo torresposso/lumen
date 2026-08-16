@@ -1,7 +1,7 @@
 ---
 id: T3-recalibrate-tests-and-criteria
 title: Recalibrar conteo de tests y criterios de aceptación (SPEC §6)
-status: ready-for-agent
+status: done
 blockers: [T1-remove-classical-synastry-lots-stars, T2-move-eclipses-to-soul-full]
 ---
 
@@ -28,3 +28,10 @@ resultante.
 
 - SPEC §6.1 dice el conteo real y `bun test` pasa con ese conteo.
 - Auditoría AXI sin violaciones abiertas sobre la superficie de SPEC §3.
+
+## Answer
+
+- Conteo real post-remoción: **183 tests, 604 expect** (incluye 3 tests negativos de flags removidos, agregados en review) — actualizado en SPEC §6.1.
+- Auditoría AXI sobre la superficie nueva: Home content-first (agenda + clientes + `bin:`/`description:`), `-v` fast-path → `0.1.0`, error estructurado en `lumen synastry` (mensaje + code + help), `--help` por comando con flags. Re-auditoría registrada en `.scratch/axi-audit-report.md`. Sin violaciones abiertas.
+- README/DOMAIN/CONTEXT verificados sin superficie removida (classical = chart|draconic; eclipses solo en `soul --full`).
+- Review de ejes (Standards/Spec): `computePrenatalEclipses` ahora solo se calcula con `--full`; comment obsoleto en `classical.ts` corregido; `toSynastryChart` renombrado a `toOverlayChart` (su único consumidor es `computeKarma`).

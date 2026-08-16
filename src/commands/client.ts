@@ -329,9 +329,6 @@ export const optionsSchema = z.object({
 		}),
 	topocentric: z.boolean().default(false),
 	draconic: z.boolean().default(false),
-	eclipses: z.boolean().default(false),
-	lots: z.boolean().default(false),
-	stars: z.boolean().default(false),
 	evolutionary: z.boolean().default(false),
 });
 
@@ -344,9 +341,6 @@ export const optionsSuggestions: Record<string, string> = {
 	bodies: `Valid: ${EXTRA_BODIES.join(", ")}`,
 	topocentric: "Valid: --topocentric",
 	draconic: "Valid: --draconic",
-	eclipses: "Valid: --eclipses",
-	lots: "Valid: --lots",
-	stars: "Valid: --stars",
 	evolutionary: "Valid: --evolutionary",
 };
 
@@ -354,14 +348,7 @@ export const chartFlagSpec: FlagSpec = deriveFlagSpec(
 	[birthSchema, optionsSchema],
 	{
 		value: ["when", "place"],
-		boolean: [
-			"topocentric",
-			"draconic",
-			"eclipses",
-			"lots",
-			"stars",
-			"evolutionary",
-		],
+		boolean: ["topocentric", "draconic", "evolutionary"],
 	},
 );
 
@@ -381,9 +368,6 @@ export const chartUsage = [
 	"  --bodies                                   Extra bodies, comma-separated: mean_lilith,true_lilith",
 	"  --topocentric                              Enable topocentric parallax",
 	"  --draconic                                 Re-project chart onto lunar-node zodiac (0° Aries North Node)",
-	"  --eclipses                                 Include prenatal solar and lunar eclipses",
-	"  --lots                                     Include Hermetic Lots (Lot of Spirit, Lot of Fortune)",
-	"  --stars                                    Include major Fixed Star conjunctions (orb <= 1.5°)",
 	"  --evolutionary                             Include Jeffrey Wolf Green evolutionary triad & skipped steps",
 ].join("\n");
 
@@ -514,9 +498,6 @@ function parseRequested(
 			bodies: values.bodies,
 			topocentric: flags.has("topocentric"),
 			draconic: flags.has("draconic"),
-			eclipses: flags.has("eclipses"),
-			lots: flags.has("lots"),
-			stars: flags.has("stars"),
 			evolutionary: flags.has("evolutionary"),
 		},
 		optionsSuggestions,

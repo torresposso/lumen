@@ -1,19 +1,9 @@
-import type {
-	BodyId,
-	Chart,
-	ChartLots,
-	EngineData,
-	LunarEclipse,
-	SolarEclipse,
-	StarEntry,
-} from "caelus";
+import type { BodyId, Chart, LunarEclipse, SolarEclipse } from "caelus";
 import {
 	Engine,
-	lots,
 	lunarEclipses,
 	progressedLongitude,
 	solarEclipses,
-	starApparent,
 	stations,
 } from "caelus";
 import { embeddedData } from "caelus/data-embedded";
@@ -24,17 +14,12 @@ export type { Ephemeris };
 type ChartAtOptions = Parameters<Engine["chartAt"]>[3];
 
 /** The caelus-backed adapter: the single module that knows how to drive the
- *  caelus engine and its embedded star catalog. */
+ *  caelus engine. */
 export class CaelusEphemeris implements Ephemeris {
 	private engine: Engine;
-	private data: EngineData;
 
-	constructor(
-		engine: Engine = new Engine(embeddedData),
-		data: EngineData = embeddedData,
-	) {
+	constructor(engine: Engine = new Engine(embeddedData)) {
 		this.engine = engine;
-		this.data = data;
 	}
 
 	chartAt(
@@ -54,10 +39,6 @@ export class CaelusEphemeris implements Ephemeris {
 		return lunarEclipses(this.engine, jdStart, jdEnd);
 	}
 
-	lots(jdUt: number, lat: number, lonEast: number): ChartLots {
-		return lots(this.engine, jdUt, lat, lonEast);
-	}
-
 	progressedLongitude(body: BodyId, natalJd: number, targetJd: number): number {
 		return progressedLongitude(this.engine, body, natalJd, targetJd);
 	}
@@ -69,13 +50,5 @@ export class CaelusEphemeris implements Ephemeris {
 		maxHits = 30,
 	): Array<[number, "retrograde" | "direct"]> {
 		return stations(this.engine, body, jdStart, jdEnd, maxHits);
-	}
-
-	starLongitude(entry: StarEntry, jdUt: number): number {
-		return (starApparent(this.data, entry, jdUt)[0] * 180) / Math.PI;
-	}
-
-	fixedStars(): Record<string, StarEntry> {
-		return this.data.fixedStars?.stars ?? {};
 	}
 }

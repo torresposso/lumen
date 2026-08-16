@@ -52,9 +52,6 @@ describe("consultaCommand", () => {
 					bodies: [],
 					topocentric: false,
 					draconic: false,
-					eclipses: false,
-					lots: false,
-					stars: false,
 					evolutionary: true,
 				},
 			});
@@ -88,9 +85,6 @@ describe("consultaCommand", () => {
 					bodies: [],
 					topocentric: false,
 					draconic: false,
-					eclipses: false,
-					lots: false,
-					stars: false,
 					evolutionary: true,
 				},
 			});

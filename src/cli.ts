@@ -1,10 +1,6 @@
 import { runAxiCli } from "axi-sdk-js";
-import {
-	chartCommand,
-	classicalCommand,
-	synastryCommand,
-} from "./commands/classical";
-import { clientCommand, profileCommand } from "./commands/client";
+import { classicalCommand } from "./commands/classical";
+import { clientCommand } from "./commands/client";
 import { consultaCommand } from "./commands/consulta";
 import { journeyCommand } from "./commands/journey";
 import { karmaCommand } from "./commands/karma";
@@ -20,8 +16,8 @@ const topLevelHelp = [
 	"  journey    Progresiones secundarias y giros estacionales",
 	"  karma      Sinastría evolutiva y acuerdos entre Almas",
 	"  consulta   Expedientes clínicos, hipótesis (H1, H2) y diálogo",
-	"  client     Gestión de consultantes locales (alias: profile)",
-	"  classical  Proyecciones técnicas auxiliares (draconic, lots, stars)",
+	"  client     Gestión de consultantes locales",
+	"  classical  Proyecciones técnicas auxiliares (chart, draconic)",
 	"  setup      Instala/actualiza la integración de sesión",
 ].join("\n");
 
@@ -46,11 +42,6 @@ export async function main(): Promise<void> {
 			client: clientCommand,
 			classical: classicalCommand,
 			setup: setupCommand,
-			// Retrocompatibilidad
-			chart: chartCommand,
-			profile: profileCommand,
-			synastry: synastryCommand,
-			timing: journeyCommand,
 		},
 		home: async (_args, context) => {
 			const clients = (context?.profiles.list() ?? []).map((client) => ({

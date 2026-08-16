@@ -1,7 +1,7 @@
 ---
 id: T1-remove-classical-synastry-lots-stars
 title: Remover synastry clásica, alias `lumen synastry`, `--lots` y `--stars` de la superficie
-status: ready-for-agent
+status: done
 blockers: []
 ---
 
@@ -42,3 +42,13 @@ nada más. Corte limpio: sin aliases, sin deprecación, sin retrocompatibilidad.
   existe; `--lots` / `--stars` se rechazan con error de flag desconocido
   (exit 2).
 - La superficie resultante es exactamente la de SPEC §3.
+
+## Answer
+
+- `lumen synastry`, `classical synastry` y `synastryCommand` eliminados (`src/commands/classical.ts` truncado en la sección synastry).
+- `computeSynastry` + tipos de sinastría genérica removidos de `src/core/karma.ts`; `toSynastryChart` se conserva (lo usa `computeKarma`).
+- `--lots`/`--stars` fuera del intake (`client.ts`), de `ChartRequestOptions`, del seam `Ephemeris` (métodos `lots`/`starLongitude`/`fixedStars`, sin consumidores; `CaelusEphemeris` pierde el campo `data`), de `client-store.ts` y del help de `cli.ts` (classical ahora "(chart, draconic)").
+- `computeHermeticLots`, `computeFixedStarMatches`, `computeClassicalProjections` (código muerto) eliminados de `src/core/classical.ts`.
+- Tests: borrados `tests/commands/synastry.test.ts` y `tests/core/classical-extensions.test.ts`; `tests/core/synastry.test.ts` reescrito conservando solo `toSynastryChart`; opciones y mocks recalibrados.
+- Verificado en vivo: `lumen classical synastry` → "Unknown classical command"; `--lots`/`--stars` → "Unknown flag".
+- `docs/agents/domain.md` (árbol) y `docs/spec-*.md` obsoletos actualizados/eliminados.

@@ -22,9 +22,6 @@ const request: NatalRequest = {
 		bodies: ["mean_lilith"],
 		topocentric: false,
 		draconic: false,
-		eclipses: false,
-		lots: false,
-		stars: false,
 		evolutionary: false,
 	},
 };
@@ -88,18 +85,6 @@ function createMockEphemeris(chartOverrides: ChartOverrides = {}) {
 		chartAt: () => mockChart,
 		solarEclipses: () => [],
 		lunarEclipses: () => [],
-		lots: () => ({
-			day: true,
-			fortune: 0,
-			spirit: 0,
-			eros: 0,
-			necessity: 0,
-			courage: 0,
-			victory: 0,
-			nemesis: 0,
-		}),
-		starLongitude: () => 0,
-		fixedStars: () => ({}),
 	};
 }
 

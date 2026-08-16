@@ -96,9 +96,6 @@ function isOptions(value: unknown): value is ChartRequestOptions {
 		value.bodies.every((body) => typeof body === "string") &&
 		typeof value.topocentric === "boolean" &&
 		typeof value.draconic === "boolean" &&
-		typeof value.eclipses === "boolean" &&
-		typeof value.lots === "boolean" &&
-		typeof value.stars === "boolean" &&
 		typeof value.evolutionary === "boolean"
 	);
 }

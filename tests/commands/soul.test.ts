@@ -87,9 +87,6 @@ describe("soulCommand", () => {
 					bodies: [],
 					topocentric: false,
 					draconic: false,
-					eclipses: false,
-					lots: false,
-					stars: false,
 					evolutionary: true,
 				},
 			});
@@ -105,6 +102,14 @@ describe("soulCommand", () => {
 			expect(mechanics.dispositorChains).toBeDefined();
 			expect(mechanics.plutoAspects).toBeDefined();
 			expect(mechanics.nodeAspects).toBeDefined();
+			expect(mechanics.prenatalEclipses).toBeDefined();
+			const eclipses = mechanics.prenatalEclipses as {
+				solar?: { house: number };
+				lunar?: { house: number };
+			};
+			expect(eclipses.solar).toBeDefined();
+			expect(eclipses.lunar).toBeDefined();
+			expect(eclipses.solar?.house).toBeGreaterThanOrEqual(1);
 		} finally {
 			cleanup();
 		}

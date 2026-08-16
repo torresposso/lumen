@@ -18,7 +18,7 @@ src/
 │   ├── phases.ts                 # Fases Sol-Luna natales y progresadas (8 arquetipos)
 │   ├── journey.ts                # Progresiones secundarias, triggers a puntos EA dentro de orbe, estaciones
 │   ├── karma.ts                  # Sinastría evolutiva y contactos inter-cartas a Nodos/Plutón
-│   └── classical.ts              # Proyecciones auxiliares explícitas: Dracónica, lots, estrellas fijas
+│   └── classical.ts              # Proyecciones auxiliares explícitas: Dracónica (experimento etiquetado)
 │
 ├── adapters/                     # 🌐 I/O EXTERNO & ADAPTADORES
 │   ├── geocode.ts                # Adaptador Open-Meteo, fallback offline y contratos de mock

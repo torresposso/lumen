@@ -52,9 +52,6 @@ describe("karmaCommand", () => {
 					bodies: [],
 					topocentric: false,
 					draconic: false,
-					eclipses: false,
-					lots: false,
-					stars: false,
 					evolutionary: true,
 				},
 			});
@@ -77,9 +74,6 @@ describe("karmaCommand", () => {
 					bodies: [],
 					topocentric: false,
 					draconic: false,
-					eclipses: false,
-					lots: false,
-					stars: false,
 					evolutionary: true,
 				},
 			});
