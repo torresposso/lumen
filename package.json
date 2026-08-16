@@ -9,7 +9,8 @@
 		"start": "bun run bin/lumen.ts",
 		"test": "bun test",
 		"typecheck": "tsc --noEmit",
-		"check": "biome check .",
+		"check": "biome check . && bun run check:docs",
+		"check:docs": "bun run scripts/check-docs.ts",
 		"format": "biome format --write .",
 		"build": "bun build --compile bin/lumen.ts --outfile dist/lumen"
 	},

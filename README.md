@@ -30,11 +30,11 @@ bun run bin/lumen.ts consulta confirmar silvia --hipotesis H1 --respuesta relivi
 bun run bin/lumen.ts consulta leer silvia --capa preguntas
 bun run bin/lumen.ts consulta cerrar silvia --sintesis "..." --tarea "..."
 
-# Gestión local de clientes
-bun run bin/lumen.ts client add erik --when "1981-01-26T00:50" --place "Magangué, Colombia"
-bun run bin/lumen.ts client list
-bun run bin/lumen.ts client show erik
-bun run bin/lumen.ts client remove erik
+# Perfiles locales de nacimiento (reseñados por soul/journey/karma/chart)
+bun run bin/lumen.ts profile add erik --when "1981-01-26T00:50" --place "Magangué, Colombia"
+bun run bin/lumen.ts profile list
+bun run bin/lumen.ts profile show erik
+bun run bin/lumen.ts profile remove erik
 
 # Carta natal (insumo base; la lectura evolutiva vive en soul) y proyección draconic (experimento etiquetado)
 bun run bin/lumen.ts chart natal --when "1981-01-26T00:50" --place "Magangué, Colombia"
@@ -43,9 +43,10 @@ bun run bin/lumen.ts chart draconic --when "1981-01-26T00:50" --place "Magangué
 
 ## Privacidad
 
-- Los stores viven en `~/.config/lumen/` con permisos `0600` y escritura atómica (`tmp + rename`).
-- `lumen client list` y el Home solo muestran `id`, `provenance` y estado de sesión: nunca fechas de nacimiento.
-- `lumen client show <id>` es el único comando que expone los datos natales completos.
+- Los perfiles viven en `~/.config/lumen/lumen.db` (bun:sqlite embebido, permisos `0600`, migraciones con `PRAGMA user_version`).
+- Las opciones de carta por defecto viven en `~/.config/lumen/config.json` (sistema de casas, nodos); un flag en la línea de comandos gana a la config.
+- `lumen profile list` y el Home solo muestran `id`, estado de nacimiento (`ok | ambiguous | nonexistent`) y estado de sesión: nunca fechas de nacimiento.
+- `lumen profile show <id>` es el único comando que expone los datos natales completos.
 
 ## Integración de sesión
 

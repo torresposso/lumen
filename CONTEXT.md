@@ -17,7 +17,7 @@ The complete, immutable assembled calculation result containing the natal chart,
 _Avoid_: chart output object, raw chart
 
 **Natal intake**:
-The process of parsing, validating, and resolving raw CLI inputs into a validated Resolved birth and Chart request options. Lives in `src/commands/client.ts` (the only zod contact point); `src/core/birth.ts` performs only the pure UT/provenance resolution.
+The process of parsing, validating, and resolving raw CLI inputs into a validated Resolved birth and Chart request options. Lives in `src/commands/intake.ts` (the only zod contact point); `src/core/birth.ts` performs only the pure UT/provenance resolution.
 _Avoid_: flag parser, argument validator
 
 **Resolved birth**:

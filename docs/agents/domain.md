@@ -12,7 +12,7 @@ Límites estrictos: `core/` no realiza I/O (ni red ni filesystem). Los adaptador
 src/
 ├── core/                         # 🧠 CÁLCULO PURO & MECÁNICA EVOLUTIVA (Zero I/O, Zero CLI)
 │   ├── types.ts                  # Tipos de dominio (ResolvedBirth, EAChart, Consultation, Hipotesis)
-│   ├── birth.ts                  # Puro: Zonas, Julian Day UT, validación y procedencia
+│   ├── birth.ts                  # Puro: Zonas, Julian Day UT, validación y procedencia (el zod vive en commands/intake.ts)
 │   ├── soul.ts                   # Plutón, PPP (deactivación cuando conj. NN), Midpoint, aspectos
 │   ├── nodes.ts                  # Eje nodal, regentes, skipped steps, cadenas de regentes nodales
 │   ├── phases.ts                 # Fases Sol-Luna natales y progresadas (8 arquetipos)
@@ -24,16 +24,18 @@ src/
 │   ├── geocode.ts                # Adaptador Open-Meteo, fallback offline y contratos de mock
 │   └── ephemeris-gateway.ts      # Enlace con Caelus / SwissEph
 │
-├── storage/                      # 💾 PERSISTENCIA LOCAL (XDG ~/.config/lumen/ - 0600 - Atomic Rename)
-│   ├── client-store.ts           # Gestión de clientes/perfiles (con retrocompatibilidad)
+├── storage/                      # 💾 PERSISTENCIA LOCAL (XDG ~/.config/lumen/ - lumen.db bun:sqlite - 0600)
+│   ├── profile-store.ts          # Perfiles en lumen.db (bun:sqlite, PRAGMA user_version, 0600)
+│   ├── config.ts                 # config.json: opciones de carta por defecto (sistema de casas, nodos; el flag gana)
 │   └── consultation-store.ts     # Expedientes clínicos, hipótesis, confirmaciones y notas
 │
 ├── commands/                     # 🔌 COMANDOS AXI DELGADOS (Parseo, llamado a core, TOON stdout)
-│   ├── soul.ts                   # `lumen soul <client>`
-│   ├── journey.ts                # `lumen journey progressed|stations <client>`
+│   ├── soul.ts                   # `lumen soul <profile>`
+│   ├── journey.ts                # `lumen journey progressed|stations <profile>`
 │   ├── karma.ts                  # `lumen karma pair --a <id> --b <id>`
 │   ├── consulta.ts               # `lumen consulta abrir|preparar|leer|confirmar|cerrar`
-│   ├── client.ts                 # `lumen client add|list|show|remove` (alias `profile`)
+│   ├── profile.ts                # `lumen profile add|list|show|remove`
+│   ├── intake.ts                 # Intake natal compartido: zod + resolución de nacimiento (el único seam)
 │   ├── chart.ts                   # `lumen chart natal|draconic` (insumo base + experimento)
 │   └── setup.ts                  # `lumen setup hooks` (Idempotente, Claude/Codex/OpenCode)
 │
@@ -45,7 +47,7 @@ src/
 
 ## 2. Catálogo de Comandos y Gramática AXI
 
-### A. `lumen soul <client>`
+### A. `lumen soul <profile>`
 Radiografía del estado basal del Alma y la intención evolutiva.
 - **Flags**: `[--when "..." --place "..."]` (inline) | `[--full]` (cadenas de dispositores completas).
 - **Garantías de Borde (AXI §5)**:
@@ -54,7 +56,7 @@ Radiografía del estado basal del Alma y la intención evolutiva.
 
 ```text
 soul:
-  client: silvia
+  profile: silvia
   pluto: Scorpio/H8
   ppp: Taurus/H2
   southNode: Pisces/H12
@@ -78,13 +80,13 @@ help[2]:
 
 ---
 
-### B. `lumen journey <subcommand> <client>`
+### B. `lumen journey <subcommand> <profile>`
 El reloj temporal del Alma: progresiones secundarias y giros estacionales.
 
-1. **`lumen journey progressed <client> --at <YYYY-MM-DD> [--bodies moon,sun,pluto] [--orb 3]`**
+1. **`lumen journey progressed <profile> --at <YYYY-MM-DD> [--bodies moon,sun,pluto] [--orb 3]`**
    - Incluye **Fase Sol-Luna progresada** como campo de primera clase.
    - Contactos de cuerpos progresados a puntos EA natales (Plutón, PPP, Eje Nodal) dentro de orbe.
-2. **`lumen journey stations <client> --body <name> [--from <YYYY-MM-DD>] [--to <YYYY-MM-DD>] [--limit 30]`**
+2. **`lumen journey stations <profile> --body <name> [--from <YYYY-MM-DD>] [--to <YYYY-MM-DD>] [--limit 30]`**
    - Estaciones planetarias en la ventana temporal especificada.
 
 ---
@@ -135,7 +137,7 @@ help[2]:
 
 ---
 
-### E. `lumen client <action>` (y alias `profile`)
+### E. `lumen profile <action>`
 - `add <id> --when "..." --place "..."`: Si el ID existe, actualiza (no-op/update idempotente).
 - `list`: Respeta privacidad AXI. Lista solo IDs, procedencia válida y si la sesión está abierta/cerrada. Cero fechas de nacimiento en contexto ambiente.
 - `show <id>`: Detalle de datos de nacimiento del consultante.
@@ -145,7 +147,7 @@ help[2]:
 
 ## 3. Invariantes de Sistema y Ética
 
-1. **Privacidad de Grado Clínico**: Stores en `~/.config/lumen/` con permisos `0600`, escrituras atómicas (`tmp + rename`) y versionado de esquema.
+1. **Privacidad de Grado Clínico**: Perfiles en `~/.config/lumen/lumen.db` (bun:sqlite, permisos `0600`, migraciones con `PRAGMA user_version`); el expediente de consultas conserva su propio store con escrituras atómicas (`tmp + rename`) y versionado de esquema.
 2. **Idempotencia en Sesión**:
    - `consulta abrir` sobre sesión ya abierta = No-op exitoso (`session: open`).
    - `consulta cerrar` sobre sesión ya cerrada = No-op exitoso (`session: closed`).

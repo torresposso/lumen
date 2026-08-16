@@ -2,6 +2,22 @@
 
 Issues and specs for this repo live as markdown files in `.scratch/`.
 
+## Doc-first rule (docs preceden al código)
+
+- Toda feature abre con un ticket `<NN>-docs-*` (el más bajo de la cadena, sin
+  blockers) que reescribe los docs afectados **al target**: `README.md`,
+  `DOMAIN.md`, `SPEC.md`, `CONTEXT.md`, `docs/agents/domain.md` y ADRs citados,
+  para que la implementación entregue contra docs ya actualizados.
+- Ese ticket bloquea (vía `blockers:`) a todos los de implementación de la
+  misma feature: un ticket de código no se reclama si su ticket de docs no
+  está `resolved`.
+- La paridad docs ↔ código es mecánica: `bun run check:docs` (fusionado en
+  `bun run check`) falla si `SPEC §3`↔`src/cli.ts`, o el árbol de
+  `DOMAIN.md`/`docs/agents/domain.md`↔`src/`, divergen. Durante una transición
+  doc-first queda **rojo a propósito** (los docs describen el target antes de
+  llegar el código) y vuelve a verde en el último ticket de la feature — ese
+  verde final es condición de cierre.
+
 ## Conventions
 
 - One feature per directory: `.scratch/<feature-slug>/`

@@ -17,7 +17,7 @@ structured `AxiError(message, code, suggestions)`.
 ## Decision
 
 - Add zod as the validation + type-derivation layer at the CLI intake seam only
-  (`src/commands/client.ts`): `birthSchema` and `optionsSchema` parse string values
+  (`src/commands/intake.ts`): `birthSchema` and `optionsSchema` parse string values
   into typed domain values via `z.infer`, with type-guard refinements against
   caelus's exact unions (no `as` casts).
 - `parseWith()` maps zod issues to `AxiError` with code
@@ -37,6 +37,6 @@ structured `AxiError(message, code, suggestions)`.
   same schemas.
 - Hand-rolled `requireNumber`/`requireString` in `flags.ts` were deleted; the
   string-level `parseFlags` stays.
-- Zod is a runtime dependency; schemas live in `src/commands/client.ts` and must stay
+- Zod is a runtime dependency; schemas live in `src/commands/intake.ts` and must stay
   zod's single point of contact with the codebase. `core/` and `storage/` validate
   with framework-free type guards instead.

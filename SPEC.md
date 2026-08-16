@@ -25,7 +25,7 @@ mantiene geométrico y TOON-mínimo.
 | `src/commands/` | Parseo, llamado a core, salida TOON | Cálculo astrológico |
 | `src/cli.ts` | Router axi-sdk-js, Home con agenda | Lógica de negocio |
 
-La validación zod vive únicamente en el seam de intake (`src/commands/client.ts`).
+La validación zod vive únicamente en el seam de intake (`src/commands/intake.ts`).
 La salida siempre es tipos nativos caelus convertidos a TOON en la frontera.
 
 ## 3. Superficie de comandos (la única que existe)
@@ -38,7 +38,7 @@ soul       ¿De dónde vengo / a dónde voy? Plutón, PPP, eje nodal, eclipses p
 journey    ¿Qué me está pasando ahora? Progresiones secundarias y estaciones
 karma      ¿Cómo se aplica con otros? Sinastría evolutiva
 consulta   ¿Cómo dialogo con esto? Expedientes, hipótesis (H1, H2) y diálogo
-client     Los seres de la práctica: consultantes locales (privacidad 0600)
+profile    Los seres de la práctica: perfiles locales de nacimiento (privacidad 0600, lumen.db)
 chart      Carta: natal (insumo base) y draconic (experimento etiquetado)
 setup      Integración de sesión (hooks + skill) — conveniencia, no producto
 ```
@@ -59,7 +59,7 @@ estrellas fijas. Los eclipses prenatales son eventos nodales: los entrega
 5. **Vacíos definitivos**: "0 X found" con contexto; nunca salida ambigua.
 6. **Errores estructurados en stdout** (AxiError): mensaje + `help` accionable; exit 0 para no-ops, 1 error, 2 uso; flags desconocidos rechazados con hint; `--help` siempre pasa.
 7. **Contexto ambiente**: `setup hooks` idempotente (Claude Code, Codex, OpenCode) + skill instalable generada del Home, con `--check` de staleness.
-8. **Content first**: Home sin argumentos muestra estado vivo (agenda, clientes) + `bin:` y `description:`.
+8. **Content first**: Home sin argumentos muestra estado vivo (agenda, perfiles) + `bin:` y `description:`.
 9. **Disclosure contextual**: `help[]` con siguientes pasos relevantes, placeholders `<id>`, omitido si la salida es autocontenida.
 10. **Help consistente**: `--help` por comando con flags, defaults y 2-3 ejemplos; `--version`/-v/-V vía fast-path en <ms (hoja `src/version.ts`).
 
