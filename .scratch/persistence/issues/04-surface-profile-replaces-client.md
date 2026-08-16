@@ -1,7 +1,7 @@
 ---
 id: 04-surface-profile-replaces-client
 title: 'client muere — soul/chart/karma/journey consumen profiles'
-status: ready-for-agent
+status: resolved
 blockers: [03]
 ---
 
@@ -48,12 +48,26 @@ aparte, decidido en Q10).
 
 - Superficie final = SPEC §3 (este ticket la fija): 7 comandos, `profile` en
   lugar de `client`.
-- Muerte total: cero referencias a `client-store`, `ClientStore`,
-  `ProfileStore`, `clients.json` o `profiles.json` en `src/`, `tests/`,
-  `DOMAIN.md` y `README.md`.
-- `bun test` / `typecheck` / `check` en verde.
+- Muerte total: cero referencias al storage viejo — `client-store`,
+  `ClientStore`, `clients.json` o `profiles.json` — en `src/`, `tests/`,
+  `DOMAIN.md` y `README.md`. (OJO: `ProfileStore` del SQLite SIGUE vivo: es el
+  store nuevo que `CliContext.profiles` requiere; el grep del criterio apunta
+  al alias JSON heredado que muere con `client-store.ts`.)
+- `bun test` / `typecheck` / `check` en verde (en la transición doc-first
+  queda rojo solo `src/storage/config.ts`, que llega en el ticket 05).
 
 ## Comments
 
 - Spec: `.scratch/persistence/spec.md` (Q4/Q10/Q11).
 - Depende secuencialmente de 03 (convivir sin conflicto hasta el último pasivo).
+- CERRADO 2026-08-16 (commit 11b05ee): corte limpio. Notas de la revisión:
+  (1) `requestFromProfile` cambió de lectura a propósito: aplica
+  `defaultChartOptions()` en vez de `{...profile.options}` — las opciones no
+  viven en el perfil (Q7) y `profile add` las rechaza; afecta solo a perfiles
+  con opciones ≠ default guardadas ANTES (0 reales, Q11 arranque vacío).
+  2) El Home y las claves de salida quedaron en `profile`; consulta/EAChart
+  conservan `clientId`/`client` como claves de datos (Q10, sin tocar).
+  3) `~/.config/lumen/` puede conservar `clients.json`/`profiles.json` muertos
+  de sesiones viejas: Q11 los sanciona, el código ya no los escribe.
+  4) Cobertura vieja del JSON (client.test.ts, client-store.test.ts,
+  commands/profile-store.test.ts) borrada; SPEC §6.1 recalibrada a 174/576.
