@@ -1,7 +1,7 @@
 ---
 id: 03-profile-command
 title: 'lumen profile add|list|show|remove — comando nuevo (client sigue vivo)'
-status: ready-for-agent
+status: resolved
 blockers: [02]
 ---
 
@@ -43,3 +43,9 @@ se extrae a un módulo compartido para no duplicarlo.
 
 - Spec: `.scratch/persistence/spec.md` (Q1/Q5/Q6/Q7).
 - Bloqueado por 02 (store); necesita 02 para `add`.
+- CERRADO 2026-08-16 (commit 64fff45): intake→`src/commands/intake.ts` (seam único zod),
+  `profile` add|list|show|remove sobre SQLite con `persistence` opcional en CliContext;
+  huérfano absorbido, cli.ts registra ambos. `add` rechaza flags de opciones de carta (Q7).
+  Retrollamada al 04: `CliContext.profiles` todavía es JSON (client vivo) y `requestFromProfile`
+  sigue leyendo options de perfil — el default `parseRequested({},∅)` se exportó como
+  `defaultChartOptions()` en intake para el flip del 04.
