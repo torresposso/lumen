@@ -52,18 +52,22 @@ their natal house/sign placements, Skipped Steps, the Pluto–North Node
 Midpoint, Sol-Luna phase, dispositor chains, and prenatal eclipses.
 _Avoid_: soul reading
 
+**Evolutionary criteria**:
+The single source of the orbs and thresholds governing the `evo` block: the `PLUTO_ASPECTS` table, the PPP major-only rule (orb 5°, `PPP_MAJOR_ASPECTS`), the skipped-square orb (`SKIPPED_STEPS_ORB`), and the PPP deactivation orb (`PPP_DEACTIVATION_ORB`), all living in `src/core/`. `describeEvoCriteria()` serializes them into `evo.method`, so the disclosure is derived from the tables, never hand-written, and cannot diverge from the calculation.
+
 **Evo block**:
 The opt-in `evo` output added to a natal chart by `--evo`. Always geometric,
 never interpretive. Not available on `chart draconic`. The block is
 self-contained (`lon`/`signDeg` at 4 decimal places, like `chart.bodies`), uses
 `PLUTO_ASPECTS` orbs (which may differ from `chart.aspects`), exposes both
 `midpoint` and `antiMidpoint`, includes Pluto in `nodeAspects` (but never in
-`skippedSteps`), publishes its criteria in `method`, and bridges to `summary`
-via `counts`. With `--evo`, the interpretation context adds atoms for the
-evolutionary mechanics.
+`skippedSteps`), publishes its criteria in `method` (derived mechanically from
+the core criteria tables — see **Evolutionary criteria** — so it cannot drift),
+and bridges to `summary` via `counts`. With `--evo`, the interpretation context
+adds atoms for the evolutionary mechanics.
 
 **Pluto Polarity Point**:
-The point diametrically opposite Pluto (Pluto longitude + 180°), representing the evolutionary direction the soul is moving toward. Deactivated when Pluto is conjunct the North Node within orb ≤ 10° (as evolution channels directly through the North Node and its ruler); the angular Pluto–North Node separation is published as `evo.ppp.separation` and, when inactive, the cause as `evo.ppp.reason`.
+The point diametrically opposite Pluto (Pluto longitude + 180°), representing the evolutionary direction the soul is moving toward. Deactivated when Pluto is conjunct the North Node within orb ≤ `PPP_DEACTIVATION_ORB` (10°, one named constant in core; evolution channels directly through the North Node and its ruler). The angular Pluto–North Node separation that the rule already measures is republished as `evo.ppp.separation` (same reference: the True Node, no fallback) and, when inactive, the cause as `evo.ppp.reason` with the measured separation.
 
 **Pluto Polarity Point aspects**:
 Major planetary aspects (orb ≤ 5°) formed directly to the Pluto Polarity Point, identifying specific psychological archetypes accelerating or facilitating evolutionary growth. The polarity point does not apply when Pluto is conjunct the North Node.

@@ -1,7 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import { julianDay } from "caelus";
 import { CaelusEphemeris } from "../../src/adapters/ephemeris-gateway";
-import { toDraconicChart } from "../../src/core/classical";
+import { describeEvoCriteria, toDraconicChart } from "../../src/core/classical";
+import { PLUTO_ASPECTS } from "../../src/core/soul";
 import type { ResolvedBirth } from "../../src/core/types";
 
 describe("core/classical", () => {
@@ -25,5 +26,39 @@ describe("core/classical", () => {
 		expect(draconic.bodies.true_node?.lon).toBeCloseTo(0, 4);
 		expect(draconic.bodies.true_node?.sign).toBe("Aries");
 		expect(draconic.bodies.sun?.sign).toBeDefined();
+	});
+});
+
+describe("core/describeEvoCriteria", () => {
+	it("serializes PLUTO_ASPECTS grouped by orb in descending order", () => {
+		const s = describeEvoCriteria();
+		expect(s).toContain("orbs PLUTO_ASPECTS:");
+		expect(s).toContain("10° conjunction/opposition");
+		expect(s).toContain("8° square/trine");
+		expect(s).toContain("6° sextile");
+		expect(s).toContain("3° semisextile/semisquare/sesquiquadrate/quincunx");
+		expect(s).toContain("2° septile/quintile/biquintile");
+		// descending: the 10° group comes before the 2° group.
+		expect(s.indexOf("10°")).toBeLessThan(s.indexOf("2° septile"));
+	});
+
+	it("derives from the live tables: every PLUTO_ASPECTS orb appears", () => {
+		const s = describeEvoCriteria();
+		for (const def of PLUTO_ASPECTS) {
+			expect(s).toContain(`${def.orb}°`);
+		}
+	});
+
+	it("names the remaining criteria from the core constants", () => {
+		const s = describeEvoCriteria();
+		expect(s).toContain("ppp: major aspects only (orb 5°)");
+		expect(s).toContain("skipped: squares to the nodal axis (orb 5°)");
+		expect(s).toContain(
+			"ppp inactive when pluto conjunct the north node (orb 10°)",
+		);
+	});
+
+	it("is deterministic", () => {
+		expect(describeEvoCriteria()).toBe(describeEvoCriteria());
 	});
 });

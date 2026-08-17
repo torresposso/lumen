@@ -49,7 +49,10 @@ Carta natal base y, con `--evo`, la mecánica evolutiva completa en un solo bloq
 - **Sin flag**: carta base, igual que hoy (sin lectura).
 - **`--evo`**: bloque `evo` completo — Plutón/PPP, midpoint, eje nodal, fase Sol-Luna, cadenas de dispositores y eclipses prenatales, con `counts` (puente con `summary`), `method` (disclosure factual de orbes/criterios) y grados redondeados a 4 decimales. Con `--evo`, `interpretationContext` añade átomos de la mecánica evolutiva.
 - **Bordes (AXI)**:
-  - Si Plutón está conjunto al Nodo Norte (orbe ≤ 10°): `ppp.active: false` y `ppp.reason`; `ppp.separation` siempre disponible.
+  - Si Plutón está conjunto al Nodo Norte (orbe ≤ `PPP_DEACTIVATION_ORB`):
+    `ppp.active: false` y `ppp.reason` (con la separación medida);
+    `ppp.separation` = la medida de core sobre el Nodo Verdadero (la misma
+    referencia que la regla, sin fallback), presente en el estado natal por defecto.
   - Si no hay pasos saltados: `skippedSteps: []`.
   - `chart draconic --evo` → `VALIDATION_ERROR` (draconic es puramente geométrico).
   - `--bodies` es aditivo (extra bodies, p. ej. `mean_lilith`); no excluye Plutón/nodos.
@@ -89,7 +92,7 @@ evo:
     nodeAspects: 16
     skippedSteps: 1
     eclipses: 2
-  method: "orbs PLUTO_ASPECTS (conj/opos 10°, cuadr/trí 8°, sextil 6°, menores 2-3°); ppp solo aspectos mayores (orbe 5°); skipped = cuadraturas al eje nodal (orbe 5°); ppp inactivo si Plutón conj. Nodo Norte (orbe 10°)"
+  method: "orbs PLUTO_ASPECTS: 10° conjunction/opposition, 8° square/trine, 6° sextile, 3° semisextile/semisquare/sesquiquadrate/quincunx, 2° septile/quintile/biquintile; ppp: major aspects only (orb 5°); skipped: squares to the nodal axis (orb 5°); ppp inactive when pluto conjunct the north node (orb 10°)"   # derivado de las tablas de core (describeEvoCriteria), nunca a mano
 ```
 
 ---

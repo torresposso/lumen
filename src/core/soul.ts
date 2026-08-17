@@ -17,6 +17,9 @@ export { SIGN_RULERS };
 
 export type AspectStress = "stressful" | "nonstressful";
 
+/** Orb (degrees) within which Pluto conjunct the North Node deactivates the PPP. */
+export const PPP_DEACTIVATION_ORB = 10;
+
 export interface StressedAspectDef {
 	name: string;
 	target: number;
@@ -98,6 +101,10 @@ export interface SoulPlutoReading {
 	};
 	plutoNorthNodeMidpoint?: ProjectedEclipticPoint & { formatted: string };
 	plutoNorthNodeAntiMidpoint?: ProjectedEclipticPoint & { formatted: string };
+	/** Raw angular Pluto–North Node separation (degrees, [0, 180]) — the
+	 *  measurement the PPP deactivation rule already makes. Undefined when no
+	 *  North Node reference is available. */
+	plutoNorthNodeSeparation?: number;
 	dispositorChain: DispositorStep[];
 }
 
@@ -282,9 +289,13 @@ export function computeSoulReading(
 	const pppProjected = projectPoint(pppLon, cusps);
 	const pppAspects = computePPPAspects(bodies, pppLon);
 
+	const plutoNorthNodeSeparation =
+		northNodeLon !== undefined
+			? angularDistance(pluto.lon, northNodeLon)
+			: undefined;
 	const isConjunctNN =
-		northNodeLon !== undefined &&
-		angularDistance(pluto.lon, northNodeLon) <= 10;
+		plutoNorthNodeSeparation !== undefined &&
+		plutoNorthNodeSeparation <= PPP_DEACTIVATION_ORB;
 	const pppActive = !isConjunctNN;
 	const pppDescription = pppActive
 		? `${pppProjected.sign}/H${pppProjected.house}`
@@ -323,6 +334,7 @@ export function computeSoulReading(
 		},
 		plutoNorthNodeMidpoint,
 		plutoNorthNodeAntiMidpoint,
+		plutoNorthNodeSeparation,
 		dispositorChain: buildDispositorChain(bodies, "pluto"),
 	};
 }

@@ -24,6 +24,9 @@ import {
 
 export type { NodalRulerPlacement, NodeMotionStatus, SkippedStep };
 
+/** Orb (degrees) within which a planet on the nodal axis counts as a Skipped Step. */
+export const SKIPPED_STEPS_ORB = 5;
+
 export interface NodeAspect {
 	body: string;
 	aspect: string;
@@ -101,7 +104,7 @@ export function computeNodeAspects(
 export function computeSkippedSteps(
 	bodies: ChartBodiesLite,
 	northNodeLon: number,
-	orbLimit = 5,
+	orbLimit = SKIPPED_STEPS_ORB,
 ): SkippedStep[] {
 	const skippedSteps: SkippedStep[] = [];
 	for (const [bodyId, body] of Object.entries(bodies)) {
@@ -159,7 +162,7 @@ export function computeNodalRuler(
 export function computeNodalReading(
 	bodies: ChartBodiesLite,
 	cusps: number[],
-	orbLimit = 5,
+	orbLimit = SKIPPED_STEPS_ORB,
 ): NodalAxisReading | undefined {
 	const northNode = bodies.true_node ?? bodies.mean_node;
 	if (!northNode) return undefined;

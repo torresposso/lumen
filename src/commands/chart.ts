@@ -29,6 +29,7 @@ import {
 	computeDeclinationAspects,
 	type DeclinationAspectProjection,
 	type DraconicChart,
+	describeEvoCriteria,
 	detectAspectPatterns,
 	generateEvoAtoms,
 	generateFactAtoms,
@@ -47,6 +48,7 @@ import {
 	computeSoulReading,
 	type DispositorStep,
 	type PlutoAspect,
+	PPP_DEACTIVATION_ORB,
 	type PPPAspect,
 } from "../core/soul";
 import type {
@@ -56,11 +58,7 @@ import type {
 	NodeMotionStatus,
 	ResolvedBirth,
 } from "../core/types";
-import {
-	angularDistance,
-	projectPoint,
-	roundPrecision as round,
-} from "../core/types";
+import { projectPoint, roundPrecision as round } from "../core/types";
 
 export type {
 	AspectPattern,
@@ -203,7 +201,7 @@ export interface EvoOutput {
 		house: number;
 		signDeg: number;
 		active: boolean;
-		separation: number;
+		separation?: number;
 		reason?: string;
 		aspects: PPPAspect[];
 	};
@@ -230,11 +228,6 @@ export interface EvoOutput {
  *  lumen is dedicated to the true node (North Node canon), so the mean node
  *  never leaves the seam. */
 const DROPPED_NODE: readonly string[] = ["mean_node"];
-
-/** Factual disclosure of the calculation criteria behind the `evo` block.
- *  Self-contained by design (AXI §9): the agent must not need the help text. */
-const EVO_METHOD_DISCLOSURE =
-	"orbs PLUTO_ASPECTS (conj/opos 10°, cuadr/trí 8°, sextil 6°, menores 2-3°); ppp solo aspectos mayores (orbe 5°); skipped = cuadraturas al eje nodal (orbe 5°); ppp inactivo si Plutón conj. Nodo Norte (orbe 10°)";
 
 function renderLon(input: number | { lon: number }): LonProjection {
 	const rawLon = typeof input === "number" ? input : input.lon;
@@ -484,13 +477,13 @@ export class AstrologicalEngine {
 		const phase =
 			sun && moon ? computeSolLunaPhase(sun.lon, moon.lon).name : undefined;
 
-		// Pluto–North Node separation: prefers the true node (the deactivation
-		// reference) and falls back to the node actually reported by nodal.
-		const referenceNodeLon = bodies.true_node?.lon ?? nodal.northNode.lon;
-		const plutoNorthNodeSeparation = round(
-			angularDistance(soul.pluto.lon, referenceNodeLon),
-			2,
-		);
+		// Pluto–North Node separation: republished from core — the same raw
+		// measurement the PPP deactivation rule already made, so the published
+		// number always matches the rule (same reference: true node, no fallback).
+		const plutoNorthNodeSeparation =
+			soul.plutoNorthNodeSeparation === undefined
+				? undefined
+				: round(soul.plutoNorthNodeSeparation, 2);
 
 		const eclipses = computePrenatalEclipses(
 			this.ephemeris,
@@ -499,6 +492,15 @@ export class AstrologicalEngine {
 			request.options.houseSystem,
 			request.options.topocentric,
 		);
+
+		// Aggregated once; feeds both `evo.counts` and the atoms input (the
+		// shared aggregation base — no recomputation of pluto.aspects.length).
+		const counts: EvoOutput["counts"] = {
+			plutoAspects: soul.pluto.aspects.length,
+			nodeAspects: north.aspects.length + south.aspects.length,
+			skippedSteps: nodal.skippedSteps.length,
+			eclipses: (eclipses.solar ? 1 : 0) + (eclipses.lunar ? 1 : 0),
+		};
 
 		const evo: EvoOutput = {
 			pluto: {
@@ -520,7 +522,12 @@ export class AstrologicalEngine {
 				separation: plutoNorthNodeSeparation,
 				...(soul.ppp.active
 					? {}
-					: { reason: "pluto conjunct north node (<=10°)" }),
+					: {
+							reason:
+								plutoNorthNodeSeparation === undefined
+									? `pluto conjunct north node (orb <= ${PPP_DEACTIVATION_ORB}°)`
+									: `pluto conjunct north node (separation ${plutoNorthNodeSeparation}° <= ${PPP_DEACTIVATION_ORB}°)`,
+						}),
 				aspects: soul.ppp.aspects,
 			},
 			midpoint: soul.plutoNorthNodeMidpoint?.formatted,
@@ -554,17 +561,12 @@ export class AstrologicalEngine {
 				northNodeRuler: nodal.dispositorChains.northNodeRuler,
 			},
 			prenatalEclipses: eclipses,
-			counts: {
-				plutoAspects: soul.pluto.aspects.length,
-				nodeAspects: north.aspects.length + south.aspects.length,
-				skippedSteps: nodal.skippedSteps.length,
-				eclipses: (eclipses.solar ? 1 : 0) + (eclipses.lunar ? 1 : 0),
-			},
-			method: EVO_METHOD_DISCLOSURE,
+			counts,
+			method: describeEvoCriteria(),
 		};
 
 		const atoms = generateEvoAtoms({
-			plutoAspectCount: soul.pluto.aspects.length,
+			plutoAspectCount: counts.plutoAspects,
 			plutoStressfulCount: soul.pluto.stressfulAspects,
 			plutoNonstressfulCount: soul.pluto.nonstressfulAspects,
 			ppp: {

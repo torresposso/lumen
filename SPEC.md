@@ -47,7 +47,8 @@ el agente: llaves planas en orden canónico (pluto → ppp → midpoint →
 antiMidpoint → nodalAxis → phase → dispositorChains → prenatalEclipses →
 counts → method), grados redondeados a 4 decimales como la carta base, `counts`
 (puente numérico con `summary`) y `method` (disclosure factual de orbes y
-criterios). Con `--evo` los átomos de `interpretationContext` incluyen la
+criterios, derivado mecánicamente de las tablas de core — imposible que diverja
+del cálculo). Con `--evo` los átomos de `interpretationContext` incluyen la
 mecánica evolutiva.
 
 `chart draconic` es puramente
@@ -68,7 +69,7 @@ dentro del bloque `evo` de `chart natal --evo`.
 6. **Errores estructurados en stdout** (AxiError): mensaje + `help` accionable; exit 0 para no-ops, 1 error, 2 uso; flags desconocidos rechazados con hint; `--help` siempre pasa.
 7. **Contexto ambiente**: `setup hooks` idempotente (Claude Code, Codex, OpenCode) + skill instalable generada del Home, con `--check` de staleness.
 8. **Content first**: Home sin argumentos muestra estado vivo (perfiles) + `bin:` y `description:`.
-9. **Disclosure contextual**: `help[]` con siguientes pasos relevantes, placeholders `<id>`, omitido si la salida es autocontenida. El bloque `evo` es autocontenido y lleva su disclosure en un campo `method` propio (orbes y criterios), no en `help[]`.
+9. **Disclosure contextual**: `help[]` con siguientes pasos relevantes, placeholders `<id>`, omitido si la salida es autocontenida. El bloque `evo` es autocontenido y lleva su disclosure en un campo `method` propio (orbes y criterios), no en `help[]`; el texto del `method` se deriva de las tablas de core (`describeEvoCriteria`), nunca se escribe a mano.
 10. **Help consistente**: `--help` por comando con flags, defaults y 2-3 ejemplos; `--version`/-v/-V vía fast-path en <ms (hoja `src/version.ts`).
 
 ## 5. Regla de congelación (la cura del rumbo)
@@ -87,7 +88,7 @@ Si la respuesta no es un sí sentido, la decisión es no.**
 
 ## 6. Criterios de Aceptación
 
-1. `bun test` en verde (167 tests, 560 expect) y `bun run typecheck` sin
+1. `bun test` en verde (174 tests, 601 expect) y `bun run typecheck` sin
    errores; el conteo se recalibra solo vía tickets de remoción con ticket del
    norte.
 2. `bun run check` (biome) con 0 errores y 0 warnings.

@@ -3,6 +3,7 @@ import type { Chart, ChartBody } from "caelus";
 import { BODIES } from "caelus";
 import { AstrologicalEngine } from "../../src/commands/chart";
 import type { NatalRequest } from "../../src/commands/intake";
+import { describeEvoCriteria } from "../../src/core/classical";
 
 const request: NatalRequest = {
 	birth: {
@@ -180,5 +181,52 @@ describe("AstrologicalEngine Output Projection", () => {
 			'House system "placidus" fell back to "whole_sign" (undefined above the polar circle)',
 			"Bodies omitted (outside fitted ephemeris range): chiron",
 		]);
+	});
+});
+
+describe("AstrologicalEngine evo block (mock ephemeris)", () => {
+	const fullCusps = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];
+
+	function evoEngine(plutoLon: number, nodeLon: number) {
+		const mockEphemeris = createMockEphemeris({
+			cusps: fullCusps,
+			bodies: {
+				pluto: body({
+					lon: plutoLon,
+					sign: "Scorpio",
+					signDeg: plutoLon - 210,
+					speed: 0.02,
+				}),
+				true_node: body({
+					lon: nodeLon,
+					signDeg: nodeLon - 210,
+					speed: -0.05,
+				}),
+			},
+		});
+		return new AstrologicalEngine(mockEphemeris);
+	}
+
+	test("deactivates ppp with the measured separation and a derived reason", () => {
+		const out = evoEngine(230, 232).compute(request, { evo: true });
+		expect(out.evo).toBeDefined();
+		expect(out.evo?.ppp.active).toBe(false);
+		expect(out.evo?.ppp.separation).toBe(2);
+		expect(out.evo?.ppp.reason).toBe(
+			"pluto conjunct north node (separation 2° <= 10°)",
+		);
+		expect(out.interpretationContext?.atoms).toContain("ppp_inactive");
+		expect(out.evo?.method).toBe(describeEvoCriteria());
+	});
+
+	test("keeps ppp active with the measured separation when Pluto is far from the node", () => {
+		const out = evoEngine(230, 130).compute(request, { evo: true });
+		expect(out.evo).toBeDefined();
+		expect(out.evo?.ppp.active).toBe(true);
+		expect(out.evo?.ppp.separation).toBe(100);
+		expect(out.evo?.ppp.reason).toBeUndefined();
+		expect(out.interpretationContext?.atoms).toContain("ppp_active");
+		// counts aggregates once and stays consistent with the published aspects.
+		expect(out.evo?.counts.plutoAspects).toBe(out.evo?.pluto.aspects.length);
 	});
 });

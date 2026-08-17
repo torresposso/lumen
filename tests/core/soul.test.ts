@@ -68,6 +68,30 @@ describe("core/soul", () => {
 		expect(reading.ppp.description).toContain(
 			"Direct integration through North Node",
 		);
+		// The rule exposes the exact measurement that triggered it.
+		expect(reading.plutoNorthNodeSeparation).toBeCloseTo(2, 9);
+	});
+
+	it("exposes the pluto–north node separation used by the rule (and hides it without a node)", () => {
+		const pluto = {
+			lon: 230,
+			lat: 0,
+			speed: 0.02,
+			sign: "Scorpio",
+			signDeg: 20,
+			house: 8,
+		};
+
+		const withNode = computeSoulReading({ pluto }, cusps, 232);
+		expect(withNode?.plutoNorthNodeSeparation).toBeCloseTo(2, 9);
+		// Far node: active, separation still exposed (it is the rule's arc).
+		const far = computeSoulReading({ pluto }, cusps, 130);
+		expect(far?.plutoNorthNodeSeparation).toBeCloseTo(100, 9);
+		expect(far?.ppp.active).toBe(true);
+		// No node reference: no separation, rule not evaluated.
+		const withoutNode = computeSoulReading({ pluto }, cusps);
+		expect(withoutNode?.plutoNorthNodeSeparation).toBeUndefined();
+		expect(withoutNode?.ppp.active).toBe(true);
 	});
 
 	it("reports applying vs separating phase with the correct sign", () => {
