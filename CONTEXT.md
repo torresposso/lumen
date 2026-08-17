@@ -2,7 +2,7 @@
 
 Western evolutionary astrology CLI built on the caelus ephemeris engine — the personal instrument for learning the tradition (Green's Pluto lens and Forrest's nodal lens) by practicing on one's own chart and one's family before applying it with others.
 
-> **Arquitectura de referencia**: `src/core/` es cálculo puro (sin I/O, zod o AxiError); `src/adapters/` aísla Open-Meteo y Caelus; `src/storage/` persiste en XDG con `0600` y escritura atómica; `src/commands/` son comandos AXI delgados; `src/cli.ts` enruta los 6 comandos AXI. La especificación definitiva vive en `DOMAIN.md` y la implementación en `SPEC.md`.
+> **Arquitectura de referencia**: `src/core/` es cálculo puro (sin I/O, zod o AxiError); `src/adapters/` aísla Open-Meteo y Caelus; `src/storage/` persiste en XDG con `0600` y escritura atómica; `src/commands/` son comandos AXI delgados; `src/cli.ts` enruta los 5 comandos AXI. La especificación definitiva vive en `DOMAIN.md` y la implementación en `SPEC.md`.
 
 ## Language
 
@@ -35,10 +35,18 @@ The tradition that reads the natal chart as the map of the soul's current lesson
 _Avoid_: karmic astrology, past-life astrology
 
 **Evolutionary reading**:
-The curated reading assembled by `soul`: Pluto's placement and Polarity Point,
-the lunar-node axis with its planetary rulers and their natal house/sign
-placements, Skipped Steps, the Pluto–North Node Midpoint, and the Pluto/Chiron
-dispositor chains.
+The complete mechanical block delivered by `chart natal --evo`: Pluto's
+placement and Polarity Point, the lunar-node axis with its planetary rulers and
+their natal house/sign placements, Skipped Steps, the Pluto–North Node
+Midpoint, Sol-Luna phase, dispositor chains, and prenatal eclipses.
+_Avoid_: soul reading
+
+**Evo block**:
+The opt-in `evo` output added to a natal chart by `--evo`. Always geometric,
+never interpretive. Not available on `chart draconic`. The block is
+self-contained (`lon`/`signDeg` included), uses `PLUTO_ASPECTS` orbs (which may
+differ from `chart.aspects`), exposes both `midpoint` and `antiMidpoint`, and
+includes Pluto in `nodeAspects` (but never in `skippedSteps`).
 
 **Pluto Polarity Point**:
 The point diametrically opposite Pluto (Pluto longitude + 180°), representing the evolutionary direction the soul is moving toward. Deactivated when Pluto is conjunct the North Node (as evolution channels directly through the North Node and its ruler).
@@ -60,13 +68,13 @@ The point diametrically opposite the North Node (North Node longitude + 180°), 
 _Avoid_: descending node, Ketu
 
 **Skipped Steps**:
-Planets that square the lunar nodal axis (orb ≤ 5°), indicating unresolved evolutionary dynamics from prior lives. A square to Pluto by itself is a Pluto aspect, not a skipped step.
+Planets that square the lunar nodal axis (orb ≤ 5°), indicating unresolved evolutionary dynamics from prior lives. A square to Pluto by itself is a Pluto aspect, not a skipped step. Pluto is deliberately excluded from skipped steps; its relationship to the nodes appears in `nodeAspects` and the midpoint/PPP mechanics.
 
 **Dispositor chain**:
 The sequence of planetary sign rulers traced from a body to its final dispositor or mutual reception loop, revealing the underlying psychological driver.
 
 **Pluto-North Node Midpoint**:
-The midpoint calculated between Pluto and the North Node, marking the integration channel between the soul's primary desire and its future evolutionary direction.
+The near midpoint (shortest arc) between Pluto and the North Node, marking the integration channel between the soul's primary desire and its future evolutionary direction. Exposed as `evo.midpoint`; the opposite point is `evo.antiMidpoint`.
 
 **Prenatal eclipses**:
 The solar eclipse (projecting the Sun) and lunar eclipse (projecting the Moon) immediately preceding birth, marking the soul's evolutionary intentions for the current life.

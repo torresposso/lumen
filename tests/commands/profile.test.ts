@@ -3,7 +3,6 @@ import { rmSync, writeFileSync } from "node:fs";
 import { chartCommand } from "../../src/commands/chart";
 import type { CliContext } from "../../src/commands/intake";
 import { profileCommand } from "../../src/commands/profile";
-import { soulCommand } from "../../src/commands/soul";
 import { ConfigStore } from "../../src/storage/config";
 import { ProfileStore } from "../../src/storage/profile-store";
 
@@ -132,7 +131,7 @@ describe("profileCommand", () => {
 		expect(reading.chart.birth.zone).toBe("America/New_York");
 	});
 
-	test("soul uses the config house system when no flag is passed", async () => {
+	test("chart natal --evo uses the config house system when no flag is passed", async () => {
 		const ctx = context();
 		ctx.config = new ConfigStore(CONFIG_FILE);
 		await profileCommand(
@@ -158,16 +157,24 @@ describe("profileCommand", () => {
 		);
 
 		writeFileSync(CONFIG_FILE, JSON.stringify({ houseSystem: "whole_sign" }));
-		const fromConfig = (await soulCommand(["silvia"], ctx)) as {
-			soul: { southNode: string };
+		const fromConfig = (await chartCommand(
+			["natal", "silvia", "--evo"],
+			ctx,
+		)) as {
+			evo: { nodalAxis: { south: { sign: string; house: number } } };
 		};
 
 		rmSync(CONFIG_FILE, { force: true });
-		const fromDefaults = (await soulCommand(["silvia"], ctx)) as {
-			soul: { southNode: string };
+		const fromDefaults = (await chartCommand(
+			["natal", "silvia", "--evo"],
+			ctx,
+		)) as {
+			evo: { nodalAxis: { south: { sign: string; house: number } } };
 		};
 
-		expect(fromConfig.soul.southNode).toBe("Aquarius/H4");
-		expect(fromDefaults.soul.southNode).toBe("Aquarius/H3");
+		expect(fromConfig.evo.nodalAxis.south.sign).toBe("Aquarius");
+		expect(fromConfig.evo.nodalAxis.south.house).toBe(4);
+		expect(fromDefaults.evo.nodalAxis.south.sign).toBe("Aquarius");
+		expect(fromDefaults.evo.nodalAxis.south.house).toBe(3);
 	});
 });

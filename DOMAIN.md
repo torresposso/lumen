@@ -29,12 +29,11 @@ src/
 │   └── config.ts                 # config.json: opciones de carta por defecto (sistema de casas; el flag gana)
 │
 ├── commands/                     # 🔌 COMANDOS AXI DELGADOS (Parseo, llamado a core, TOON stdout)
-│   ├── soul.ts                   # `lumen soul <profile>`
 │   ├── journey.ts                # `lumen journey progressed|stations <profile>`
 │   ├── karma.ts                  # `lumen karma pair --a <id> --b <id>`
 │   ├── profile.ts                # `lumen profile add|list|show|remove`
 │   ├── intake.ts                 # Intake natal compartido: zod + resolución de nacimiento (el único seam)
-│   ├── chart.ts                  # `lumen chart natal|draconic` (insumo base + experimento etiquetado)
+│   ├── chart.ts                  # `lumen chart natal [--evo]|draconic` (insumo base + mecánica opt-in)
 │   └── setup.ts                  # `lumen setup hooks` (Idempotente, Claude/Codex/OpenCode)
 │
 ├── cli.ts                        # Enrutador axi-sdk-js con Home
@@ -45,34 +44,44 @@ src/
 
 ## 2. Catálogo de Comandos y Gramática AXI
 
-### A. `lumen soul <profile>`
-Radiografía del estado basal del Alma y la intención evolutiva.
-- **Flags**: `[--when "..." --place "..."]` (inline) | `[--full]` (cadenas de dispositores completas + eclipses prenatales).
-- **Garantías de Borde (AXI §5)**:
-  - Si Plutón está conjunto al Nodo Norte: `pppActive: false` y `ppp: "none (Direct integration through North Node)"`.
-  - Si no hay pasos saltados: `skippedSteps: 0`.
+### A. `lumen chart natal <profile> [--evo]`
+Carta natal base y, con `--evo`, la mecánica evolutiva completa en un solo bloque.
+- **Sin flag**: carta base, igual que hoy (sin lectura).
+- **`--evo`**: bloque `evo` completo — Plutón/PPP, midpoint, eje nodal, fase Sol-Luna, cadenas de dispositores y eclipses prenatales.
+- **Bordes (AXI)**:
+  - Si Plutón está conjunto al Nodo Norte: `ppp.active: false`.
+  - Si no hay pasos saltados: `skippedSteps: []`.
+  - `chart draconic --evo` → `VALIDATION_ERROR` (draconic es puramente geométrico).
 
 ```text
-soul:
-  profile: silvia
-  pluto: Scorpio/H8
-  ppp: Taurus/H2
-  southNode: Pisces/H12
-  northNode: Virgo/H6
+chart: { ... }              # base idéntico al actual
+evo:
+  pluto:
+    lon: 204.3457
+    sign: Scorpio
+    signDeg: 24.3457
+    house: 8
+    retrograde: false
+    stressfulCount: 3
+    nonstressfulCount: 2
+    aspects: [...]          # orbes PLUTO_ASPECTS; puede diferir de chart.aspects
+  ppp:
+    lon: 24.3457
+    sign: Taurus
+    signDeg: 24.3457
+    house: 2
+    active: true
+    aspects: [...]
+  midpoint: "Virgo 17°38' (H10)"
+  antiMidpoint: "Pisces 17°38' (H4)"
+  nodalAxis:
+    north: { lon, sign, signDeg, house, ruler, rulerPlacement, aspects[] }  # incluye Plutón
+    south: { lon, sign, signDeg, house, ruler, rulerPlacement, aspects[] }  # incluye Plutón
+    motion: retrograde
+    skippedSteps: []        # Plutón nunca aparece en skippedSteps
   phase: Balsamic
-evolutionaryMechanics:
-  pppActive: true
-  plutoNodeMidpoint: "Sagittarius 18°24' (H9)"
-  nodeMotion: retrograde
-  plutoStressful: 3
-  plutoNonstressful: 2
-  skippedSteps[1]{body,aspect,orb}:
-    Mars,Square Nodal Axis,1.4°
-  nodalRulers:
-    southNodeRuler: "Neptune in Capricorn/H10 (Direct)"
-    northNodeRuler: "Mercury in Sagittarius/H9 (Direct)"
-help[1]:
-  Run `lumen soul silvia --full` for dispositor chains, prenatal eclipses and fine orbs
+  dispositorChains: { pluto, southNodeRuler, northNodeRuler }
+  prenatalEclipses: { solar, lunar }
 ```
 
 ---

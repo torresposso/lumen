@@ -30,24 +30,25 @@ La salida siempre es tipos nativos caelus convertidos a TOON en la frontera.
 
 ## 3. Superficie de comandos (la única que existe)
 
-6 comandos + Home, organizados por las preguntas del practicante. Sin aliases,
+5 comandos + Home, organizados por las preguntas del practicante. Sin aliases,
 sin comandos ocultos, sin retrocompatibilidad que contamine `--help`:
 
 ```
-soul       ¿De dónde vengo / a dónde voy? Plutón, PPP, eje nodal, eclipses prenatales (--full)
 journey    ¿Qué me está pasando ahora? Progresiones secundarias y estaciones
 karma      ¿Cómo se aplica con otros? Sinastría evolutiva
 profile    Los seres de la práctica: perfiles locales de nacimiento (privacidad 0600, lumen.db)
-chart      Carta: natal (insumo base) y draconic (experimento etiquetado)
+chart      Carta: natal (insumo base, con mecánica opt-in `--evo`) y draconic (experimento etiquetado)
 setup      Integración de sesión (hooks + skill) — conveniencia, no producto
 ```
 
-Fuera de la superficie (helenístico/técnico, fuera del canon evolutivo — ver
-ADR-0004 y `~/knowledge/research/2026-08-12--tradicion-astrologia-evolutiva.md`):
+La mecánica evolutiva (Plutón/PPP y eje nodal) vive en `chart natal --evo` como
+bloque geométrico opt-in, sin interpretación. `chart draconic` es puramente
+geométrico y rechaza `--evo`. Fuera de la superficie (helenístico/técnico,
+fuera del canon evolutivo — ver ADR-0004 y
+`~/knowledge/research/2026-08-12--tradicion-astrologia-evolutiva.md`):
 sinastría clásica (la evolutiva vive en `karma pair`), lotes herméticos y
-estrellas fijas. Los eclipses prenatales son eventos nodales: los entrega
-`soul --full`, no `chart`. La lectura evolutiva vive solo en `soul`;
-`chart` es geométrico (natal/draconic), sin sección de lectura.
+estrellas fijas. Los eclipses prenatales son eventos nodales y se entregan
+dentro del bloque `evo` de `chart natal --evo`.
 
 ## 4. Definición de Terminado (checklist AXI)
 
@@ -78,7 +79,7 @@ Si la respuesta no es un sí sentido, la decisión es no.**
 
 ## 6. Criterios de Aceptación
 
-1. `bun test` en verde (159 tests, 498 expect) y `bun run typecheck` sin
+1. `bun test` en verde (162 tests, 516 expect) y `bun run typecheck` sin
    errores; el conteo se recalibra solo vía tickets de remoción con ticket del
    norte.
 2. `bun run check` (biome) con 0 errores y 0 warnings.

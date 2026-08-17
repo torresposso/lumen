@@ -82,11 +82,7 @@ export function computeNodeAspects(
 ): NodeAspect[] {
 	const aspects: NodeAspect[] = [];
 	for (const [bodyId, body] of Object.entries(bodies)) {
-		if (
-			body === undefined ||
-			bodyId === "pluto" ||
-			NON_PLANETARY_IDS.has(bodyId)
-		) {
+		if (body === undefined || NON_PLANETARY_IDS.has(bodyId)) {
 			continue;
 		}
 		const match = matchClosestAspect(body.lon, nodeLon);

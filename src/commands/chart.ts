@@ -7,7 +7,7 @@ export const chartUsage = [
 	'lumen chart natal --when 1981-01-26T00:50 --place "Magangué, Colombia"',
 	"",
 	"Carta natal (insumo base) y proyección draconic (experimento etiquetado).",
-	"La lectura evolutiva vive en `lumen soul <profile>`.",
+	"Con --evo: agrega la mecánica evolutiva (Plutón/PPP + eje nodal) a la natal.",
 ].join("\n");
 
 // ============================================================================
@@ -34,10 +34,25 @@ import {
 	type InterpretationContext,
 	toDraconicChart,
 } from "../core/classical";
+import {
+	computeNodalReading,
+	computePrenatalEclipses,
+	type EclipsesResult,
+	type NodeAspect,
+	type SkippedStep,
+} from "../core/nodes";
+import { computeSolLunaPhase } from "../core/phases";
+import {
+	computeSoulReading,
+	type DispositorStep,
+	type PlutoAspect,
+	type PPPAspect,
+} from "../core/soul";
 import type {
 	BirthStatus,
 	ChartRequestOptions,
 	NatalRequest as EngineNatalRequest,
+	NodeMotionStatus,
 	ResolvedBirth,
 } from "../core/types";
 import { projectPoint, roundPrecision as round } from "../core/types";
@@ -49,6 +64,10 @@ export type {
 	DraconicChart,
 	InterpretationContext,
 };
+
+export interface ChartOutputSelection {
+	evo: boolean;
+}
 
 export interface LonProjection {
 	lon: number;
@@ -134,9 +153,64 @@ export type AstrologicalReading = {
 		separating: number;
 		exact: number;
 	};
+	evo?: EvoOutput;
 	interpretationContext?: InterpretationContext;
 	help?: string[];
 };
+
+export interface EvoNodalPoint {
+	sign: string;
+	lon: number;
+	house: number;
+	signDeg: number;
+	ruler?: string;
+	rulerPlacement?: {
+		body: string;
+		sign: string;
+		signDeg: number;
+		house: number;
+		motion: NodeMotionStatus;
+	};
+	aspects: NodeAspect[];
+}
+
+export interface EvoNodalAxis {
+	north: EvoNodalPoint;
+	south: EvoNodalPoint;
+	motion: NodeMotionStatus;
+	skippedSteps: SkippedStep[];
+}
+
+export interface EvoOutput {
+	pluto: {
+		sign: string;
+		lon: number;
+		house: number;
+		signDeg: number;
+		retrograde: boolean;
+		stressfulCount: number;
+		nonstressfulCount: number;
+		aspects: PlutoAspect[];
+	};
+	ppp: {
+		sign: string;
+		lon: number;
+		house: number;
+		signDeg: number;
+		active: boolean;
+		aspects: PPPAspect[];
+	};
+	midpoint?: string;
+	antiMidpoint?: string;
+	nodalAxis: EvoNodalAxis;
+	phase?: string;
+	dispositorChains: {
+		pluto: DispositorStep[];
+		southNodeRuler?: DispositorStep[];
+		northNodeRuler?: DispositorStep[];
+	};
+	prenatalEclipses: EclipsesResult;
+}
 
 /** Node ids to drop from the chart. The engine always computes both nodes;
  *  lumen is dedicated to the true node (North Node canon), so the mean node
@@ -289,7 +363,10 @@ export class AstrologicalEngine {
 		});
 	}
 
-	compute(request: EngineNatalRequest): AstrologicalReading {
+	compute(
+		request: EngineNatalRequest,
+		selection: ChartOutputSelection = { evo: false },
+	): AstrologicalReading {
 		const { options } = request;
 		const rawChart: Chart = this.chartFor(request);
 
@@ -325,6 +402,7 @@ export class AstrologicalEngine {
 
 		const aspects = projected.aspects;
 		const interpretationContext = generateFactAtoms(projected);
+		const evo = selection.evo ? this.buildEvo(request, rawChart) : undefined;
 
 		return {
 			chart: { ...projected, birth: echoBirth(request.birth, request.options) },
@@ -335,8 +413,108 @@ export class AstrologicalEngine {
 				separating: aspects.filter((a) => a.phase === "separating").length,
 				exact: aspects.filter((a) => a.phase === "exact").length,
 			},
+			...(evo ? { evo } : {}),
 			interpretationContext,
 			...(help.length > 0 ? { help } : {}),
+		};
+	}
+
+	private buildEvo(request: EngineNatalRequest, rawChart: Chart): EvoOutput {
+		const bodies = rawChart.bodies;
+		const cusps = rawChart.cusps;
+		const soul = computeSoulReading(bodies, cusps, bodies.true_node?.lon);
+		const nodal = computeNodalReading(bodies, cusps);
+		if (!soul || !nodal) {
+			throw new AxiError(
+				"Could not compute evolutionary mechanics",
+				"CALCULATION_ERROR",
+				["Ensure --bodies includes pluto and true_node, or use default bodies"],
+			);
+		}
+		const rulerPlacement = (
+			input:
+				| {
+						body: string;
+						sign: string;
+						signDeg: number;
+						house: number;
+						motion: NodeMotionStatus;
+				  }
+				| undefined,
+		) =>
+			input
+				? {
+						body: input.body,
+						sign: input.sign,
+						signDeg: input.signDeg,
+						house: input.house,
+						motion: input.motion,
+					}
+				: undefined;
+
+		const north = nodal.northNode;
+		const south = nodal.southNode;
+		const sun = bodies.sun;
+		const moon = bodies.moon;
+		const phase =
+			sun && moon ? computeSolLunaPhase(sun.lon, moon.lon).name : undefined;
+
+		return {
+			pluto: {
+				sign: soul.pluto.sign,
+				lon: soul.pluto.lon,
+				signDeg: soul.pluto.signDeg,
+				house: soul.pluto.house,
+				retrograde: soul.pluto.retrograde,
+				stressfulCount: soul.pluto.stressfulAspects,
+				nonstressfulCount: soul.pluto.nonstressfulAspects,
+				aspects: soul.pluto.aspects,
+			},
+			ppp: {
+				sign: soul.ppp.sign,
+				lon: soul.ppp.lon,
+				signDeg: soul.ppp.signDeg,
+				house: soul.ppp.house,
+				active: soul.ppp.active,
+				aspects: soul.ppp.aspects,
+			},
+			midpoint: soul.plutoNorthNodeMidpoint?.formatted,
+			antiMidpoint: soul.plutoNorthNodeAntiMidpoint?.formatted,
+			nodalAxis: {
+				north: {
+					sign: north.sign,
+					lon: north.lon,
+					signDeg: north.signDeg,
+					house: north.house,
+					ruler: north.ruler,
+					rulerPlacement: rulerPlacement(north.rulerPlacement),
+					aspects: north.aspects,
+				},
+				south: {
+					sign: south.sign,
+					lon: south.lon,
+					signDeg: south.signDeg,
+					house: south.house,
+					ruler: south.ruler,
+					rulerPlacement: rulerPlacement(south.rulerPlacement),
+					aspects: south.aspects,
+				},
+				motion: nodal.motionStatus,
+				skippedSteps: nodal.skippedSteps,
+			},
+			phase,
+			dispositorChains: {
+				pluto: soul.dispositorChain,
+				southNodeRuler: nodal.dispositorChains.southNodeRuler,
+				northNodeRuler: nodal.dispositorChains.northNodeRuler,
+			},
+			prenatalEclipses: computePrenatalEclipses(
+				this.ephemeris,
+				request.birth,
+				cusps,
+				request.options.houseSystem,
+				request.options.topocentric,
+			),
 		};
 	}
 }
@@ -357,15 +535,17 @@ const FLAG_REFERENCE = NatalIntake.usage.split("\n").slice(2).join("\n");
 export const chartNatalUsage = [
 	'lumen chart natal --when 1981-01-26T00:50 --place "Magangué, Colombia"',
 	"",
-	"Calcula la carta natal base (efemérides caelus) sin lectura evolutiva.",
-	"Usa `lumen soul <profile>` para la lectura evolutiva completa.",
+	"Calcula la carta natal base (efemérides caelus).",
+	"Con --evo agrega la mecánica evolutiva completa (Plutón/PPP, eje nodal, fase,",
+	"cadenas y eclipses prenatales).",
+	"Usa orbes PLUTO_ASPECTS; puede diferir de chart.aspects.",
 ].join("\n");
 
 export const chartDraconicUsage = [
 	'lumen chart draconic --when 1981-01-26T00:50 --place "Magangué, Colombia"',
 	"",
 	"Calcula la carta natal y su proyección draconic (experimento etiquetado,",
-	"fuera del canon; sin lectura evolutiva).",
+	"fuera del canon; puramente geométrico, rechaza --evo).",
 ].join("\n");
 
 type ChartMode = "natal" | "draconic";
@@ -427,6 +607,32 @@ async function resolveRequest(
 	return result.request;
 }
 
+function parseEvoFlag(args: string[]): { evo: boolean; rest: string[] } {
+	let evo = false;
+	const rest: string[] = [];
+	for (const arg of args) {
+		if (arg === "--evo") {
+			evo = true;
+			continue;
+		}
+		if (arg.startsWith("--evo=")) {
+			const raw = arg.slice("--evo=".length).trim().toLowerCase();
+			if (raw === "true") evo = true;
+			else if (raw === "false") evo = false;
+			else {
+				throw new AxiError(
+					"Flag --evo expects true or false",
+					"VALIDATION_ERROR",
+					["Example: --evo=true"],
+				);
+			}
+			continue;
+		}
+		rest.push(arg);
+	}
+	return { evo, rest };
+}
+
 export const chartCommand: AxiCliCommand<CliContext> = async (
 	args,
 	context,
@@ -460,7 +666,15 @@ export const chartCommand: AxiCliCommand<CliContext> = async (
 	}
 
 	const mode = first as ChartMode;
-	const request = applyMode(await resolveRequest(args.slice(1), context), mode);
+	const { evo, rest } = parseEvoFlag(args.slice(1));
+	if (mode === "draconic" && evo) {
+		throw new AxiError(
+			"Chart draconic does not support --evo",
+			"VALIDATION_ERROR",
+			["Use `lumen chart natal --evo` for evolutionary mechanics"],
+		);
+	}
+	const request = applyMode(await resolveRequest(rest, context), mode);
 	const engine = new AstrologicalEngine();
-	return engine.compute(request);
+	return engine.compute(request, { evo });
 };

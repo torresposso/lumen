@@ -97,6 +97,7 @@ export interface SoulPlutoReading {
 		aspects: PPPAspect[];
 	};
 	plutoNorthNodeMidpoint?: ProjectedEclipticPoint & { formatted: string };
+	plutoNorthNodeAntiMidpoint?: ProjectedEclipticPoint & { formatted: string };
 	dispositorChain: DispositorStep[];
 }
 
@@ -149,7 +150,7 @@ function aspectPhase(
 	const delta = normalizedSignedDelta(body.lon, exact);
 	const relativeSpeed = body.speed - pluto.speed;
 	if (Math.abs(delta) < 1e-9 || Math.abs(relativeSpeed) < 1e-9) return "exact";
-	if ((relativeSpeed > 0 && delta < 0) || (relativeSpeed < 0 && delta > 0)) {
+	if ((relativeSpeed > 0 && delta > 0) || (relativeSpeed < 0 && delta < 0)) {
 		return "applying";
 	}
 	return "separating";
@@ -239,6 +240,24 @@ export function buildDispositorChain(
 	return chain;
 }
 
+/** Returns the near midpoint (shortest arc) between two longitudes. */
+function nearMidpoint(a: number, b: number): number {
+	const arc = angularDistanceDirect(a, b); // [0, 360)
+	if (arc <= 180) return normalizeLongitude(a + arc / 2);
+	return normalizeLongitude(a - (360 - arc) / 2);
+}
+
+function formatPoint(
+	point: ProjectedEclipticPoint,
+): ProjectedEclipticPoint & { formatted: string } {
+	const deg = Math.floor(point.signDeg);
+	const min = Math.round((point.signDeg - deg) * 60);
+	return {
+		...point,
+		formatted: `${point.sign} ${deg}°${String(min).padStart(2, "0")}' (H${point.house})`,
+	};
+}
+
 /**
  * Deep Soul reading: Pluto paradigm, PPP (deactivated when conjunct NN),
  * Pluto-NN midpoint, aspect balance and Pluto dispositor chain.
@@ -271,19 +290,14 @@ export function computeSoulReading(
 		? `${pppProjected.sign}/H${pppProjected.house}`
 		: "none (Direct integration through North Node)";
 
-	let plutoNorthNodeMidpoint:
-		| (ProjectedEclipticPoint & { formatted: string })
-		| undefined;
+	type FormattedPoint = ProjectedEclipticPoint & { formatted: string };
+	let plutoNorthNodeMidpoint: FormattedPoint | undefined;
+	let plutoNorthNodeAntiMidpoint: FormattedPoint | undefined;
 	if (northNodeLon !== undefined) {
-		const arc = angularDistanceDirect(pluto.lon, northNodeLon);
-		const midLon = normalizeLongitude(pluto.lon + arc / 2);
-		const proj = projectPoint(midLon, cusps);
-		const deg = Math.floor(proj.signDeg);
-		const min = Math.round((proj.signDeg - deg) * 60);
-		plutoNorthNodeMidpoint = {
-			...proj,
-			formatted: `${proj.sign} ${deg}°${String(min).padStart(2, "0")}' (H${proj.house})`,
-		};
+		const near = nearMidpoint(pluto.lon, northNodeLon);
+		const far = normalizeLongitude(near + 180);
+		plutoNorthNodeMidpoint = formatPoint(projectPoint(near, cusps));
+		plutoNorthNodeAntiMidpoint = formatPoint(projectPoint(far, cusps));
 	}
 
 	return {
@@ -308,6 +322,7 @@ export function computeSoulReading(
 			aspects: pppAspects,
 		},
 		plutoNorthNodeMidpoint,
+		plutoNorthNodeAntiMidpoint,
 		dispositorChain: buildDispositorChain(bodies, "pluto"),
 	};
 }

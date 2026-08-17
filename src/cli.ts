@@ -4,18 +4,16 @@ import { journeyCommand } from "./commands/journey";
 import { karmaCommand } from "./commands/karma";
 import { profileCommand } from "./commands/profile";
 import { setupCommand } from "./commands/setup";
-import { soulCommand } from "./commands/soul";
 import { ConfigStore } from "./storage/config";
 import { ProfileStore } from "./storage/profile-store";
 import { VERSION } from "./version";
 
 const topLevelHelp = [
 	"Comandos Evolutivos (JWG):",
-	"  soul       Radiografía del estado basal del Alma y Punto de Polaridad",
 	"  journey    Progresiones secundarias y giros estacionales",
 	"  karma      Sinastría evolutiva y acuerdos entre Almas",
 	"  profile    Los seres de la práctica: perfiles locales de nacimiento",
-	"  chart      Carta: natal (insumo base) y draconic (experimento etiquetado)",
+	"  chart      Carta: natal (insumo base; --evo agrega mecánica) y draconic (experimento)",
 	"  setup      Instala/actualiza la integración de sesión",
 ].join("\n");
 
@@ -33,7 +31,6 @@ export async function main(): Promise<void> {
 		topLevelHelp,
 		resolveContext: async () => ({ profiles, config }),
 		commands: {
-			soul: soulCommand,
 			journey: journeyCommand,
 			karma: karmaCommand,
 			profile: profileCommand,
@@ -50,7 +47,7 @@ export async function main(): Promise<void> {
 				profiles: profiles.length > 0 ? profiles : "0 profiles found",
 				help: [
 					'Run `lumen profile add <id> --when "1981-01-26T00:50" --place "Magangué, Colombia"`',
-					"Run `lumen soul <profile>` for an evolutionary reading",
+					"Run `lumen chart natal <profile> --evo` for an evolutionary reading",
 					"Run `lumen journey progressed <profile> --at <YYYY-MM-DD>` for progressions",
 					"Run `lumen karma pair --a <id> --b <id>` to compare two charts",
 				],

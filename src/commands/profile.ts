@@ -129,7 +129,9 @@ export const profileCommand: AxiCliCommand<CliContext> = async (
 			return {
 				profile: id,
 				status: "saved",
-				help: [`Run \`lumen soul ${id}\` for baseline evolutionary reading`],
+				help: [
+					`Run \`lumen chart natal ${id} --evo\` for baseline evolutionary reading`,
+				],
 			};
 		}
 		case "list": {

@@ -11,10 +11,9 @@ bun install
 ## Comandos AXI
 
 ```bash
-# Radiografía evolutiva del Alma (también acepta flags de nacimiento inline)
-# --full incluye cadenas de dispositores completas y eclipses prenatales
-bun run bin/lumen.ts soul silvia
-bun run bin/lumen.ts soul silvia --full
+# Carta natal base + mecánica evolutiva completa (Plutón/PPP + eje nodal + eclipses prenatales)
+bun run bin/lumen.ts chart natal silvia
+bun run bin/lumen.ts chart natal silvia --evo
 
 # Progresiones secundarias y estaciones planetarias
 bun run bin/lumen.ts journey progressed silvia --at 2026-08-13
@@ -23,13 +22,13 @@ bun run bin/lumen.ts journey stations silvia --body mercury --from 2026-01-01 --
 # Sinastría evolutiva entre dos Almas
 bun run bin/lumen.ts karma pair --a erik --b kary --orb 3
 
-# Perfiles locales de nacimiento (reseñados por soul/journey/karma/chart)
+# Perfiles locales de nacimiento (reseñados por chart/journey/karma)
 bun run bin/lumen.ts profile add erik --when "1981-01-26T00:50" --place "Magangué, Colombia"
 bun run bin/lumen.ts profile list
 bun run bin/lumen.ts profile show erik
 bun run bin/lumen.ts profile remove erik
 
-# Carta natal (insumo base; la lectura evolutiva vive en soul) y proyección draconic (experimento etiquetado)
+# Carta natal (insumo base; `--evo` agrega la mecánica evolutiva) y proyección draconic (experimento etiquetado)
 bun run bin/lumen.ts chart natal --when "1981-01-26T00:50" --place "Magangué, Colombia"
 bun run bin/lumen.ts chart draconic --when "1981-01-26T00:50" --place "Magangué, Colombia"
 ```

@@ -56,4 +56,32 @@ describe("core/nodes", () => {
 		expect(reading.skippedSteps[0]?.body).toBe("mars");
 		expect(reading.skippedSteps[0]?.orb).toBeCloseTo(1.4, 1);
 	});
+
+	it("includes Pluto in node aspects but not in skipped steps", () => {
+		const bodies = {
+			true_node: {
+				lon: 0,
+				lat: 0,
+				speed: 0.02,
+				sign: "Aries",
+				signDeg: 0,
+				house: 1,
+			},
+			pluto: {
+				lon: 72, // quintile to North Node
+				lat: 0,
+				speed: 0.01,
+				sign: "Gemini",
+				signDeg: 12,
+				house: 3,
+			},
+		};
+		const reading = computeNodalReading(bodies, cusps, 5);
+		expect(reading).toBeDefined();
+		if (!reading) return;
+		expect(reading.northNode.aspects.some((a) => a.body === "pluto")).toBe(
+			true,
+		);
+		expect(reading.skippedSteps.some((a) => a.body === "pluto")).toBe(false);
+	});
 });

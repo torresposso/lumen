@@ -159,6 +159,82 @@ describe("chartCommand", () => {
 		}
 	});
 
+	test("computes natal chart with --evo including the full evolutionary block", async () => {
+		const result = (await chartCommand(
+			["natal", ...TAMPA_ARGS, "--evo"],
+			undefined,
+		)) as {
+			evo: {
+				pluto: {
+					sign: string;
+					lon: number;
+					signDeg: number;
+					house: number;
+					aspects: { phase?: string }[];
+				};
+				ppp: { lon: number; signDeg: number; active: boolean };
+				midpoint?: string;
+				antiMidpoint?: string;
+				nodalAxis: {
+					motion: string;
+					skippedSteps: { body: string }[];
+					north: {
+						lon: number;
+						signDeg: number;
+						aspects: { body: string }[];
+					};
+				};
+				prenatalEclipses: unknown;
+			};
+		};
+
+		expect(result.evo).toBeDefined();
+		expect(result.evo.pluto.sign).toBe("Scorpio");
+		expect(result.evo.pluto.house).toBe(2);
+		expect(typeof result.evo.pluto.lon).toBe("number");
+		expect(typeof result.evo.pluto.signDeg).toBe("number");
+		expect(result.evo.pluto.aspects.length).toBeGreaterThan(0);
+		expect(
+			result.evo.pluto.aspects.every((a) =>
+				["applying", "separating", "exact"].includes(a.phase ?? ""),
+			),
+		).toBe(true);
+		expect(typeof result.evo.ppp.lon).toBe("number");
+		expect(typeof result.evo.ppp.signDeg).toBe("number");
+		expect(result.evo.ppp.active).toBe(true);
+		expect(result.evo.midpoint).toBeDefined();
+		expect(result.evo.antiMidpoint).toBeDefined();
+		expect(result.evo.antiMidpoint).not.toBe(result.evo.midpoint);
+		expect(typeof result.evo.nodalAxis.north.lon).toBe("number");
+		expect(typeof result.evo.nodalAxis.north.signDeg).toBe("number");
+		expect(
+			result.evo.nodalAxis.north.aspects.some((a) => a.body === "pluto"),
+		).toBe(true);
+		expect(Array.isArray(result.evo.nodalAxis.skippedSteps)).toBe(true);
+		expect(
+			result.evo.nodalAxis.skippedSteps.some((a) => a.body === "pluto"),
+		).toBe(false);
+		expect(result.evo.prenatalEclipses).toBeDefined();
+	}, 20_000);
+
+	test("--evo=false keeps the base chart without an evo block", async () => {
+		const result = (await chartCommand(
+			["natal", ...TAMPA_ARGS, "--evo=false"],
+			undefined,
+		)) as { evo?: unknown };
+		expect(result.evo).toBeUndefined();
+	});
+
+	test("draconic rejects --evo with a structured error", async () => {
+		try {
+			await chartCommand(["draconic", ...TAMPA_ARGS, "--evo"], undefined);
+			expect.unreachable();
+		} catch (error) {
+			expect(error).toBeInstanceOf(AxiError);
+			expect((error as AxiError).code).toBe("VALIDATION_ERROR");
+		}
+	});
+
 	test("usage text and flag spec name the same flags", async () => {
 		const help = (await chartCommand(["natal", "--help"], undefined)) as string;
 		const tokens = new Set(
@@ -176,5 +252,6 @@ describe("chartCommand", () => {
 		for (const flag of [...chartFlagSpec.value, ...chartFlagSpec.boolean]) {
 			expect(tokens.has(`--${flag}`)).toBe(true);
 		}
+		expect(help).toContain("PLUTO_ASPECTS");
 	});
 });
