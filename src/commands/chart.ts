@@ -11,191 +11,11 @@ export const chartUsage = [
 ].join("\n");
 
 // ============================================================================
-// Chart engine (application layer; core stays pure)
+// Chart command (application layer; core assembles the reading)
 // ============================================================================
 
-import type { Chart } from "caelus";
-import { CaelusEphemeris, type Ephemeris } from "../adapters/ephemeris-gateway";
-import {
-	type AspectPattern,
-	type ChartSignature,
-	type DeclinationAspectProjection,
-	type DraconicChart,
-	generateFactAtoms,
-	type InterpretationContext,
-	toDraconicChart,
-} from "../core/classical";
-import {
-	computeEvolutionaryReading,
-	type EvoOutput,
-} from "../core/evolutionary-reading";
-import { type Projection, project } from "../core/projection";
-import type {
-	BirthStatus,
-	ChartRequestOptions,
-	NatalRequest as EngineNatalRequest,
-	ResolvedBirth,
-} from "../core/types";
-
-export type {
-	AspectPattern,
-	ChartSignature,
-	DeclinationAspectProjection,
-	DraconicChart,
-	InterpretationContext,
-};
-
-export interface ChartOutputSelection {
-	evo: boolean;
-}
-
-export interface BirthEcho {
-	year: number;
-	month: number;
-	day: number;
-	hour: number;
-	minute: number;
-	lat: number;
-	lon: number;
-	zone: string;
-	offsetMinutes: number;
-	dst: boolean;
-	status: BirthStatus;
-	requested: ChartRequestOptions;
-}
-
-export type AstrologicalReading = {
-	chart: Projection & { birth: BirthEcho };
-	summary: {
-		bodies: number;
-		aspects: number;
-		applying: number;
-		separating: number;
-		exact: number;
-	};
-	evo?: EvoOutput;
-	interpretationContext?: InterpretationContext;
-	help?: string[];
-};
-
-/** Node ids to drop from the chart. The engine always computes both nodes;
- *  lumen is dedicated to the true node (North Node canon), so the mean node
- *  never leaves the seam. */
-const DROPPED_NODE: readonly string[] = ["mean_node"];
-
-function echoBirth(
-	birth: ResolvedBirth,
-	options: ChartRequestOptions,
-): BirthEcho {
-	return {
-		year: birth.local.year,
-		month: birth.local.month,
-		day: birth.local.day,
-		hour: birth.local.hour,
-		minute: birth.local.minute,
-		lat: birth.lat,
-		lon: birth.lon,
-		zone: birth.zone,
-		offsetMinutes: birth.offsetMinutes,
-		dst: birth.dst,
-		status: birth.status,
-		requested: { ...options },
-	};
-}
-
-export class AstrologicalEngine {
-	private ephemeris: Ephemeris;
-
-	constructor(ephemeris?: Ephemeris) {
-		this.ephemeris = ephemeris ?? new CaelusEphemeris();
-	}
-
-	/** Computes the raw caelus chart for a validated request. */
-	chartFor(request: EngineNatalRequest): Chart {
-		const { birth, options } = request;
-		return this.ephemeris.chartAt(birth.jdUt, birth.lat, birth.lon, {
-			houseSystem: options.houseSystem,
-			zodiac: options.zodiac,
-			bodies: options.bodies,
-			topocentric: options.topocentric,
-		});
-	}
-
-	compute(
-		request: EngineNatalRequest,
-		selection: ChartOutputSelection = { evo: false },
-	): AstrologicalReading {
-		const { options } = request;
-		const rawChart: Chart = this.chartFor(request);
-
-		const draconic = options.draconic ? toDraconicChart(rawChart) : undefined;
-
-		const natalBodies = { ...rawChart.bodies };
-		for (const dropped of DROPPED_NODE) {
-			delete natalBodies[dropped];
-		}
-
-		const projected = project({
-			chart: rawChart,
-			bodies: natalBodies,
-			draconic,
-		});
-
-		const help: string[] = [];
-		if (rawChart.houseSystem !== rawChart.houseSystemRequested) {
-			help.push(
-				`House system "${rawChart.houseSystemRequested}" fell back to "${rawChart.houseSystem}" (undefined above the polar circle)`,
-			);
-		}
-		if (rawChart.unavailable.length > 0) {
-			help.push(
-				`Bodies omitted (outside fitted ephemeris range): ${rawChart.unavailable.join(", ")}`,
-			);
-		}
-		if (request.birth.status !== "ok") {
-			help.push(
-				`Timezone resolution provenance status: ${request.birth.status}`,
-			);
-		}
-
-		const aspects = projected.aspects;
-		const interpretationContext = generateFactAtoms(projected);
-		const evo = selection.evo
-			? computeEvolutionaryReading({
-					bodies: rawChart.bodies,
-					cusps: rawChart.cusps,
-					ephemeris: this.ephemeris,
-					birth: request.birth,
-					houseSystem: request.options.houseSystem,
-					topocentric: request.options.topocentric,
-				})
-			: undefined;
-		if (selection.evo && !evo) {
-			throw new AxiError(
-				"Could not compute evolutionary mechanics",
-				"CALCULATION_ERROR",
-				[
-					"The chart must contain pluto and the true node (the default natal bodies); --bodies only adds extra bodies",
-				],
-			);
-		}
-		if (evo) interpretationContext.atoms.push(...evo.atoms);
-
-		return {
-			chart: { ...projected, birth: echoBirth(request.birth, request.options) },
-			summary: {
-				bodies: Object.keys(projected.bodies).length,
-				aspects: aspects.length,
-				applying: aspects.filter((a) => a.phase === "applying").length,
-				separating: aspects.filter((a) => a.phase === "separating").length,
-				exact: aspects.filter((a) => a.phase === "exact").length,
-			},
-			...(evo ? { evo: evo.evo } : {}),
-			interpretationContext,
-			...(help.length > 0 ? { help } : {}),
-		};
-	}
-}
+import { CaelusEphemeris } from "../adapters/ephemeris-gateway";
+import { type AstrologicalReading, computeReading } from "../core/reading";
 
 // ============================================================================
 // Chart engine commands backing `lumen chart natal|draconic`
@@ -353,6 +173,18 @@ export const chartCommand: AxiCliCommand<CliContext> = async (
 		);
 	}
 	const request = applyMode(await resolveRequest(rest, context), mode);
-	const engine = new AstrologicalEngine();
-	return engine.compute(request, { evo });
+	const reading = computeReading(request, new CaelusEphemeris(), { evo });
+	if (evo && reading === undefined) {
+		throw new AxiError(
+			"Could not compute evolutionary mechanics",
+			"CALCULATION_ERROR",
+			[
+				"The chart must contain pluto and the true node (the default natal bodies); --bodies only adds extra bodies",
+			],
+		);
+	}
+	// `computeReading` only returns `undefined` when `--evo` was requested and
+	// the chart lacked pluto/true node — the guard above translated that; the
+	// remaining shape is always a complete reading.
+	return reading as AstrologicalReading;
 };

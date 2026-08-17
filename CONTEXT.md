@@ -13,7 +13,7 @@ The base chart for one birth instant and place: body positions, house cusps, ang
 _Avoid_: birth chart, horoscope
 
 **Astrological reading**:
-The complete, immutable assembled calculation result containing the natal chart, optional draconic projections, astronomical extensions, and evolutionary analysis.
+The complete, immutable assembled calculation result containing the natal chart, optional draconic projections, astronomical extensions, and evolutionary analysis. Assembled by one deep module — `src/core/reading.ts`, `computeReading(request, ephemeris, selection?)` (ADR-0012) — which computes the chart, applies the true-node canon, projects it (see **Chart projection**), optionally adds the evolutionary block (see **Evolutionary reading**), fills the advisory `help`, and merges the interpretation atoms. `undefined` when `--evo` is selected but the chart lacks pluto or the true node; the CLI seam translates that into an `AxiError`.
 _Avoid_: chart output object, raw chart
 
 **Chart projection**:
