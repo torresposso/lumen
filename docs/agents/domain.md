@@ -13,6 +13,7 @@ src/
 ├── core/                         # 🧠 CÁLCULO PURO & MECÁNICA EVOLUTIVA (Zero I/O, Zero CLI)
 │   ├── types.ts                  # Tipos de dominio (ResolvedBirth) y geometría zodiacal compartida
 │   ├── birth.ts                  # Puro: Zonas, Julian Day UT, validación y procedencia (el zod vive en commands/intake.ts)
+│   ├── charts.ts                 # Cálculo de cartas desde NatalRequest: opciones completas + canon true-node (ADR-0013)
 │   ├── soul.ts                   # Plutón, PPP (deactivación cuando conj. NN), Midpoint, aspectos
 │   ├── nodes.ts                  # Eje nodal, regentes, skipped steps, cadenas de regentes nodales
 │   ├── evolutionary-reading.ts    # Ensambla la lectura evolutiva (`evo`): publicación en una sola fuente (ADR-0010)

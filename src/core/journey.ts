@@ -1,6 +1,7 @@
-import type { BodyId, Chart } from "caelus";
+import type { BodyId } from "caelus";
+import { chartAt } from "./charts";
 import { computeSolLunaPhase, type SolLunaPhaseResult } from "./phases";
-import type { Ephemeris, ResolvedBirth } from "./types";
+import type { Ephemeris, NatalRequest } from "./types";
 import { findAspect, normalizeLongitude, roundPrecision } from "./types";
 
 export interface ProgressedBodyPlacement {
@@ -65,33 +66,28 @@ const DEFAULT_ASPECT_DEFS = (orb: number) => [
  * Computes secondary progressions (day-for-a-year) and evolutionary contacts to natal points.
  */
 export function computeProgressions(
-	birth: ResolvedBirth,
-	natalChart: Chart,
+	request: NatalRequest,
 	targetJd: number,
 	targetDateStr: string,
 	ephemeris: Ephemeris,
 	bodyIds: BodyId[] = ["moon", "sun", "pluto"],
 	aspectOrb = EA_ASPECT_ORB,
 ): JourneyProgressedResult {
+	const { birth } = request;
 	const natalJd = birth.jdUt;
 	const daysDifference = targetJd - natalJd;
 	const ageYears = daysDifference / 365.24219;
 	const progressedUt = natalJd + ageYears;
 
-	// Progressed chart at progressed UT
-	const progressedChart = ephemeris.chartAt(
-		progressedUt,
-		birth.lat,
-		birth.lon,
-		{ houseSystem: "placidus" },
-	);
+	// Progressed chart at progressed UT, crossing the shared chart computation.
+	const progressedChart = chartAt(request, progressedUt, ephemeris);
 
-	// Natal points for evolutionary contacts
+	// Natal points for evolutionary contacts; the shared canon leaves only true_node.
+	const natalChart = chartAt(request, birth.jdUt, ephemeris);
 	const natalPluto = natalChart.bodies.pluto?.lon;
 	const natalPPP =
 		natalPluto !== undefined ? normalizeLongitude(natalPluto + 180) : undefined;
-	const natalNN =
-		natalChart.bodies.true_node?.lon ?? natalChart.bodies.mean_node?.lon;
+	const natalNN = natalChart.bodies.true_node?.lon;
 	const natalSN =
 		natalNN !== undefined ? normalizeLongitude(natalNN + 180) : undefined;
 
@@ -158,12 +154,13 @@ export function computeProgressions(
  * Computes planetary stations in a given time window from birth.
  */
 export function computeStations(
-	birth: ResolvedBirth,
+	request: NatalRequest,
 	bodyId: BodyId,
 	ephemeris: Ephemeris,
 	window: number | StationWindow = 1,
 	limit = 30,
 ): JourneyStationsResult {
+	const { birth } = request;
 	const numericYears = typeof window === "number" ? window : undefined;
 	const options = typeof window === "object" ? window : {};
 	const years = numericYears ?? options.years ?? 1;
@@ -176,7 +173,7 @@ export function computeStations(
 		: [];
 
 	const stations: StationEvent[] = rawStations.map(([jd, type]) => {
-		const chart = ephemeris.chartAt(jd, birth.lat, birth.lon);
+		const chart = chartAt(request, jd, ephemeris);
 		const b = chart.bodies[bodyId];
 		return {
 			jdUt: jd,

@@ -12,8 +12,12 @@ Western evolutionary astrology CLI built on the caelus ephemeris engine — the 
 The base chart for one birth instant and place: body positions, house cusps, angles, and aspects.
 _Avoid_: birth chart, horoscope
 
+**Chart computation**:
+The pure core step that computes one raw chart from a validated `NatalRequest` and an `Ephemeris` at a given Julian Day, applying the chart options and the true-node canon. Owned by one deep module — `src/core/charts.ts`, `chartAt(request, jdUt, ephemeris)` (ADR-0013) — and shared by the natal reading, journey, and karma modules. The `mean_node` never leaves this module.
+_Avoid_: chart access, chart service
+
 **Astrological reading**:
-The complete, immutable assembled calculation result containing the natal chart, optional draconic projections, astronomical extensions, and evolutionary analysis. Assembled by one deep module — `src/core/reading.ts`, `computeReading(request, ephemeris, selection?)` (ADR-0012) — which computes the chart, applies the true-node canon, projects it (see **Chart projection**), optionally adds the evolutionary block (see **Evolutionary reading**), fills the advisory `help`, and merges the interpretation atoms. `undefined` when `--evo` is selected but the chart lacks pluto or the true node; the CLI seam translates that into an `AxiError`.
+The complete, immutable assembled calculation result containing the natal chart, optional draconic projections, astronomical extensions, and evolutionary analysis. Assembled by one deep module — `src/core/reading.ts`, `computeReading(request, ephemeris, selection?)` (ADR-0012) — which asks the shared chart computation (see **Chart computation**) for the cleaned chart, projects it (see **Chart projection**), optionally adds the evolutionary block (see **Evolutionary reading**), fills the advisory `help`, and merges the interpretation atoms. `undefined` when `--evo` is selected but the chart lacks pluto or the true node; the CLI seam translates that into an `AxiError`.
 _Avoid_: chart output object, raw chart
 
 **Chart projection**:

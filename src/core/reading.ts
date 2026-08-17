@@ -1,4 +1,4 @@
-import type { Chart } from "caelus";
+import { chartAt } from "./charts";
 import {
 	generateFactAtoms,
 	type InterpretationContext,
@@ -21,12 +21,12 @@ import type {
 // Natal reading assembly
 //
 // Single source of the published `AstrologicalReading` (ADR-0012). Assembles
-// the complete natal reading: computes the raw chart through the `Ephemeris`
-// seam, applies the true-node canon once, projects the chart (chart projection
-// policy, ADR-0011), optionally assembles the `evo` block (evolutionary
-// reading, ADR-0010), fills the advisory `help`, and merges the interpretation
-// atoms. Co-located with the computators and types it publishes so a field
-// rename surfaces at one site; the commands layer only forwards the request and
+// the complete natal reading: asks the shared chart computation (ADR-0013) for
+// the cleaned raw chart, projects the chart (chart projection policy,
+// ADR-0011), optionally assembles the `evo` block (evolutionary reading,
+// ADR-0010), fills the advisory `help`, and merges the interpretation atoms.
+// Co-located with the computators and types it publishes so a field rename
+// surfaces at one site; the commands layer only forwards the request and
 // translates the `undefined` (missing-input) branch into an `AxiError` at the
 // CLI seam.
 // ============================================================================
@@ -64,12 +64,6 @@ export type AstrologicalReading = {
 	help?: string[];
 };
 
-/** Node ids to drop from the chart. The engine always computes both nodes;
- *  lumen is dedicated to the true node (North Node canon), so the mean node
- *  never leaves the reading. The canon is applied exactly once here: the same
- *  cleaned body set feeds `project()` and `computeEvolutionaryReading()`. */
-const DROPPED_NODE: readonly string[] = ["mean_node"];
-
 function echoBirth(
 	birth: ResolvedBirth,
 	options: ChartRequestOptions,
@@ -90,26 +84,13 @@ function echoBirth(
 	};
 }
 
-/** Computes the raw caelus chart for a validated request. */
-function chartFor(ephemeris: Ephemeris, request: NatalRequest): Chart {
-	const { birth, options } = request;
-	return ephemeris.chartAt(birth.jdUt, birth.lat, birth.lon, {
-		houseSystem: options.houseSystem,
-		zodiac: options.zodiac,
-		bodies: options.bodies,
-		topocentric: options.topocentric,
-	});
-}
-
 /**
  * Assembles the complete natal reading. Pure: every input enters through
  * parameters (the `Ephemeris` seam is injected, never instantiated). The
- * `mean_node` true-node canon is applied once and both the projected chart and
- * the `evo` block read the same cleaned body set — the `true_node ??
- * mean_node` fallback in `nodes.ts` is therefore unreachable on this path
- * (karma and journey still reach it with charts they own). Returns `undefined`
- * only when `selection.evo` is set and the chart lacks pluto or the true node;
- * the CLI seam translates that into an `AxiError`.
+ * shared chart computation (`charts.ts`, ADR-0013) applies the true-node canon,
+ * so the projected chart and the `evo` block read the same cleaned body set.
+ * Returns `undefined` only when `selection.evo` is set and the chart lacks
+ * pluto or the true node; the CLI seam translates that into an `AxiError`.
  */
 export function computeReading(
 	request: NatalRequest,
@@ -117,14 +98,11 @@ export function computeReading(
 	selection: ChartOutputSelection = { evo: false },
 ): AstrologicalReading | undefined {
 	const { options } = request;
-	const rawChart: Chart = chartFor(ephemeris, request);
+	const rawChart = chartAt(request, request.birth.jdUt, ephemeris);
 
 	const draconic = options.draconic ? toDraconicChart(rawChart) : undefined;
 
-	const natalBodies = { ...rawChart.bodies };
-	for (const dropped of DROPPED_NODE) {
-		delete natalBodies[dropped];
-	}
+	const natalBodies = rawChart.bodies;
 
 	const projected = project({
 		chart: rawChart,

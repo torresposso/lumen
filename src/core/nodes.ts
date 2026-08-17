@@ -164,7 +164,7 @@ export function computeNodalReading(
 	cusps: number[],
 	orbLimit = SKIPPED_STEPS_ORB,
 ): NodalAxisReading | undefined {
-	const northNode = bodies.true_node ?? bodies.mean_node;
+	const northNode = bodies.true_node;
 	if (!northNode) return undefined;
 
 	const southNodeLon = normalizeLongitude(northNode.lon + 180);

@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { julianDay } from "caelus";
 import { CaelusEphemeris } from "../../src/adapters/ephemeris-gateway";
 import { computeProgressions, computeStations } from "../../src/core/journey";
-import type { ResolvedBirth } from "../../src/core/types";
+import type { NatalRequest, ResolvedBirth } from "../../src/core/types";
 
 describe("core/journey", () => {
 	const ephemeris = new CaelusEphemeris();
@@ -16,13 +16,21 @@ describe("core/journey", () => {
 		dst: false,
 		status: "ok",
 	};
+	const request: NatalRequest = {
+		birth,
+		options: {
+			houseSystem: "placidus",
+			zodiac: "tropical",
+			bodies: [],
+			topocentric: false,
+			draconic: false,
+		},
+	};
 
 	it("computes secondary progressions and age", () => {
-		const natalChart = ephemeris.chartAt(birth.jdUt, birth.lat, birth.lon);
 		const targetJd = julianDay(2026, 8, 13);
 		const result = computeProgressions(
-			birth,
-			natalChart,
+			request,
 			targetJd,
 			"2026-08-13",
 			ephemeris,
@@ -37,7 +45,7 @@ describe("core/journey", () => {
 	});
 
 	it("computes stations for a body within time window", () => {
-		const stations = computeStations(birth, "mercury", ephemeris, 1, 10);
+		const stations = computeStations(request, "mercury", ephemeris, 1, 10);
 		expect(stations.body).toBe("mercury");
 		expect(stations.stations.length).toBeGreaterThan(0);
 	});

@@ -4,7 +4,6 @@ import { BODIES, type BodyId, EXTRA_BODIES, julianDay } from "caelus";
 import { CaelusEphemeris } from "../adapters/ephemeris-gateway";
 import { computeProgressions, computeStations } from "../core/journey";
 import { roundToon } from "../core/projection";
-import type { ResolvedBirth } from "../core/types";
 import type { CliContext } from "./intake";
 import { requestFromProfile } from "./intake";
 
@@ -271,27 +270,9 @@ async function progressed(args: string[], context: CliContext | undefined) {
 	validateBodies(bodyList);
 
 	const ephemeris = new CaelusEphemeris();
-	const natal = ephemeris.chartAt(
-		request.birth.jdUt,
-		request.birth.lat,
-		request.birth.lon,
-		{ houseSystem: request.options.houseSystem },
-	);
-
-	const resolvedBirth: ResolvedBirth = {
-		jdUt: request.birth.jdUt,
-		lat: request.birth.lat,
-		lon: request.birth.lon,
-		zone: request.birth.zone,
-		offsetMinutes: request.birth.offsetMinutes,
-		dst: request.birth.dst,
-		status: request.birth.status,
-		local: request.birth.local,
-	};
 
 	const result = computeProgressions(
-		resolvedBirth,
-		natal,
+		request,
 		target.jdUt,
 		dateRaw,
 		ephemeris,
@@ -438,21 +419,10 @@ async function stations(args: string[], context: CliContext | undefined) {
 	const request = requestFromProfile(context, profile);
 	const ephemeris = new CaelusEphemeris();
 
-	const resolvedBirth: ResolvedBirth = {
-		jdUt: request.birth.jdUt,
-		lat: request.birth.lat,
-		lon: request.birth.lon,
-		zone: request.birth.zone,
-		offsetMinutes: request.birth.offsetMinutes,
-		dst: request.birth.dst,
-		status: request.birth.status,
-		local: request.birth.local,
-	};
-
 	const fromJd = fromRaw !== undefined ? parseDate(fromRaw).jdUt : undefined;
 	const toJd = toRaw !== undefined ? parseDate(toRaw).jdUt : undefined;
 	const result = computeStations(
-		resolvedBirth,
+		request,
 		body as BodyId,
 		ephemeris,
 		{ startJd: fromJd, endJd: toJd, years },

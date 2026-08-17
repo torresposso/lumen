@@ -1,4 +1,6 @@
 import type { ChartBody } from "caelus";
+import { chartAt } from "./charts";
+import type { Ephemeris, NatalRequest } from "./types";
 import { findAspect, houseOf, normalizeLongitude, projectPoint } from "./types";
 
 export interface OverlayPoint {
@@ -44,11 +46,13 @@ function derivedPoint(id: string, lon: number, cusps: number[]): OverlayPoint {
 	};
 }
 
-/** Normalizes a natal chart into the frame-agnostic overlay used by karma. */
+/** Normalizes a natal chart into the frame-agnostic overlay used by karma.
+ *  The shared chart computation has already applied the true-node canon, so
+ *  this never falls back to the mean node. */
 export function toOverlayChart(id: string, chart: ChartLike): OverlayChart {
 	const points: OverlayPoint[] = [];
 	const bodies = chart.bodies;
-	const northNode = bodies.true_node ?? bodies.mean_node;
+	const northNode = bodies.true_node;
 
 	for (const [bodyId, body] of Object.entries(bodies)) {
 		if (body === undefined) continue;
@@ -135,15 +139,18 @@ const KARMA_ASPECT_DEFS = (orb: number) => [
 ];
 
 /**
- * Computes inter-chart karmic dynamics and evolutionary synastry between two charts.
+ * Computes inter-chart karmic dynamics and evolutionary synastry between two validated requests.
  */
 export function computeKarma(
 	idA: string,
-	chartA: ChartLike,
+	requestA: NatalRequest,
 	idB: string,
-	chartB: ChartLike,
+	requestB: NatalRequest,
+	ephemeris: Ephemeris,
 	orb = 3,
 ): KarmaResult {
+	const chartA = chartAt(requestA, requestA.birth.jdUt, ephemeris);
+	const chartB = chartAt(requestB, requestB.birth.jdUt, ephemeris);
 	const overlayA = toOverlayChart(idA, chartA);
 	const overlayB = toOverlayChart(idB, chartB);
 	const defs = KARMA_ASPECT_DEFS(orb);

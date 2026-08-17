@@ -124,20 +124,8 @@ export const karmaCommand: AxiCliCommand<CliContext> = async (
 	const reqB = requestFromProfile(context, idB);
 
 	const ephemeris = new CaelusEphemeris();
-	const chartA = ephemeris.chartAt(
-		reqA.birth.jdUt,
-		reqA.birth.lat,
-		reqA.birth.lon,
-		{ houseSystem: reqA.options.houseSystem },
-	);
-	const chartB = ephemeris.chartAt(
-		reqB.birth.jdUt,
-		reqB.birth.lat,
-		reqB.birth.lon,
-		{ houseSystem: reqB.options.houseSystem },
-	);
 
-	const result = computeKarma(idA, chartA, idB, chartB, orb);
+	const result = computeKarma(idA, reqA, idB, reqB, ephemeris, orb);
 
 	return {
 		karma: {
