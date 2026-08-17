@@ -46,7 +46,9 @@ src/
 ## 2. Catálogo de Comandos y Gramática AXI
 
 ### A. `lumen chart natal <profile> [--evo]`
+
 Carta natal base y, con `--evo`, la mecánica evolutiva completa en un solo bloque.
+
 - **Sin flag**: carta base, igual que hoy (sin lectura).
 - **`--evo`**: bloque `evo` completo — Plutón/PPP, midpoint, eje nodal, fase Sol-Luna, cadenas de dispositores y eclipses prenatales, con `counts` (puente con `summary`), `method` (disclosure factual de orbes/criterios) y grados redondeados a 4 decimales. Con `--evo`, `interpretationContext` añade átomos de la mecánica evolutiva.
 - **Bordes (AXI)**:
@@ -99,6 +101,7 @@ evo:
 ---
 
 ### B. `lumen journey <subcommand> <profile>`
+
 El reloj temporal del Alma: progresiones secundarias y giros estacionales.
 
 1. **`lumen journey progressed <profile> --at <YYYY-MM-DD> [--bodies moon,sun,pluto] [--orb 3]`**
@@ -110,7 +113,9 @@ El reloj temporal del Alma: progresiones secundarias y giros estacionales.
 ---
 
 ### C. `lumen karma pair --a <id> --b <id> [--orb 3]`
+
 Acuerdos y contratos evolutivos entre dos Almas.
+
 - Contactos cruzados inter-cartas a Plutón y Nodos.
 - Superposiciones de casas del eje nodal.
 - **Vacío explícito**: Si no hay contactos en orbe: `contacts: 0 contacts found within orb 3°`.
@@ -118,6 +123,7 @@ Acuerdos y contratos evolutivos entre dos Almas.
 ---
 
 ### D. `lumen profile <action>`
+
 - `add <id> --when "..." --place "..."`: Si el ID existe, actualiza (no-op/update idempotente).
 - `list`: Respeta privacidad AXI. Lista solo `id` y `provenance` (estado `ok | ambiguous | nonexistent`). Cero fechas de nacimiento en contexto ambiente.
 - `show <id>`: Único comando que expone los datos de nacimiento; el Home mantiene la misma privacidad.
