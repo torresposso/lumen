@@ -90,7 +90,7 @@ describe("computeEvolutionaryReading (direct assembly)", () => {
 			pluto: body({
 				lon: 230,
 				sign: "Scorpio",
-				signDeg: 20,
+				signDeg: 20.123456,
 				speed: 0.02,
 			}),
 			true_node: body({
@@ -135,6 +135,11 @@ describe("computeEvolutionaryReading (direct assembly)", () => {
 		expect(reading?.evo?.nodalAxis.south.rulerPlacement).not.toHaveProperty(
 			"description",
 		);
+
+		// rulerPlacement.signDeg is explicitly routed through the chart-projection
+		// policy (ADR-0011). Core already produced 4 dp, so this pins the published
+		// surface via the named helper, not a byte change.
+		expect(reading?.evo?.nodalAxis.north.rulerPlacement?.signDeg).toBe(20.1235);
 
 		// phase is derived from sun/moon (both default to Aries/0° → "New").
 		expect(reading?.evo?.phase).toBe("New");

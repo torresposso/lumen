@@ -50,7 +50,7 @@ describe("journeyCommand (progressed/stations coverage)", () => {
 			["progressed", "--profile", "erik", "--date", "2026-08-13"],
 			ctx,
 		)) as {
-			progressed: Array<{ body: string; lon: number }>;
+			progressed: Array<{ body: string; lon: number; signDeg: number }>;
 		};
 
 		expect(output.progressed.map((row) => row.body)).toEqual([
@@ -61,6 +61,10 @@ describe("journeyCommand (progressed/stations coverage)", () => {
 		for (const row of output.progressed) {
 			expect(row.lon).toBeGreaterThanOrEqual(0);
 			expect(row.lon).toBeLessThan(360);
+			// Progressed bodies cross the chart-projection policy (ADR-0011):
+			// lon/signDeg at 4 dp, like the base chart and the evo block.
+			expect(Number(row.lon.toFixed(4))).toBe(row.lon);
+			expect(Number(row.signDeg.toFixed(4))).toBe(row.signDeg);
 		}
 	});
 

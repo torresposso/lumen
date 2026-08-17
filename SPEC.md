@@ -19,7 +19,7 @@ mantiene geométrico y TOON-mínimo.
 
 | Capa | Responsabilidad | Prohibido |
 |---|---|---|
-| `src/core/` (8 módulos puros) | Cálculo astrológico determinista | I/O, zod, AxiError, imports de adapters/storage/commands |
+| `src/core/` (9 módulos puros) | Cálculo astrológico determinista | I/O, zod, AxiError, imports de adapters/storage/commands |
 | `src/adapters/` | Red y efemérides (Open-Meteo, Caelus) | Lógica de dominio |
 | `src/storage/` | Persistencia XDG (`0600`, escritura atómica) | Cálculo |
 | `src/commands/` | Parseo, llamado a core, salida TOON | Cálculo astrológico |
@@ -50,6 +50,11 @@ counts → method), grados redondeados a 4 decimales como la carta base, `counts
 criterios, derivado mecánicamente de las tablas de core — imposible que diverja
 del cálculo). Con `--evo` los átomos de `interpretationContext` incluyen la
 mecánica evolutiva.
+
+La política de precisión tiene una sola casa: `src/core/projection.ts` publica
+`lon`/`signDeg` a 4 decimales y `speed` a 6, y los comandos cruzan sus números
+por la misma puerta (ADR-0011) — la carta base, el bloque `evo` y
+`journey progressed` no pueden divergir en formato.
 
 `chart draconic` es puramente
 geométrico y rechaza `--evo`. Fuera de la superficie (helenístico/técnico,
@@ -88,7 +93,7 @@ Si la respuesta no es un sí sentido, la decisión es no.**
 
 ## 6. Criterios de Aceptación
 
-1. `bun test` en verde (174 tests, 601 expect) y `bun run typecheck` sin
+1. `bun test` en verde (183 tests, 662 expect) y `bun run typecheck` sin
    errores; el conteo se recalibra solo vía tickets de remoción con ticket del
    norte.
 2. `bun run check` (biome) con 0 errores y 0 warnings.

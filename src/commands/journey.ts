@@ -3,6 +3,7 @@ import { AxiError } from "axi-sdk-js";
 import { BODIES, type BodyId, EXTRA_BODIES, julianDay } from "caelus";
 import { CaelusEphemeris } from "../adapters/ephemeris-gateway";
 import { computeProgressions, computeStations } from "../core/journey";
+import { roundToon } from "../core/projection";
 import type { ResolvedBirth } from "../core/types";
 import type { CliContext } from "./intake";
 import { requestFromProfile } from "./intake";
@@ -308,9 +309,9 @@ async function progressed(args: string[], context: CliContext | undefined) {
 		},
 		progressed: result.bodies.map((b) => ({
 			body: b.body,
-			lon: b.lon,
+			lon: roundToon(b.lon),
 			sign: b.sign,
-			signDeg: b.signDeg,
+			signDeg: roundToon(b.signDeg),
 			house: b.house,
 			...(b.evolutionaryContacts.length > 0
 				? {

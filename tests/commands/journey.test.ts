@@ -54,6 +54,15 @@ describe("journeyCommand", () => {
 
 			const progressed = result.progressed as Array<Record<string, unknown>>;
 			expect(progressed.length).toBeGreaterThan(0);
+
+			// Progressed bodies cross the chart-projection policy (ADR-0011):
+			// lon/signDeg at 4 dp, like the base chart and the evo block.
+			for (const row of progressed) {
+				const lon = row.lon as number;
+				const signDeg = row.signDeg as number;
+				expect(Number(lon.toFixed(4))).toBe(lon);
+				expect(Number(signDeg.toFixed(4))).toBe(signDeg);
+			}
 		} finally {
 			cleanup();
 		}

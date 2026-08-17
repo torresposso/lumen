@@ -16,6 +16,7 @@ src/
 │   ├── soul.ts                   # Plutón, PPP (deactivación cuando conj. NN), Midpoint, aspectos y lectura evolutiva completa
 │   ├── nodes.ts                  # Eje nodal, regentes, skipped steps, cadenas de regentes nodales
 │   ├── evolutionary-reading.ts    # Ensambla la lectura evolutiva (`evo`): publicación en una sola fuente (ADR-0010)
+│   ├── projection.ts             # Proyección de la carta al TOON: mapping y política de precisión en una fuente (ADR-0011)
 │   ├── phases.ts                 # Fases Sol-Luna natales y progresadas (8 arquetipos)
 │   ├── journey.ts                # Progresiones secundarias, triggers a puntos EA dentro de orbe, estaciones
 │   ├── karma.ts                  # Sinastría evolutiva y contactos inter-cartas a Nodos/Plutón
@@ -50,7 +51,7 @@ src/
 Carta natal base y, con `--evo`, la mecánica evolutiva completa en un solo bloque.
 
 - **Sin flag**: carta base, igual que hoy (sin lectura).
-- **`--evo`**: bloque `evo` completo — Plutón/PPP, midpoint, eje nodal, fase Sol-Luna, cadenas de dispositores y eclipses prenatales, con `counts` (puente con `summary`), `method` (disclosure factual de orbes/criterios) y grados redondeados a 4 decimales. Con `--evo`, `interpretationContext` añade átomos de la mecánica evolutiva.
+- **`--evo`**: bloque `evo` completo — Plutón/PPP, midpoint, eje nodal, fase Sol-Luna, cadenas de dispositores y eclipses prenatales, con `counts` (puente con `summary`), `method` (disclosure factual de orbes/criterios) y grados redondeados a 4 decimales (una sola política de precisión, ADR-0011). Con `--evo`, `interpretationContext` añade átomos de la mecánica evolutiva.
 - **Bordes (AXI)**:
   - Si Plutón está conjunto al Nodo Norte (orbe ≤ `PPP_DEACTIVATION_ORB`):
     `ppp.active: false` y `ppp.reason` (con la separación medida);
@@ -107,6 +108,8 @@ El reloj temporal del Alma: progresiones secundarias y giros estacionales.
 1. **`lumen journey progressed <profile> --at <YYYY-MM-DD> [--bodies moon,sun,pluto] [--orb 3]`**
    - Incluye **Fase Sol-Luna progresada** como campo de primera clase.
    - Contactos de cuerpos progresados a puntos EA natales (Plutón, PPP, Eje Nodal) dentro de orbe.
+   - `lon`/`signDeg` de los cuerpos progresados redondeados a 4 decimales (la misma
+     política única de precisión que la carta base; ADR-0011).
 2. **`lumen journey stations <profile> --body <name> [--from <YYYY-MM-DD>] [--to <YYYY-MM-DD>] [--limit 30]`**
    - Estaciones planetarias en la ventana temporal especificada.
 

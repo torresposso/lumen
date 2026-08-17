@@ -8,6 +8,7 @@ import {
 	type SkippedStep,
 } from "./nodes";
 import { computeSolLunaPhase } from "./phases";
+import { roundSeparation, roundToon } from "./projection";
 import {
 	computeSoulReading,
 	type DispositorStep,
@@ -21,7 +22,6 @@ import type {
 	NodeMotionStatus,
 	ResolvedBirth,
 } from "./types";
-import { roundPrecision as round } from "./types";
 
 // ============================================================================
 // Evolutionary reading publication
@@ -134,7 +134,7 @@ export function computeEvolutionaryReading(input: {
 	const plutoNorthNodeSeparation =
 		soul.plutoNorthNodeSeparation === undefined
 			? undefined
-			: round(soul.plutoNorthNodeSeparation, 2);
+			: roundSeparation(soul.plutoNorthNodeSeparation);
 
 	const eclipses = computePrenatalEclipses(
 		input.ephemeris,
@@ -156,8 +156,8 @@ export function computeEvolutionaryReading(input: {
 	const evo: EvoOutput = {
 		pluto: {
 			sign: soul.pluto.sign,
-			lon: round(soul.pluto.lon),
-			signDeg: round(soul.pluto.signDeg),
+			lon: roundToon(soul.pluto.lon),
+			signDeg: roundToon(soul.pluto.signDeg),
 			house: soul.pluto.house,
 			retrograde: soul.pluto.retrograde,
 			stressfulCount: soul.pluto.stressfulAspects,
@@ -166,8 +166,8 @@ export function computeEvolutionaryReading(input: {
 		},
 		ppp: {
 			sign: soul.ppp.sign,
-			lon: round(soul.ppp.lon),
-			signDeg: round(soul.ppp.signDeg),
+			lon: roundToon(soul.ppp.lon),
+			signDeg: roundToon(soul.ppp.signDeg),
 			house: soul.ppp.house,
 			active: soul.ppp.active,
 			separation: plutoNorthNodeSeparation,
@@ -186,15 +186,15 @@ export function computeEvolutionaryReading(input: {
 		nodalAxis: {
 			north: {
 				sign: north.sign,
-				lon: round(north.lon),
-				signDeg: round(north.signDeg),
+				lon: roundToon(north.lon),
+				signDeg: roundToon(north.signDeg),
 				house: north.house,
 				ruler: north.ruler,
 				rulerPlacement: north.rulerPlacement
 					? {
 							body: north.rulerPlacement.body,
 							sign: north.rulerPlacement.sign,
-							signDeg: north.rulerPlacement.signDeg,
+							signDeg: roundToon(north.rulerPlacement.signDeg),
 							house: north.rulerPlacement.house,
 							motion: north.rulerPlacement.motion,
 						}
@@ -203,15 +203,15 @@ export function computeEvolutionaryReading(input: {
 			},
 			south: {
 				sign: south.sign,
-				lon: round(south.lon),
-				signDeg: round(south.signDeg),
+				lon: roundToon(south.lon),
+				signDeg: roundToon(south.signDeg),
 				house: south.house,
 				ruler: south.ruler,
 				rulerPlacement: south.rulerPlacement
 					? {
 							body: south.rulerPlacement.body,
 							sign: south.rulerPlacement.sign,
-							signDeg: south.rulerPlacement.signDeg,
+							signDeg: roundToon(south.rulerPlacement.signDeg),
 							house: south.rulerPlacement.house,
 							motion: south.rulerPlacement.motion,
 						}

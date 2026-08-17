@@ -16,6 +16,10 @@ _Avoid_: birth chart, horoscope
 The complete, immutable assembled calculation result containing the natal chart, optional draconic projections, astronomical extensions, and evolutionary analysis.
 _Avoid_: chart output object, raw chart
 
+**Chart projection**:
+The mapping of a computed chart's coordinate fields into the published `lon`/`sign`/`signDeg`/`house` values at the TOON surface (the published output boundary, per AXI). One deep module (`src/core/projection.ts`, ADR-0011) owns the mapping and the rounding policy, applied once for every published number: coordinates (`lon`, `signDeg`, `lat`, `dist`, `ra`, `dec`) and `jdUt` at 4 decimal places, `speed` at 6, aspect `orb` at 4, aspect `strength` at 3, and `evo.ppp.separation` at 2. The natal chart, the `evo` block, and `journey progressed` all cross the same policy, so precision decisions happen once.
+_Avoid_: raw caelus coordinates, ad-hoc rounding at the call site
+
 **Natal intake**:
 The process of parsing, validating, and resolving raw CLI inputs into a validated Resolved birth and Chart request options. Lives in `src/commands/intake.ts` (the only zod contact point); `src/core/birth.ts` performs only the pure UT/provenance resolution.
 _Avoid_: flag parser, argument validator
@@ -58,7 +62,8 @@ The single source of the orbs and thresholds governing the `evo` block: the `PLU
 **Evo block**:
 The opt-in `evo` output added to a natal chart by `--evo`. Always geometric,
 never interpretive. Not available on `chart draconic`. The block is
-self-contained (`lon`/`signDeg` at 4 decimal places, like `chart.bodies`), uses
+self-contained (`lon`/`signDeg` at 4 decimal places, through the single
+chart-projection policy — see **Chart projection**), uses
 `PLUTO_ASPECTS` orbs (which may differ from `chart.aspects`), exposes both
 `midpoint` and `antiMidpoint`, includes Pluto in `nodeAspects` (but never in
 `skippedSteps`), publishes its criteria in `method` (derived mechanically from

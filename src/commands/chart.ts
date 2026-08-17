@@ -14,22 +14,13 @@ export const chartUsage = [
 // Chart engine (application layer; core stays pure)
 // ============================================================================
 
-import type {
-	AspectPhase,
-	Chart,
-	ChartBody,
-	HouseSystem,
-	Zodiac,
-} from "caelus";
+import type { Chart } from "caelus";
 import { CaelusEphemeris, type Ephemeris } from "../adapters/ephemeris-gateway";
 import {
 	type AspectPattern,
 	type ChartSignature,
-	computeChartSignature,
-	computeDeclinationAspects,
 	type DeclinationAspectProjection,
 	type DraconicChart,
-	detectAspectPatterns,
 	generateFactAtoms,
 	type InterpretationContext,
 	toDraconicChart,
@@ -38,13 +29,13 @@ import {
 	computeEvolutionaryReading,
 	type EvoOutput,
 } from "../core/evolutionary-reading";
+import { type Projection, project } from "../core/projection";
 import type {
 	BirthStatus,
 	ChartRequestOptions,
 	NatalRequest as EngineNatalRequest,
 	ResolvedBirth,
 } from "../core/types";
-import { projectPoint, roundPrecision as round } from "../core/types";
 
 export type {
 	AspectPattern,
@@ -56,66 +47,6 @@ export type {
 
 export interface ChartOutputSelection {
 	evo: boolean;
-}
-
-export interface LonProjection {
-	lon: number;
-	sign: string;
-	signDeg: number;
-}
-
-export interface AspectProjection {
-	a: string;
-	b: string;
-	aspect: string;
-	orb: number;
-	phase: AspectPhase;
-	strength: number;
-}
-
-export interface Projection {
-	meta: {
-		jdUt: number;
-		zodiac: Zodiac;
-		houseSystem: HouseSystem;
-		houseSystemRequested: HouseSystem;
-		unavailable: string[];
-	};
-	bodies: Partial<Record<string, ChartBody>>;
-	angles: {
-		asc: LonProjection;
-		mc: LonProjection;
-		vertex: LonProjection;
-		eastPoint: LonProjection;
-	};
-	cusps: LonProjection[];
-	aspects: AspectProjection[];
-	declinationAspects?: DeclinationAspectProjection[];
-	patterns?: AspectPattern[];
-	signature?: ChartSignature;
-	draconic?: DraconicProjection;
-}
-
-export interface DraconicBodyProjection {
-	lon: number;
-	sign: string;
-	signDeg: number;
-	house: number;
-	retrograde: boolean;
-	speed: number;
-	dignities: string[];
-}
-
-export interface DraconicProjection {
-	nodeUsed: "true_node" | "mean_node";
-	bodies: Partial<Record<string, DraconicBodyProjection>>;
-	angles: {
-		asc: LonProjection;
-		mc: LonProjection;
-		vertex: LonProjection;
-		eastPoint: LonProjection;
-	};
-	cusps: LonProjection[];
 }
 
 export interface BirthEcho {
@@ -151,114 +82,6 @@ export type AstrologicalReading = {
  *  lumen is dedicated to the true node (North Node canon), so the mean node
  *  never leaves the seam. */
 const DROPPED_NODE: readonly string[] = ["mean_node"];
-
-function renderLon(input: number | { lon: number }): LonProjection {
-	const rawLon = typeof input === "number" ? input : input.lon;
-	const { lon, sign, signDeg } = projectPoint(rawLon);
-	return { lon, sign, signDeg };
-}
-
-function projectBodies(
-	source: Chart["bodies"],
-): Partial<Record<string, ChartBody>> {
-	const bodies: Partial<Record<string, ChartBody>> = {};
-	for (const [id, body] of Object.entries(source)) {
-		if (body === undefined) continue;
-		bodies[id] = {
-			lon: round(body.lon),
-			sign: body.sign,
-			signDeg: round(body.signDeg),
-			house: body.house,
-			retrograde: body.retrograde,
-			speed: round(body.speed, 6),
-			lat: round(body.lat),
-			dist: body.dist === null ? null : round(body.dist),
-			ra: round(body.ra),
-			dec: round(body.dec),
-			dignities: body.dignities,
-		};
-	}
-	return bodies;
-}
-
-function projectDraconicBodies(
-	source: Partial<Record<string, ChartBody>>,
-): Partial<Record<string, DraconicBodyProjection>> {
-	const bodies: Partial<Record<string, DraconicBodyProjection>> = {};
-	for (const [id, body] of Object.entries(source)) {
-		if (body === undefined) continue;
-		bodies[id] = {
-			lon: round(body.lon),
-			sign: body.sign,
-			signDeg: round(body.signDeg),
-			house: body.house,
-			retrograde: body.retrograde,
-			speed: round(body.speed, 6),
-			dignities: body.dignities,
-		};
-	}
-	return bodies;
-}
-
-function projectAngles(angles: Chart["angles"]): Projection["angles"] {
-	return {
-		asc: renderLon(angles.asc),
-		mc: renderLon(angles.mc),
-		vertex: renderLon(angles.vertex),
-		eastPoint: renderLon(angles.eastPoint),
-	};
-}
-
-function projectDraconic(draconic: DraconicChart): DraconicProjection {
-	return {
-		nodeUsed: draconic.nodeUsed,
-		bodies: projectDraconicBodies(draconic.bodies),
-		angles: projectAngles(draconic.angles),
-		cusps: draconic.cusps.map((c) => renderLon(c)),
-	};
-}
-
-interface ProjectionInput {
-	chart: Chart;
-	bodies: Chart["bodies"];
-	draconic?: DraconicChart;
-}
-
-function project(input: ProjectionInput): Projection {
-	const { chart, bodies: rawBodies, draconic } = input;
-	const bodies = projectBodies(rawBodies);
-
-	const aspects = chart.aspects.map((a) => ({
-		a: a.a,
-		b: a.b,
-		aspect: a.aspect,
-		orb: round(a.orb),
-		phase: a.phase,
-		strength: round(a.strength, 3),
-	}));
-
-	const declinationAspects = computeDeclinationAspects(rawBodies);
-	const signature = computeChartSignature(rawBodies);
-	const patterns = detectAspectPatterns(aspects, rawBodies);
-
-	return {
-		meta: {
-			jdUt: round(chart.jdUt),
-			zodiac: chart.zodiac,
-			houseSystem: chart.houseSystem,
-			houseSystemRequested: chart.houseSystemRequested,
-			unavailable: chart.unavailable,
-		},
-		bodies,
-		angles: projectAngles(chart.angles),
-		cusps: chart.cusps.map((c) => renderLon(c)),
-		aspects,
-		declinationAspects,
-		patterns,
-		signature,
-		...(draconic ? { draconic: projectDraconic(draconic) } : {}),
-	};
-}
 
 function echoBirth(
 	birth: ResolvedBirth,
