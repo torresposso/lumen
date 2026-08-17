@@ -28,6 +28,13 @@ _Avoid_: birth data, birth record
 A natal chart re-projected onto the lunar-node zodiac by subtracting the North Node's longitude from all positions, placing the North Node at 0° Aries. Preserves aspects and angular separations. Outside the evolutionary canon; kept as a labeled experiment.
 _Avoid_: soul chart
 
+**Interpretation context**:
+The `interpretationContext` block of an astrological reading: deterministic factual atoms (snake_case identifiers such as `pluto_sign_libra`, `north_node_ruler_sun`) that an agent uses to interpret a chart without re-parsing the TOON output. Covers the base chart and, with `--evo`, the evolutionary mechanics.
+_Avoid_: reading, interpretation output
+
+**Chart signature**:
+The tally of the ten core planets (sun through pluto; chiron and the lunar nodes excluded) by element, modality, quadrant, and hemisphere. Published as `chart.signature` and mirrored in the `dominant_*` atoms.
+
 ### Evolutionary astrology (Green & Forrest)
 
 **Evolutionary astrology**:
@@ -44,12 +51,15 @@ _Avoid_: soul reading
 **Evo block**:
 The opt-in `evo` output added to a natal chart by `--evo`. Always geometric,
 never interpretive. Not available on `chart draconic`. The block is
-self-contained (`lon`/`signDeg` included), uses `PLUTO_ASPECTS` orbs (which may
-differ from `chart.aspects`), exposes both `midpoint` and `antiMidpoint`, and
-includes Pluto in `nodeAspects` (but never in `skippedSteps`).
+self-contained (`lon`/`signDeg` at 4 decimal places, like `chart.bodies`), uses
+`PLUTO_ASPECTS` orbs (which may differ from `chart.aspects`), exposes both
+`midpoint` and `antiMidpoint`, includes Pluto in `nodeAspects` (but never in
+`skippedSteps`), publishes its criteria in `method`, and bridges to `summary`
+via `counts`. With `--evo`, the interpretation context adds atoms for the
+evolutionary mechanics.
 
 **Pluto Polarity Point**:
-The point diametrically opposite Pluto (Pluto longitude + 180°), representing the evolutionary direction the soul is moving toward. Deactivated when Pluto is conjunct the North Node (as evolution channels directly through the North Node and its ruler).
+The point diametrically opposite Pluto (Pluto longitude + 180°), representing the evolutionary direction the soul is moving toward. Deactivated when Pluto is conjunct the North Node within orb ≤ 10° (as evolution channels directly through the North Node and its ruler); the angular Pluto–North Node separation is published as `evo.ppp.separation` and, when inactive, the cause as `evo.ppp.reason`.
 
 **Pluto Polarity Point aspects**:
 Major planetary aspects (orb ≤ 5°) formed directly to the Pluto Polarity Point, identifying specific psychological archetypes accelerating or facilitating evolutionary growth. The polarity point does not apply when Pluto is conjunct the North Node.

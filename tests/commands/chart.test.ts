@@ -172,7 +172,13 @@ describe("chartCommand", () => {
 					house: number;
 					aspects: { phase?: string }[];
 				};
-				ppp: { lon: number; signDeg: number; active: boolean };
+				ppp: {
+					lon: number;
+					signDeg: number;
+					active: boolean;
+					separation?: number;
+					reason?: string;
+				};
 				midpoint?: string;
 				antiMidpoint?: string;
 				nodalAxis: {
@@ -184,15 +190,27 @@ describe("chartCommand", () => {
 						aspects: { body: string }[];
 					};
 				};
+				counts: {
+					plutoAspects: number;
+					nodeAspects: number;
+					skippedSteps: number;
+					eclipses: number;
+				};
+				method: string;
 				prenatalEclipses: unknown;
 			};
+			interpretationContext: { atoms: string[] };
 		};
 
 		expect(result.evo).toBeDefined();
 		expect(result.evo.pluto.sign).toBe("Scorpio");
 		expect(result.evo.pluto.house).toBe(2);
 		expect(typeof result.evo.pluto.lon).toBe("number");
-		expect(typeof result.evo.pluto.signDeg).toBe("number");
+		// Precision: evo publishes lon/signDeg at 4 decimals, like chart.bodies.
+		expect(Number(result.evo.pluto.lon.toFixed(4))).toBe(result.evo.pluto.lon);
+		expect(Number(result.evo.pluto.signDeg.toFixed(4))).toBe(
+			result.evo.pluto.signDeg,
+		);
 		expect(result.evo.pluto.aspects.length).toBeGreaterThan(0);
 		expect(
 			result.evo.pluto.aspects.every((a) =>
@@ -202,11 +220,16 @@ describe("chartCommand", () => {
 		expect(typeof result.evo.ppp.lon).toBe("number");
 		expect(typeof result.evo.ppp.signDeg).toBe("number");
 		expect(result.evo.ppp.active).toBe(true);
+		expect(result.evo.ppp.separation).toBeGreaterThanOrEqual(0);
+		expect(result.evo.ppp.reason).toBeUndefined();
 		expect(result.evo.midpoint).toBeDefined();
 		expect(result.evo.antiMidpoint).toBeDefined();
 		expect(result.evo.antiMidpoint).not.toBe(result.evo.midpoint);
 		expect(typeof result.evo.nodalAxis.north.lon).toBe("number");
 		expect(typeof result.evo.nodalAxis.north.signDeg).toBe("number");
+		expect(Number(result.evo.nodalAxis.north.lon.toFixed(4))).toBe(
+			result.evo.nodalAxis.north.lon,
+		);
 		expect(
 			result.evo.nodalAxis.north.aspects.some((a) => a.body === "pluto"),
 		).toBe(true);
@@ -215,6 +238,26 @@ describe("chartCommand", () => {
 			result.evo.nodalAxis.skippedSteps.some((a) => a.body === "pluto"),
 		).toBe(false);
 		expect(result.evo.prenatalEclipses).toBeDefined();
+
+		// counts: numeric bridge between summary and the evo block.
+		expect(result.evo.counts).toEqual({
+			plutoAspects: expect.any(Number),
+			nodeAspects: expect.any(Number),
+			skippedSteps: expect.any(Number),
+			eclipses: expect.any(Number),
+		});
+		expect(result.evo.counts.plutoAspects).toBe(
+			result.evo.pluto.aspects.length,
+		);
+		// method: factual disclosure of orbs/criteria.
+		expect(result.evo.method).toContain("PLUTO_ASPECTS");
+
+		// Atoms cover the evolutionary mechanics with --evo.
+		const atoms = result.interpretationContext.atoms;
+		expect(atoms.some((a) => a.startsWith("ppp_sign_"))).toBe(true);
+		expect(atoms.some((a) => a.startsWith("pluto_aspects_"))).toBe(true);
+		expect(atoms.some((a) => a.startsWith("skipped_"))).toBe(true);
+		expect(atoms.some((a) => a.startsWith("sol_luna_phase_"))).toBe(true);
 	}, 20_000);
 
 	test("--evo=false keeps the base chart without an evo block", async () => {
@@ -223,6 +266,29 @@ describe("chartCommand", () => {
 			undefined,
 		)) as { evo?: unknown };
 		expect(result.evo).toBeUndefined();
+	});
+
+	test("without --evo the interpretation context excludes evo-only atoms", async () => {
+		const result = (await chartCommand(
+			["natal", ...TAMPA_ARGS],
+			undefined,
+		)) as {
+			evo?: unknown;
+			interpretationContext: { atoms: string[] };
+		};
+		expect(result.evo).toBeUndefined();
+		const evoPrefixes = [
+			"ppp_",
+			"pluto_aspects_",
+			"pluto_nn_",
+			"sol_luna_phase_",
+			"skipped_",
+		];
+		for (const prefix of evoPrefixes) {
+			expect(
+				result.interpretationContext.atoms.some((a) => a.startsWith(prefix)),
+			).toBe(false);
+		}
 	});
 
 	test("draconic rejects --evo with a structured error", async () => {

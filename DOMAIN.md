@@ -47,41 +47,49 @@ src/
 ### A. `lumen chart natal <profile> [--evo]`
 Carta natal base y, con `--evo`, la mecánica evolutiva completa en un solo bloque.
 - **Sin flag**: carta base, igual que hoy (sin lectura).
-- **`--evo`**: bloque `evo` completo — Plutón/PPP, midpoint, eje nodal, fase Sol-Luna, cadenas de dispositores y eclipses prenatales.
+- **`--evo`**: bloque `evo` completo — Plutón/PPP, midpoint, eje nodal, fase Sol-Luna, cadenas de dispositores y eclipses prenatales, con `counts` (puente con `summary`), `method` (disclosure factual de orbes/criterios) y grados redondeados a 4 decimales. Con `--evo`, `interpretationContext` añade átomos de la mecánica evolutiva.
 - **Bordes (AXI)**:
-  - Si Plutón está conjunto al Nodo Norte: `ppp.active: false`.
+  - Si Plutón está conjunto al Nodo Norte (orbe ≤ 10°): `ppp.active: false` y `ppp.reason`; `ppp.separation` siempre disponible.
   - Si no hay pasos saltados: `skippedSteps: []`.
   - `chart draconic --evo` → `VALIDATION_ERROR` (draconic es puramente geométrico).
+  - `--bodies` es aditivo (extra bodies, p. ej. `mean_lilith`); no excluye Plutón/nodos.
 
 ```text
-chart: { ... }              # base idéntico al actual
+chart: { ... }              # base idéntico al actual (datos de Erik 1981-01-26 00:51)
 evo:
   pluto:
     lon: 204.3457
-    sign: Scorpio
+    sign: Libra
     signDeg: 24.3457
-    house: 8
+    house: 12
     retrograde: false
-    stressfulCount: 3
-    nonstressfulCount: 2
+    stressfulCount: 2
+    nonstressfulCount: 3
     aspects: [...]          # orbes PLUTO_ASPECTS; puede diferir de chart.aspects
   ppp:
     lon: 24.3457
-    sign: Taurus
+    sign: Aries
     signDeg: 24.3457
-    house: 2
+    house: 6
     active: true
+    separation: 73.44       # Plutón–Nodo Norte, grados (2 dp)
     aspects: [...]
   midpoint: "Virgo 17°38' (H10)"
   antiMidpoint: "Pisces 17°38' (H4)"
   nodalAxis:
-    north: { lon, sign, signDeg, house, ruler, rulerPlacement, aspects[] }  # incluye Plutón
-    south: { lon, sign, signDeg, house, ruler, rulerPlacement, aspects[] }  # incluye Plutón
-    motion: retrograde
-    skippedSteps: []        # Plutón nunca aparece en skippedSteps
-  phase: Balsamic
+    north: { lon: 130.9058, sign: Leo, signDeg: 10.9058, house: 9, ruler, rulerPlacement, aspects[] }  # incluye Plutón
+    south: { lon: 310.9058, sign: Aquarius, signDeg: 10.9058, house: 3, ruler, rulerPlacement, aspects[] }  # incluye Plutón
+    motion: direct
+    skippedSteps: [chiron,square,2.5025]   # Plutón nunca aparece en skippedSteps
+  phase: Disseminating
   dispositorChains: { pluto, southNodeRuler, northNodeRuler }
   prenatalEclipses: { solar, lunar }
+  counts:                   # puente summary↔evo
+    plutoAspects: 5
+    nodeAspects: 16
+    skippedSteps: 1
+    eclipses: 2
+  method: "orbs PLUTO_ASPECTS (conj/opos 10°, cuadr/trí 8°, sextil 6°, menores 2-3°); ppp solo aspectos mayores (orbe 5°); skipped = cuadraturas al eje nodal (orbe 5°); ppp inactivo si Plutón conj. Nodo Norte (orbe 10°)"
 ```
 
 ---

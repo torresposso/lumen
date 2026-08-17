@@ -42,7 +42,14 @@ setup      Integración de sesión (hooks + skill) — conveniencia, no producto
 ```
 
 La mecánica evolutiva (Plutón/PPP y eje nodal) vive en `chart natal --evo` como
-bloque geométrico opt-in, sin interpretación. `chart draconic` es puramente
+bloque geométrico opt-in, sin interpretación. El bloque `evo` es navegable para
+el agente: llaves planas en orden canónico (pluto → ppp → midpoint →
+antiMidpoint → nodalAxis → phase → dispositorChains → prenatalEclipses), con
+`counts` (puente numérico con `summary`), `method` (disclosure factual de orbes
+y criterios) y grados redondeados a 4 decimales como la carta base. Con `--evo`
+los átomos de `interpretationContext` incluyen la mecánica evolutiva.
+
+`chart draconic` es puramente
 geométrico y rechaza `--evo`. Fuera de la superficie (helenístico/técnico,
 fuera del canon evolutivo — ver ADR-0004 y
 `~/knowledge/research/2026-08-12--tradicion-astrologia-evolutiva.md`):
@@ -60,7 +67,7 @@ dentro del bloque `evo` de `chart natal --evo`.
 6. **Errores estructurados en stdout** (AxiError): mensaje + `help` accionable; exit 0 para no-ops, 1 error, 2 uso; flags desconocidos rechazados con hint; `--help` siempre pasa.
 7. **Contexto ambiente**: `setup hooks` idempotente (Claude Code, Codex, OpenCode) + skill instalable generada del Home, con `--check` de staleness.
 8. **Content first**: Home sin argumentos muestra estado vivo (perfiles) + `bin:` y `description:`.
-9. **Disclosure contextual**: `help[]` con siguientes pasos relevantes, placeholders `<id>`, omitido si la salida es autocontenida.
+9. **Disclosure contextual**: `help[]` con siguientes pasos relevantes, placeholders `<id>`, omitido si la salida es autocontenida. El bloque `evo` es autocontenido y lleva su disclosure en un campo `method` propio (orbes y criterios), no en `help[]`.
 10. **Help consistente**: `--help` por comando con flags, defaults y 2-3 ejemplos; `--version`/-v/-V vía fast-path en <ms (hoja `src/version.ts`).
 
 ## 5. Regla de congelación (la cura del rumbo)
@@ -79,7 +86,7 @@ Si la respuesta no es un sí sentido, la decisión es no.**
 
 ## 6. Criterios de Aceptación
 
-1. `bun test` en verde (162 tests, 516 expect) y `bun run typecheck` sin
+1. `bun test` en verde (167 tests, 560 expect) y `bun run typecheck` sin
    errores; el conteo se recalibra solo vía tickets de remoción con ticket del
    norte.
 2. `bun run check` (biome) con 0 errores y 0 warnings.

@@ -30,6 +30,7 @@ import {
 	type DeclinationAspectProjection,
 	type DraconicChart,
 	detectAspectPatterns,
+	generateEvoAtoms,
 	generateFactAtoms,
 	type InterpretationContext,
 	toDraconicChart,
@@ -55,7 +56,11 @@ import type {
 	NodeMotionStatus,
 	ResolvedBirth,
 } from "../core/types";
-import { projectPoint, roundPrecision as round } from "../core/types";
+import {
+	angularDistance,
+	projectPoint,
+	roundPrecision as round,
+} from "../core/types";
 
 export type {
 	AspectPattern,
@@ -198,6 +203,8 @@ export interface EvoOutput {
 		house: number;
 		signDeg: number;
 		active: boolean;
+		separation?: number;
+		reason?: string;
 		aspects: PPPAspect[];
 	};
 	midpoint?: string;
@@ -210,12 +217,24 @@ export interface EvoOutput {
 		northNodeRuler?: DispositorStep[];
 	};
 	prenatalEclipses: EclipsesResult;
+	counts: {
+		plutoAspects: number;
+		nodeAspects: number;
+		skippedSteps: number;
+		eclipses: number;
+	};
+	method: string;
 }
 
 /** Node ids to drop from the chart. The engine always computes both nodes;
  *  lumen is dedicated to the true node (North Node canon), so the mean node
  *  never leaves the seam. */
 const DROPPED_NODE: readonly string[] = ["mean_node"];
+
+/** Factual disclosure of the calculation criteria behind the `evo` block.
+ *  Self-contained by design (AXI §9): the agent must not need the help text. */
+const EVO_METHOD_DISCLOSURE =
+	"orbs PLUTO_ASPECTS (conj/opos 10°, cuadr/trí 8°, sextil 6°, menores 2-3°); ppp solo aspectos mayores (orbe 5°); skipped = cuadraturas al eje nodal (orbe 5°); ppp inactivo si Plutón conj. Nodo Norte (orbe 10°)";
 
 function renderLon(input: number | { lon: number }): LonProjection {
 	const rawLon = typeof input === "number" ? input : input.lon;
@@ -403,6 +422,7 @@ export class AstrologicalEngine {
 		const aspects = projected.aspects;
 		const interpretationContext = generateFactAtoms(projected);
 		const evo = selection.evo ? this.buildEvo(request, rawChart) : undefined;
+		if (evo) interpretationContext.atoms.push(...evo.atoms);
 
 		return {
 			chart: { ...projected, birth: echoBirth(request.birth, request.options) },
@@ -413,13 +433,16 @@ export class AstrologicalEngine {
 				separating: aspects.filter((a) => a.phase === "separating").length,
 				exact: aspects.filter((a) => a.phase === "exact").length,
 			},
-			...(evo ? { evo } : {}),
+			...(evo ? { evo: evo.evo } : {}),
 			interpretationContext,
 			...(help.length > 0 ? { help } : {}),
 		};
 	}
 
-	private buildEvo(request: EngineNatalRequest, rawChart: Chart): EvoOutput {
+	private buildEvo(
+		request: EngineNatalRequest,
+		rawChart: Chart,
+	): { evo: EvoOutput; atoms: string[] } {
 		const bodies = rawChart.bodies;
 		const cusps = rawChart.cusps;
 		const soul = computeSoulReading(bodies, cusps, bodies.true_node?.lon);
@@ -428,7 +451,9 @@ export class AstrologicalEngine {
 			throw new AxiError(
 				"Could not compute evolutionary mechanics",
 				"CALCULATION_ERROR",
-				["Ensure --bodies includes pluto and true_node, or use default bodies"],
+				[
+					"The chart must contain pluto and the true node (the default natal bodies); --bodies only adds extra bodies",
+				],
 			);
 		}
 		const rulerPlacement = (
@@ -459,11 +484,24 @@ export class AstrologicalEngine {
 		const phase =
 			sun && moon ? computeSolLunaPhase(sun.lon, moon.lon).name : undefined;
 
-		return {
+		const plutoNorthNodeSeparation =
+			bodies.true_node !== undefined
+				? round(angularDistance(soul.pluto.lon, bodies.true_node.lon), 2)
+				: undefined;
+
+		const eclipses = computePrenatalEclipses(
+			this.ephemeris,
+			request.birth,
+			cusps,
+			request.options.houseSystem,
+			request.options.topocentric,
+		);
+
+		const evo: EvoOutput = {
 			pluto: {
 				sign: soul.pluto.sign,
-				lon: soul.pluto.lon,
-				signDeg: soul.pluto.signDeg,
+				lon: round(soul.pluto.lon),
+				signDeg: round(soul.pluto.signDeg),
 				house: soul.pluto.house,
 				retrograde: soul.pluto.retrograde,
 				stressfulCount: soul.pluto.stressfulAspects,
@@ -472,10 +510,16 @@ export class AstrologicalEngine {
 			},
 			ppp: {
 				sign: soul.ppp.sign,
-				lon: soul.ppp.lon,
-				signDeg: soul.ppp.signDeg,
+				lon: round(soul.ppp.lon),
+				signDeg: round(soul.ppp.signDeg),
 				house: soul.ppp.house,
 				active: soul.ppp.active,
+				...(plutoNorthNodeSeparation !== undefined
+					? { separation: plutoNorthNodeSeparation }
+					: {}),
+				...(soul.ppp.active
+					? {}
+					: { reason: "pluto conjunct north node (<=10°)" }),
 				aspects: soul.ppp.aspects,
 			},
 			midpoint: soul.plutoNorthNodeMidpoint?.formatted,
@@ -483,8 +527,8 @@ export class AstrologicalEngine {
 			nodalAxis: {
 				north: {
 					sign: north.sign,
-					lon: north.lon,
-					signDeg: north.signDeg,
+					lon: round(north.lon),
+					signDeg: round(north.signDeg),
 					house: north.house,
 					ruler: north.ruler,
 					rulerPlacement: rulerPlacement(north.rulerPlacement),
@@ -492,8 +536,8 @@ export class AstrologicalEngine {
 				},
 				south: {
 					sign: south.sign,
-					lon: south.lon,
-					signDeg: south.signDeg,
+					lon: round(south.lon),
+					signDeg: round(south.signDeg),
 					house: south.house,
 					ruler: south.ruler,
 					rulerPlacement: rulerPlacement(south.rulerPlacement),
@@ -508,14 +552,70 @@ export class AstrologicalEngine {
 				southNodeRuler: nodal.dispositorChains.southNodeRuler,
 				northNodeRuler: nodal.dispositorChains.northNodeRuler,
 			},
-			prenatalEclipses: computePrenatalEclipses(
-				this.ephemeris,
-				request.birth,
-				cusps,
-				request.options.houseSystem,
-				request.options.topocentric,
-			),
+			prenatalEclipses: eclipses,
+			counts: {
+				plutoAspects: soul.pluto.aspects.length,
+				nodeAspects: north.aspects.length + south.aspects.length,
+				skippedSteps: nodal.skippedSteps.length,
+				eclipses: (eclipses.solar ? 1 : 0) + (eclipses.lunar ? 1 : 0),
+			},
+			method: EVO_METHOD_DISCLOSURE,
 		};
+
+		const atoms = generateEvoAtoms({
+			plutoAspectCount: soul.pluto.aspects.length,
+			plutoStressfulCount: soul.pluto.stressfulAspects,
+			plutoNonstressfulCount: soul.pluto.nonstressfulAspects,
+			ppp: {
+				sign: soul.ppp.sign,
+				house: soul.ppp.house,
+				active: soul.ppp.active,
+			},
+			plutoNorthNodeSeparation,
+			midpoint: soul.plutoNorthNodeMidpoint
+				? {
+						sign: soul.plutoNorthNodeMidpoint.sign,
+						signDeg: soul.plutoNorthNodeMidpoint.signDeg,
+					}
+				: undefined,
+			antiMidpoint: soul.plutoNorthNodeAntiMidpoint
+				? {
+						sign: soul.plutoNorthNodeAntiMidpoint.sign,
+						signDeg: soul.plutoNorthNodeAntiMidpoint.signDeg,
+					}
+				: undefined,
+			phase,
+			northNodeRuler: north.ruler,
+			southNodeRuler: south.ruler,
+			northNodeAspectCount: north.aspects.length,
+			southNodeAspectCount: south.aspects.length,
+			nodalMotion: nodal.motionStatus,
+			skippedSteps: nodal.skippedSteps,
+			eclipses: [
+				...(eclipses.solar
+					? [
+							{
+								kind: "solar" as const,
+								type: eclipses.solar.type,
+								sign: eclipses.solar.sign,
+								signDeg: eclipses.solar.signDeg,
+							},
+						]
+					: []),
+				...(eclipses.lunar
+					? [
+							{
+								kind: "lunar" as const,
+								type: eclipses.lunar.type,
+								sign: eclipses.lunar.sign,
+								signDeg: eclipses.lunar.signDeg,
+							},
+						]
+					: []),
+			],
+		});
+
+		return { evo, atoms };
 	}
 }
 

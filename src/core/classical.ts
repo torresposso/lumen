@@ -5,6 +5,7 @@ import {
 } from "caelus";
 import {
 	findDeclinationAspect,
+	type NodeMotionStatus,
 	SIGN_RULERS,
 	shiftLongitude,
 	signOf,
@@ -404,4 +405,89 @@ export function generateFactAtoms(
 	}
 
 	return { atoms };
+}
+
+export interface EvoAtomsInput {
+	plutoAspectCount: number;
+	plutoStressfulCount: number;
+	plutoNonstressfulCount: number;
+	ppp: { sign: string; house: number; active: boolean };
+	plutoNorthNodeSeparation?: number;
+	midpoint?: { sign: string; signDeg: number };
+	antiMidpoint?: { sign: string; signDeg: number };
+	phase?: string;
+	northNodeRuler?: string;
+	southNodeRuler?: string;
+	northNodeAspectCount: number;
+	southNodeAspectCount: number;
+	nodalMotion: NodeMotionStatus;
+	skippedSteps: { body: string; aspect: string }[];
+	eclipses: Array<{
+		kind: "solar" | "lunar";
+		type: string;
+		sign: string;
+		signDeg: number;
+	}>;
+}
+
+/** Renders a rounded degree as a dot-free atom chunk: 73.44 -> "73_44". */
+function degreeAtom(value: number): string {
+	return value.toFixed(2).replace(".", "_");
+}
+
+/** Flattens "Disseminating" / "First Quarter" into snake_case identifiers. */
+function snakeAtom(value: string): string {
+	return value.toLowerCase().replace(/\s+/g, "_");
+}
+
+/** Generates deterministic factual atoms for the evolutionary mechanics block (`--evo`). */
+export function generateEvoAtoms(input: EvoAtomsInput): string[] {
+	const atoms: string[] = [];
+
+	atoms.push(`pluto_aspects_${input.plutoAspectCount}`);
+	atoms.push(`pluto_stressful_aspects_${input.plutoStressfulCount}`);
+	atoms.push(`pluto_nonstressful_aspects_${input.plutoNonstressfulCount}`);
+
+	atoms.push(`ppp_sign_${input.ppp.sign.toLowerCase()}`);
+	atoms.push(`ppp_house_${input.ppp.house}`);
+	atoms.push(input.ppp.active ? "ppp_active" : "ppp_inactive");
+	if (input.plutoNorthNodeSeparation !== undefined) {
+		atoms.push(
+			`pluto_nn_separation_${degreeAtom(input.plutoNorthNodeSeparation)}`,
+		);
+	}
+
+	if (input.midpoint) {
+		atoms.push(
+			`pluto_nn_midpoint_${input.midpoint.sign.toLowerCase()}_${Math.floor(input.midpoint.signDeg)}`,
+		);
+	}
+	if (input.antiMidpoint) {
+		atoms.push(
+			`pluto_nn_antimidpoint_${input.antiMidpoint.sign.toLowerCase()}_${Math.floor(input.antiMidpoint.signDeg)}`,
+		);
+	}
+
+	if (input.phase) atoms.push(`sol_luna_phase_${snakeAtom(input.phase)}`);
+
+	if (input.northNodeRuler)
+		atoms.push(`north_node_ruler_${input.northNodeRuler}`);
+	if (input.southNodeRuler)
+		atoms.push(`south_node_ruler_${input.southNodeRuler}`);
+	atoms.push(`north_node_aspects_${input.northNodeAspectCount}`);
+	atoms.push(`south_node_aspects_${input.southNodeAspectCount}`);
+	atoms.push(`nodal_motion_${input.nodalMotion}`);
+
+	atoms.push(`skipped_steps_${input.skippedSteps.length}`);
+	for (const step of input.skippedSteps) {
+		atoms.push(`skipped_${step.body}_${step.aspect}`);
+	}
+
+	for (const eclipse of input.eclipses) {
+		atoms.push(
+			`${eclipse.kind}_eclipse_${eclipse.type}_${eclipse.sign.toLowerCase()}_${Math.floor(eclipse.signDeg)}`,
+		);
+	}
+
+	return atoms;
 }
