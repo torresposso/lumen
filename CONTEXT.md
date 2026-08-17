@@ -35,6 +35,10 @@ _Avoid_: reading, interpretation output
 **Chart signature**:
 The tally of the ten core planets (sun through pluto; chiron and the lunar nodes excluded) by element, modality, quadrant, and hemisphere. Published as `chart.signature` and mirrored in the `dominant_*` atoms.
 
+**Aspect strength**:
+caelus's normalized strength of a listed aspect (`1 - orb / orb-limit`, computed from the rounded orb; 1.0 = exact). A contact sitting exactly on the orb limit is still listed but reads `strength: 0` — accept it as present, not absent. Known boundary quantization (audit S10), never an error.
+_Avoid_: reading `strength: 0` as "no aspect"
+
 ### Evolutionary astrology (Green & Forrest)
 
 **Evolutionary astrology**:
