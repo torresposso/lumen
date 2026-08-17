@@ -37,32 +37,37 @@ sin comandos ocultos, sin retrocompatibilidad que contamine `--help`:
 journey    ¿Qué me está pasando ahora? Progresiones secundarias y estaciones
 karma      ¿Cómo se aplica con otros? Sinastría evolutiva
 profile    Los seres de la práctica: perfiles locales de nacimiento (privacidad 0600, lumen.db)
-chart      Carta: natal (insumo base, con mecánica opt-in `--evo`) y draconic (experimento etiquetado)
+chart      Carta: natal (carta + mecánica siempre) y draconic (el canon: mecánica recalculada sobre su zodíaco)
 setup      Integración de sesión (hooks + skill) — conveniencia, no producto
 ```
 
-La mecánica evolutiva (Plutón/PPP y eje nodal) vive en `chart natal --evo` como
-bloque geométrico opt-in, sin interpretación. El bloque `evo` es navegable para
+La mecánica evolutiva (Plutón/PPP y eje nodal) vive en `chart natal` como bloque
+geométrico siempre presente, sin interpretación. El bloque `evo` es navegable para
 el agente: llaves planas en orden canónico (pluto → ppp → midpoint →
 antiMidpoint → nodalAxis → phase → dispositorChains → prenatalEclipses →
 counts → method), grados redondeados a 4 decimales como la carta base, `counts`
 (puente numérico con `summary`) y `method` (disclosure factual de orbes y
 criterios, derivado mecánicamente de las tablas de core — imposible que diverja
-del cálculo). Con `--evo` los átomos de `interpretationContext` incluyen la
-mecánica evolutiva.
+del cálculo). Los átomos de `interpretationContext` siempre incluyen la mecánica
+evolutiva, en el marco de cada zodíaco (natal o draconic).
 
 La política de precisión tiene una sola casa: `src/core/projection.ts` publica
 `lon`/`signDeg` a 4 decimales y `speed` a 6, y los comandos cruzan sus números
 por la misma puerta (ADR-0011) — la carta base, el bloque `evo` y
 `journey progressed` no pueden divergir en formato.
 
-`chart draconic` es puramente
-geométrico y rechaza `--evo`. Fuera de la superficie (helenístico/técnico,
-fuera del canon evolutivo — ver ADR-0004 y
+`chart draconic` entra al canon (ADR-0014): publica la carta draconic y su
+bloque `evo` recalculado sobre el zodíaco draconic — cuerpos y casas draconic,
+Nodo Norte fijo en 0° Aries por la proyección, y eclipses prenatales proyectados
+por la misma resta del Nodo. Por construcción, las secciones del bloque que
+dependen del eje nodal (regentes, skipped steps, separación PPP) son constantes
+para todas las cartas; `method` lo declara en su disclosure. Fuera de la
+superficie (helenístico/técnico, fuera del canon evolutivo — ver ADR-0004 y
 `~/knowledge/research/2026-08-12--tradicion-astrologia-evolutiva.md`):
 sinastría clásica (la evolutiva vive en `karma pair`), lotes herméticos y
 estrellas fijas. Los eclipses prenatales son eventos nodales y se entregan
-dentro del bloque `evo` de `chart natal --evo`.
+dentro del bloque `evo` de `chart natal` (y, proyectados, en el de
+`chart draconic`).
 
 ## 4. Definición de Terminado (checklist AXI)
 
@@ -95,7 +100,8 @@ Si la respuesta no es un sí sentido, la decisión es no.**
 
 1. `bun test` en verde (187 tests, 672 expect) y `bun run typecheck` sin
    errores; el conteo se recalibra solo vía tickets de remoción con ticket del
-   norte.
+   norte, y crece con la suite del bloque evo draconic al cierre de la cadena
+   `chart-evo-siempre` (conteos finales actualizados aquí, §6.1).
 2. `bun run check` (biome) con 0 errores y 0 warnings.
 3. `src/core/` sin I/O, zod, AxiError ni imports fuera de core/caelus.
 4. La superficie de comandos es exactamente la de la sección 3.

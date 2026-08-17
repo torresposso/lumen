@@ -16,11 +16,20 @@ canon (ADR-0014). Decidido por grill del capitán (2026-08-17).
 - Candidato de revisión «describirEvoCriteria junto a sus tablas»: ticket
   aparte, después de esta cadena.
 
+## Decisiones-so-far, actualización
+
+- ✅ `01-docs-chart-evo-siempre` resuelto (2026-08-17): docs vivos al target
+  (`DOMAIN.md`, `SPEC.md §3/§6.1`, `CONTEXT.md`, `README.md`,
+  `docs/agents/domain.md`); `grep -- --evo` limpio y `bun run check` verde.
+  Nota: `check:docs` no se pone rojo en esta transición (la paridad mecánica —
+  comandos de §3 y árbol src/ — no cambia con gramática); el verde de cierre se
+  verifica igual en 05.
+
 ## Hijos
 
-- [ ] `01-docs-chart-evo-siempre` — docs vivos al target (DOMAIN, SPEC §3/§6.1,
-      CONTEXT, README, docs/agents/domain.md). Sin blockers.
-- [ ] `02-core-reading-no-opcional` — `Blocked by: 01`.
+- [x] `01-docs-chart-evo-siempre` — docs vivos al target (DOMAIN, SPEC §3/§6.1,
+      CONTEXT, README, docs/agents/domain.md). Sin blockers. — **resolved**
+- [ ] `02-core-reading-no-opcional` — `Blocked by: 01` (desbloqueado).
 - [ ] `03-command-chart-sin-flag` — `Blocked by: 01`.
 - [ ] `04-draconic-evo` — `Blocked by: 01`.
 - [ ] `05-cierre` — `Blocked by: 02, 03, 04`; check:docs verde + SPEC §6.1 final.

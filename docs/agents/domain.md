@@ -22,7 +22,7 @@ src/
 │   ├── phases.ts                 # Fases Sol-Luna natales y progresadas (8 arquetipos)
 │   ├── journey.ts                # Progresiones secundarias, triggers a puntos EA dentro de orbe, estaciones
 │   ├── karma.ts                  # Sinastría evolutiva y contactos inter-cartas a Nodos/Plutón
-│   └── classical.ts              # Proyecciones auxiliares explícitas: Dracónica (experimento etiquetado)
+│   └── classical.ts              # Proyecciones auxiliares explícitas: Dracónica (canónica; ADR-0014)
 │
 ├── adapters/                     # 🌐 I/O EXTERNO & ADAPTADORES
 │   ├── geocode.ts                # Adaptador Open-Meteo, fallback offline y contratos de mock
@@ -37,7 +37,7 @@ src/
 │   ├── karma.ts                  # `lumen karma pair --a <id> --b <id>`
 │   ├── profile.ts                # `lumen profile add|list|show|remove`
 │   ├── intake.ts                 # Intake natal compartido: zod + resolución de nacimiento (el único seam)
-│   ├── chart.ts                   # `lumen chart natal [--evo]|draconic` (insumo base + mecánica opt-in)
+│   ├── chart.ts                   # `lumen chart natal|draconic` (carta + mecánica siempre; ADR-0014)
 │   └── setup.ts                  # `lumen setup hooks` (Idempotente, Claude/Codex/OpenCode)
 │
 ├── cli.ts                        # Enrutador axi-sdk-js con Home
@@ -48,19 +48,22 @@ src/
 
 ## 2. Catálogo de Comandos y Gramática AXI
 
-### A. `lumen chart natal <profile> [--evo]`
+### A. `lumen chart natal <profile>`
 
-Carta natal base y, con `--evo`, la mecánica evolutiva completa en un solo bloque.
+Carta natal completa: geometría base + mecánica evolutiva en un solo bloque, sin
+flags extra (solo intake: `--when`, `--place`, `--bodies`, `--house-system`, etc.).
 
-- **Sin flag**: carta base, igual que hoy (sin lectura).
-- **`--evo`**: bloque `evo` completo — Plutón/PPP, midpoint, eje nodal, fase Sol-Luna, cadenas de dispositores y eclipses prenatales, con `counts` (puente con `summary`), `method` (disclosure factual de orbes/criterios) y grados redondeados a 4 decimales (una sola política de precisión, ADR-0011). Con `--evo`, `interpretationContext` añade átomos de la mecánica evolutiva.
+- **Siempre entrega** el bloque `evo` completo — Plutón/PPP, midpoint, eje nodal,
+  fase Sol-Luna, cadenas de dispositores y eclipses prenatales, con `counts`
+  (puente con `summary`), `method` (disclosure factual de orbes/criterios) y
+  grados redondeados a 4 decimales (una sola política de precisión, ADR-0011).
+  `interpretationContext` siempre incluye los átomos de la mecánica evolutiva.
 - **Bordes (AXI)**:
   - Si Plutón está conjunto al Nodo Norte (orbe ≤ `PPP_DEACTIVATION_ORB`):
     `ppp.active: false` y `ppp.reason` (con la separación medida);
     `ppp.separation` = la medida de core sobre el Nodo Verdadero (la misma
     referencia que la regla, sin fallback), presente en el estado natal por defecto.
   - Si no hay pasos saltados: `skippedSteps: []`.
-  - `chart draconic --evo` → `VALIDATION_ERROR` (draconic es puramente geométrico).
   - `--bodies` es aditivo (extra bodies, p. ej. `mean_lilith`); no excluye Plutón/nodos.
 
 ```text
@@ -99,6 +102,48 @@ evo:
     skippedSteps: 1
     eclipses: 2
   method: "orbs PLUTO_ASPECTS: 10° conjunction/opposition, 8° square/trine, 6° sextile, 3° semisextile/semisquare/sesquiquadrate/quincunx, 2° septile/quintile/biquintile; ppp: major aspects only (orb 5°); skipped: squares to the nodal axis (orb 5°); ppp inactive when pluto conjunct the north node (orb 10°)"   # derivado de las tablas de core (describeEvoCriteria), nunca a mano
+```
+
+---
+
+### A'. `lumen chart draconic <profile>`
+
+Carta draconic en el canon (ADR-0014): proyección sobre el zodíaco del nodo lunar
++ el bloque `evo` **recalculado sobre el zodíaco draconic** — misma aritmética,
+otro marco; sigue siendo puramente geométrico.
+
+- Cuerpos de entrada: cuerpos draconic (`toDraconicChart`); casas de entrada:
+  casas draconic.
+- Nodo Norte de entrada: **0** (por construcción: restar la longitud del Nodo a
+  todas las posiciones coloca al Nodo en 0° Aries).
+- Eclipses: los prenatales natales proyectados por la misma resta (longitud del
+  eclipse − longitud del Nodo Norte).
+- **Secciones constantes**: por construcción, el eje nodal draconic está fijo
+  (NN en 0° Aries, SN en 0° Libra; cuadraturas en 0° Cáncer/Capricornio).
+  Regentes del eje, skipped steps y separación PPP son constantes para todas
+  las cartas.
+- **Disclosure**: `method` (derivado de `describeEvoCriteria`) declara
+  explícitamente el marco draconic y sus constantes, para que el agente no lea
+  valía-constante como información variable.
+- **Nada de interpretación**: el bloque sigue siendo puramente geométrico
+  (regla inamovible).
+
+```text
+chart: { ... }              # carta draconic proyectada (bodies, angles, cusps)
+draconic: { nodeUsed: true_node, bodies, angles, cusps }
+evo:
+  pluto: { ... }            # Plutón/PPP recalculados sobre el zodíaco draconic
+  ppp: { ... }
+  midpoint: "..."           # recalculado en el marco draconic
+  nodalAxis:
+    north: { lon: 0, sign: Aries, signDeg: 0, ... }     # fijo por construcción
+    south: { lon: 180, sign: Libra, signDeg: 0, ... }   # fijo por construcción
+    motion: direct                                       # constante
+  phase: Disseminating
+  dispositorChains: { pluto, southNodeRuler, northNodeRuler }
+  prenatalEclipses: { solar, lunar }   # proyectados por la resta del Nodo
+  counts: { ... }
+  method: "orbs PLUTO_ASPECTS: ...; ppp: ...; skipped: ...; ppp inactive when pluto conjunct the north node (orb 10°); draconic frame: nodal axis fixed at 0° Aries/0° Libra by projection, nodal-axis-dependent sections are constant across charts"   # disclosure factual, derivado de core, nunca a mano
 ```
 
 ---

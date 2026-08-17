@@ -11,9 +11,11 @@ bun install
 ## Comandos AXI
 
 ```bash
-# Carta natal base + mecánica evolutiva completa (Plutón/PPP + eje nodal + eclipses prenatales)
+# Carta natal completa: geometría base + mecánica evolutiva (Plutón/PPP + eje nodal + eclipses prenatales), siempre
 bun run bin/lumen.ts chart natal silvia
-bun run bin/lumen.ts chart natal silvia --evo
+
+# Carta draconic en el canon: proyección + mecánica evolutiva recalculada sobre su zodíaco
+bun run bin/lumen.ts chart draconic silvia
 
 # Progresiones secundarias y estaciones planetarias
 bun run bin/lumen.ts journey progressed silvia --at 2026-08-13
@@ -28,7 +30,7 @@ bun run bin/lumen.ts profile list
 bun run bin/lumen.ts profile show erik
 bun run bin/lumen.ts profile remove erik
 
-# Carta natal (insumo base; `--evo` agrega la mecánica evolutiva) y proyección draconic (experimento etiquetado)
+# Carta natal (carta + mecánica siempre) y carta draconic (canónica, con la mecánica recalculada sobre su zodíaco)
 bun run bin/lumen.ts chart natal --when "1981-01-26T00:50" --place "Magangué, Colombia"
 bun run bin/lumen.ts chart draconic --when "1981-01-26T00:50" --place "Magangué, Colombia"
 ```

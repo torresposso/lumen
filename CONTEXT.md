@@ -13,11 +13,11 @@ The base chart for one birth instant and place: body positions, house cusps, ang
 _Avoid_: birth chart, horoscope
 
 **Chart computation**:
-The pure core step that computes one raw chart from a validated `NatalRequest` and an `Ephemeris` at a given Julian Day, applying the chart options and the true-node canon. Owned by one deep module — `src/core/charts.ts`, `chartAt(request, jdUt, ephemeris)` (ADR-0013) — and shared by the natal reading, journey, and karma modules. The `mean_node` never leaves this module.
+The pure core step that computes one raw chart from a validated `NatalRequest` and an `Ephemeris` at a given Julian Day, applying the chart options and the true-node canon. Owned by one deep module — `src/core/charts.ts`, `chartAt(request, jdUt, ephemeris)` (ADR-0013) — and shared by the natal reading, the draconic reading, journey, and karma modules. The `mean_node` never leaves this module.
 _Avoid_: chart access, chart service
 
 **Astrological reading**:
-The complete, immutable assembled calculation result containing the natal chart, optional draconic projections, astronomical extensions, and evolutionary analysis. Assembled by one deep module — `src/core/reading.ts`, `computeReading(request, ephemeris, selection?)` (ADR-0012) — which asks the shared chart computation (see **Chart computation**) for the cleaned chart, projects it (see **Chart projection**), optionally adds the evolutionary block (see **Evolutionary reading**), fills the advisory `help`, and merges the interpretation atoms. `undefined` when `--evo` is selected but the chart lacks pluto or the true node; the CLI seam translates that into an `AxiError`.
+The complete, immutable assembled calculation result containing the natal chart, the draconic projection when requested, the astronomical extensions, and the evolutionary block. Assembled by one deep module — `src/core/reading.ts`, `computeReading(request, ephemeris)` (ADR-0012) — which asks the shared chart computation (see **Chart computation**) for the cleaned chart, projects it (see **Chart projection**), always adds the evolutionary block (see **Evolutionary reading**) — recalculated over the draconic zodiac when the request is draconic — fills the advisory `help`, and merges the interpretation atoms. Always returns the complete reading; there is no `undefined` branch.
 _Avoid_: chart output object, raw chart
 
 **Chart projection**:
@@ -33,11 +33,11 @@ A local birth time and place turned into a UT Julian Day with timezone provenanc
 _Avoid_: birth data, birth record
 
 **Draconic chart**:
-A natal chart re-projected onto the lunar-node zodiac by subtracting the North Node's longitude from all positions, placing the North Node at 0° Aries. Preserves aspects and angular separations. Outside the evolutionary canon; kept as a labeled experiment.
+A natal chart re-projected onto the lunar-node zodiac by subtracting the North Node's longitude from all positions, placing the North Node at 0° Aries. Preserves aspects and angular separations. Second canonical window (ADR-0014): its `evo` block is recalculated over the draconic zodiac — input bodies and cusps are draconic, the North Node is 0 by construction, and the prenatal eclipses are projected by the same North-Node subtraction.
 _Avoid_: soul chart
 
 **Interpretation context**:
-The `interpretationContext` block of an astrological reading: deterministic factual atoms (snake_case identifiers such as `pluto_sign_libra`, `north_node_ruler_sun`) that an agent uses to interpret a chart without re-parsing the TOON output. Covers the base chart and, with `--evo`, the evolutionary mechanics.
+The `interpretationContext` block of an astrological reading: deterministic factual atoms (snake_case identifiers such as `pluto_sign_libra`, `north_node_ruler_sun`) that an agent uses to interpret a chart without re-parsing the TOON output. Covers the base chart and the evolutionary mechanics, in the frame of each zodiac (natal or draconic).
 _Avoid_: reading, interpretation output
 
 **Chart signature**:
@@ -54,7 +54,8 @@ The tradition that reads the natal chart as the map of the soul's current lesson
 _Avoid_: karmic astrology, past-life astrology
 
 **Evolutionary reading**:
-The complete mechanical block delivered by `chart natal --evo`: Pluto's
+The complete mechanical block delivered by `chart natal` (and, recalculated over
+the draconic zodiac, by `chart draconic`): Pluto's
 placement and Polarity Point, the lunar-node axis with its planetary rulers and
 their natal house/sign placements, Skipped Steps, the Pluto–North Node
 Midpoint, Sol-Luna phase, dispositor chains, and prenatal eclipses.
@@ -64,16 +65,16 @@ _Avoid_: soul reading
 The single source of the orbs and thresholds governing the `evo` block: the `PLUTO_ASPECTS` table, the PPP major-only rule (orb 5°, `PPP_MAJOR_ASPECTS`), the skipped-square orb (`SKIPPED_STEPS_ORB`), and the PPP deactivation orb (`PPP_DEACTIVATION_ORB`), all living in `src/core/`. `describeEvoCriteria()` serializes them into `evo.method`, so the disclosure is derived from the tables, never hand-written, and cannot diverge from the calculation.
 
 **Evo block**:
-The opt-in `evo` output added to a natal chart by `--evo`. Always geometric,
-never interpretive. Not available on `chart draconic`. The block is
+The `evo` block published by `chart natal` and `chart draconic` — always present, never opt-in; on draconic it is recalculated over the draconic zodiac.
+Always geometric, never interpretive. The block is
 self-contained (`lon`/`signDeg` at 4 decimal places, through the single
 chart-projection policy — see **Chart projection**), uses
 `PLUTO_ASPECTS` orbs (which may differ from `chart.aspects`), exposes both
 `midpoint` and `antiMidpoint`, includes Pluto in `nodeAspects` (but never in
 `skippedSteps`), publishes its criteria in `method` (derived mechanically from
 the core criteria tables — see **Evolutionary criteria** — so it cannot drift),
-and bridges to `summary` via `counts`. With `--evo`, the interpretation context
-adds atoms for the evolutionary mechanics.
+and bridges to `summary` via `counts`. The interpretation context always
+includes the atoms for the evolutionary mechanics, in the frame of each zodiac.
 
 **Pluto Polarity Point**:
 The point diametrically opposite Pluto (Pluto longitude + 180°), representing the evolutionary direction the soul is moving toward. Deactivated when Pluto is conjunct the North Node within orb ≤ `PPP_DEACTIVATION_ORB` (10°, one named constant in core; evolution channels directly through the North Node and its ruler). The angular Pluto–North Node separation that the rule already measures is republished as `evo.ppp.separation` (same reference: the True Node, no fallback) and, when inactive, the cause as `evo.ppp.reason` with the measured separation.
