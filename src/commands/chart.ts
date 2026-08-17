@@ -29,33 +29,19 @@ import {
 	computeDeclinationAspects,
 	type DeclinationAspectProjection,
 	type DraconicChart,
-	describeEvoCriteria,
 	detectAspectPatterns,
-	generateEvoAtoms,
 	generateFactAtoms,
 	type InterpretationContext,
 	toDraconicChart,
 } from "../core/classical";
 import {
-	computeNodalReading,
-	computePrenatalEclipses,
-	type EclipsesResult,
-	type NodeAspect,
-	type SkippedStep,
-} from "../core/nodes";
-import { computeSolLunaPhase } from "../core/phases";
-import {
-	computeSoulReading,
-	type DispositorStep,
-	type PlutoAspect,
-	PPP_DEACTIVATION_ORB,
-	type PPPAspect,
-} from "../core/soul";
+	computeEvolutionaryReading,
+	type EvoOutput,
+} from "../core/evolutionary-reading";
 import type {
 	BirthStatus,
 	ChartRequestOptions,
 	NatalRequest as EngineNatalRequest,
-	NodeMotionStatus,
 	ResolvedBirth,
 } from "../core/types";
 import { projectPoint, roundPrecision as round } from "../core/types";
@@ -160,69 +146,6 @@ export type AstrologicalReading = {
 	interpretationContext?: InterpretationContext;
 	help?: string[];
 };
-
-export interface EvoNodalPoint {
-	sign: string;
-	lon: number;
-	house: number;
-	signDeg: number;
-	ruler?: string;
-	rulerPlacement?: {
-		body: string;
-		sign: string;
-		signDeg: number;
-		house: number;
-		motion: NodeMotionStatus;
-	};
-	aspects: NodeAspect[];
-}
-
-export interface EvoNodalAxis {
-	north: EvoNodalPoint;
-	south: EvoNodalPoint;
-	motion: NodeMotionStatus;
-	skippedSteps: SkippedStep[];
-}
-
-export interface EvoOutput {
-	pluto: {
-		sign: string;
-		lon: number;
-		house: number;
-		signDeg: number;
-		retrograde: boolean;
-		stressfulCount: number;
-		nonstressfulCount: number;
-		aspects: PlutoAspect[];
-	};
-	ppp: {
-		sign: string;
-		lon: number;
-		house: number;
-		signDeg: number;
-		active: boolean;
-		separation?: number;
-		reason?: string;
-		aspects: PPPAspect[];
-	};
-	midpoint?: string;
-	antiMidpoint?: string;
-	nodalAxis: EvoNodalAxis;
-	phase?: string;
-	dispositorChains: {
-		pluto: DispositorStep[];
-		southNodeRuler?: DispositorStep[];
-		northNodeRuler?: DispositorStep[];
-	};
-	prenatalEclipses: EclipsesResult;
-	counts: {
-		plutoAspects: number;
-		nodeAspects: number;
-		skippedSteps: number;
-		eclipses: number;
-	};
-	method: string;
-}
 
 /** Node ids to drop from the chart. The engine always computes both nodes;
  *  lumen is dedicated to the true node (North Node canon), so the mean node
@@ -414,7 +337,25 @@ export class AstrologicalEngine {
 
 		const aspects = projected.aspects;
 		const interpretationContext = generateFactAtoms(projected);
-		const evo = selection.evo ? this.buildEvo(request, rawChart) : undefined;
+		const evo = selection.evo
+			? computeEvolutionaryReading({
+					bodies: rawChart.bodies,
+					cusps: rawChart.cusps,
+					ephemeris: this.ephemeris,
+					birth: request.birth,
+					houseSystem: request.options.houseSystem,
+					topocentric: request.options.topocentric,
+				})
+			: undefined;
+		if (selection.evo && !evo) {
+			throw new AxiError(
+				"Could not compute evolutionary mechanics",
+				"CALCULATION_ERROR",
+				[
+					"The chart must contain pluto and the true node (the default natal bodies); --bodies only adds extra bodies",
+				],
+			);
+		}
 		if (evo) interpretationContext.atoms.push(...evo.atoms);
 
 		return {
@@ -430,195 +371,6 @@ export class AstrologicalEngine {
 			interpretationContext,
 			...(help.length > 0 ? { help } : {}),
 		};
-	}
-
-	private buildEvo(
-		request: EngineNatalRequest,
-		rawChart: Chart,
-	): { evo: EvoOutput; atoms: string[] } {
-		const bodies = rawChart.bodies;
-		const cusps = rawChart.cusps;
-		const soul = computeSoulReading(bodies, cusps, bodies.true_node?.lon);
-		const nodal = computeNodalReading(bodies, cusps);
-		if (!soul || !nodal) {
-			throw new AxiError(
-				"Could not compute evolutionary mechanics",
-				"CALCULATION_ERROR",
-				[
-					"The chart must contain pluto and the true node (the default natal bodies); --bodies only adds extra bodies",
-				],
-			);
-		}
-		const rulerPlacement = (
-			input:
-				| {
-						body: string;
-						sign: string;
-						signDeg: number;
-						house: number;
-						motion: NodeMotionStatus;
-				  }
-				| undefined,
-		) =>
-			input
-				? {
-						body: input.body,
-						sign: input.sign,
-						signDeg: input.signDeg,
-						house: input.house,
-						motion: input.motion,
-					}
-				: undefined;
-
-		const north = nodal.northNode;
-		const south = nodal.southNode;
-		const sun = bodies.sun;
-		const moon = bodies.moon;
-		const phase =
-			sun && moon ? computeSolLunaPhase(sun.lon, moon.lon).name : undefined;
-
-		// Pluto–North Node separation: republished from core — the same raw
-		// measurement the PPP deactivation rule already made, so the published
-		// number always matches the rule (same reference: true node, no fallback).
-		const plutoNorthNodeSeparation =
-			soul.plutoNorthNodeSeparation === undefined
-				? undefined
-				: round(soul.plutoNorthNodeSeparation, 2);
-
-		const eclipses = computePrenatalEclipses(
-			this.ephemeris,
-			request.birth,
-			cusps,
-			request.options.houseSystem,
-			request.options.topocentric,
-		);
-
-		// Aggregated once; feeds both `evo.counts` and the atoms input (the
-		// shared aggregation base — no recomputation of pluto.aspects.length).
-		const counts: EvoOutput["counts"] = {
-			plutoAspects: soul.pluto.aspects.length,
-			nodeAspects: north.aspects.length + south.aspects.length,
-			skippedSteps: nodal.skippedSteps.length,
-			eclipses: (eclipses.solar ? 1 : 0) + (eclipses.lunar ? 1 : 0),
-		};
-
-		const evo: EvoOutput = {
-			pluto: {
-				sign: soul.pluto.sign,
-				lon: round(soul.pluto.lon),
-				signDeg: round(soul.pluto.signDeg),
-				house: soul.pluto.house,
-				retrograde: soul.pluto.retrograde,
-				stressfulCount: soul.pluto.stressfulAspects,
-				nonstressfulCount: soul.pluto.nonstressfulAspects,
-				aspects: soul.pluto.aspects,
-			},
-			ppp: {
-				sign: soul.ppp.sign,
-				lon: round(soul.ppp.lon),
-				signDeg: round(soul.ppp.signDeg),
-				house: soul.ppp.house,
-				active: soul.ppp.active,
-				separation: plutoNorthNodeSeparation,
-				...(soul.ppp.active
-					? {}
-					: {
-							reason:
-								plutoNorthNodeSeparation === undefined
-									? `pluto conjunct north node (orb <= ${PPP_DEACTIVATION_ORB}°)`
-									: `pluto conjunct north node (separation ${plutoNorthNodeSeparation}° <= ${PPP_DEACTIVATION_ORB}°)`,
-						}),
-				aspects: soul.ppp.aspects,
-			},
-			midpoint: soul.plutoNorthNodeMidpoint?.formatted,
-			antiMidpoint: soul.plutoNorthNodeAntiMidpoint?.formatted,
-			nodalAxis: {
-				north: {
-					sign: north.sign,
-					lon: round(north.lon),
-					signDeg: round(north.signDeg),
-					house: north.house,
-					ruler: north.ruler,
-					rulerPlacement: rulerPlacement(north.rulerPlacement),
-					aspects: north.aspects,
-				},
-				south: {
-					sign: south.sign,
-					lon: round(south.lon),
-					signDeg: round(south.signDeg),
-					house: south.house,
-					ruler: south.ruler,
-					rulerPlacement: rulerPlacement(south.rulerPlacement),
-					aspects: south.aspects,
-				},
-				motion: nodal.motionStatus,
-				skippedSteps: nodal.skippedSteps,
-			},
-			phase,
-			dispositorChains: {
-				pluto: soul.dispositorChain,
-				southNodeRuler: nodal.dispositorChains.southNodeRuler,
-				northNodeRuler: nodal.dispositorChains.northNodeRuler,
-			},
-			prenatalEclipses: eclipses,
-			counts,
-			method: describeEvoCriteria(),
-		};
-
-		const atoms = generateEvoAtoms({
-			plutoAspectCount: counts.plutoAspects,
-			plutoStressfulCount: soul.pluto.stressfulAspects,
-			plutoNonstressfulCount: soul.pluto.nonstressfulAspects,
-			ppp: {
-				sign: soul.ppp.sign,
-				house: soul.ppp.house,
-				active: soul.ppp.active,
-			},
-			plutoNorthNodeSeparation,
-			midpoint: soul.plutoNorthNodeMidpoint
-				? {
-						sign: soul.plutoNorthNodeMidpoint.sign,
-						signDeg: soul.plutoNorthNodeMidpoint.signDeg,
-					}
-				: undefined,
-			antiMidpoint: soul.plutoNorthNodeAntiMidpoint
-				? {
-						sign: soul.plutoNorthNodeAntiMidpoint.sign,
-						signDeg: soul.plutoNorthNodeAntiMidpoint.signDeg,
-					}
-				: undefined,
-			phase,
-			northNodeRuler: north.ruler,
-			southNodeRuler: south.ruler,
-			northNodeAspectCount: north.aspects.length,
-			southNodeAspectCount: south.aspects.length,
-			nodalMotion: nodal.motionStatus,
-			skippedSteps: nodal.skippedSteps,
-			eclipses: [
-				...(eclipses.solar
-					? [
-							{
-								kind: "solar" as const,
-								type: eclipses.solar.type,
-								sign: eclipses.solar.sign,
-								signDeg: eclipses.solar.signDeg,
-							},
-						]
-					: []),
-				...(eclipses.lunar
-					? [
-							{
-								kind: "lunar" as const,
-								type: eclipses.lunar.type,
-								sign: eclipses.lunar.sign,
-								signDeg: eclipses.lunar.signDeg,
-							},
-						]
-					: []),
-			],
-		});
-
-		return { evo, atoms };
 	}
 }
 
