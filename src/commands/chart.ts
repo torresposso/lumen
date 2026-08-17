@@ -203,7 +203,7 @@ export interface EvoOutput {
 		house: number;
 		signDeg: number;
 		active: boolean;
-		separation?: number;
+		separation: number;
 		reason?: string;
 		aspects: PPPAspect[];
 	};
@@ -484,10 +484,13 @@ export class AstrologicalEngine {
 		const phase =
 			sun && moon ? computeSolLunaPhase(sun.lon, moon.lon).name : undefined;
 
-		const plutoNorthNodeSeparation =
-			bodies.true_node !== undefined
-				? round(angularDistance(soul.pluto.lon, bodies.true_node.lon), 2)
-				: undefined;
+		// Pluto–North Node separation: prefers the true node (the deactivation
+		// reference) and falls back to the node actually reported by nodal.
+		const referenceNodeLon = bodies.true_node?.lon ?? nodal.northNode.lon;
+		const plutoNorthNodeSeparation = round(
+			angularDistance(soul.pluto.lon, referenceNodeLon),
+			2,
+		);
 
 		const eclipses = computePrenatalEclipses(
 			this.ephemeris,
@@ -514,9 +517,7 @@ export class AstrologicalEngine {
 				signDeg: round(soul.ppp.signDeg),
 				house: soul.ppp.house,
 				active: soul.ppp.active,
-				...(plutoNorthNodeSeparation !== undefined
-					? { separation: plutoNorthNodeSeparation }
-					: {}),
+				separation: plutoNorthNodeSeparation,
 				...(soul.ppp.active
 					? {}
 					: { reason: "pluto conjunct north node (<=10°)" }),

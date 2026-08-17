@@ -44,10 +44,11 @@ setup      Integración de sesión (hooks + skill) — conveniencia, no producto
 La mecánica evolutiva (Plutón/PPP y eje nodal) vive en `chart natal --evo` como
 bloque geométrico opt-in, sin interpretación. El bloque `evo` es navegable para
 el agente: llaves planas en orden canónico (pluto → ppp → midpoint →
-antiMidpoint → nodalAxis → phase → dispositorChains → prenatalEclipses), con
-`counts` (puente numérico con `summary`), `method` (disclosure factual de orbes
-y criterios) y grados redondeados a 4 decimales como la carta base. Con `--evo`
-los átomos de `interpretationContext` incluyen la mecánica evolutiva.
+antiMidpoint → nodalAxis → phase → dispositorChains → prenatalEclipses →
+counts → method), grados redondeados a 4 decimales como la carta base, `counts`
+(puente numérico con `summary`) y `method` (disclosure factual de orbes y
+criterios). Con `--evo` los átomos de `interpretationContext` incluyen la
+mecánica evolutiva.
 
 `chart draconic` es puramente
 geométrico y rechaza `--evo`. Fuera de la superficie (helenístico/técnico,

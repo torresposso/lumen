@@ -80,7 +80,7 @@ evo:
     north: { lon: 130.9058, sign: Leo, signDeg: 10.9058, house: 9, ruler, rulerPlacement, aspects[] }  # incluye Plutón
     south: { lon: 310.9058, sign: Aquarius, signDeg: 10.9058, house: 3, ruler, rulerPlacement, aspects[] }  # incluye Plutón
     motion: direct
-    skippedSteps: [chiron,square,2.5025]   # Plutón nunca aparece en skippedSteps
+    skippedSteps[1]{body,aspect,orb}: chiron,square,2.5025   # Plutón nunca aparece en skippedSteps
   phase: Disseminating
   dispositorChains: { pluto, southNodeRuler, northNodeRuler }
   prenatalEclipses: { solar, lunar }
