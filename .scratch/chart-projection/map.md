@@ -8,14 +8,16 @@ compartido por `chart`, el bloque `evo` y `journey progressed` (ADR-0011).
 - Módulo profundo `src/core/projection.ts`: mapping completo (`project`) + política nombrada.
 - `chart.ts` conserva el engine y deja de proyectar (sin re-exports de los tipos movidos:
   nadie los importa).
-- `journey progressed` y `evo.rulerPlacement.signDeg` se unen a los 4dp.
-- Union `renderLon` colapsado a `projectLon(rawLon: number)`.
+- `journey progressed` se une a los 4dp (único cambio de bytes). `rulerPlacement.signDeg`
+  se enruta explícitamente por `roundToon` (byte-idéntico; ya era 4dp en core).
+- Union `renderLon` colapsado a `projectLon(rawLon: number)`, que lee `TOON_LON_DIGITS`
+  vía `projectPoint` (angles/cusps cruzan la política nombrada).
 - Doc-first: `01-docs-chart-projection` bloquea a los tickets de código.
 
 ## Hijos
 
-- [ ] `01-docs-chart-projection`
-- [ ] `02-projection-module`
-- [ ] `03-evo-journey-policy`
-- [ ] `04-tests`
-- [ ] `05-review`
+- [x] `01-docs-chart-projection`
+- [x] `02-projection-module`
+- [x] `03-evo-journey-policy`
+- [x] `04-tests`
+- [x] `05-review`

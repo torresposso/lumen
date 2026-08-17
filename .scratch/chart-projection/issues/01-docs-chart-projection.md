@@ -1,7 +1,7 @@
 ---
 id: 01-docs-chart-projection
 type: task
-status: open
+status: resolved
 blockers: []
 ---
 
@@ -32,4 +32,8 @@ Reescribir los docs vivos al target de la feature antes de tocar código.
   durante la transición y vuelve a verde en `02-projection-module`.
 
 ## Answer
-<!-- pending -->
+- ADR-0011 creada (chart projection + política TOON en una fuente).
+- DOMAIN.md + docs/agents/domain.md: entrada `core/projection.ts` en el árbol y
+  línea 4dp en §B.1; SPEC §2 (8→9 módulos), §3 (párrafo de política) y §6.1
+  recalibrado; CONTEXT.md con el término **Chart projection** (glosa TOON) y
+  cross-ref en `Evo block`. Check:docs verde tras `02`.

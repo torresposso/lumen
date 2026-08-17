@@ -1,7 +1,7 @@
 ---
 id: 04-tests
 type: task
-status: open
+status: resolved
 blockers: [02-projection-module, 03-evo-journey-policy]
 ---
 
@@ -32,4 +32,8 @@ Cobertura directa del módulo de proyección y pins de la adopción de política
 - Los pins viejos (output-projection, chart.test) intactos.
 
 ## Answer
-<!-- pending -->
+- `tests/core/projection.test.ts`: tabla de política + mapping directo
+  (bodies/angles/cusps/aspects/meta, `dist: null`, omisión de undefined, draconic).
+- Pins 4dp: `rulerPlacement.signDeg` (evolutionary-reading) y progressed
+  lon/signDeg (timing + journey). Suite final: 183 tests / 662 expect, SPEC §6.1
+  recalibrado. `bun test`, `bun run typecheck` y `bun run check` en verde.

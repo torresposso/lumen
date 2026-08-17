@@ -1,6 +1,7 @@
 # Chart projection: un solo hogar para el mapping y la política de precisión (TOON)
 
-> **Estado**: Draft — implementación tras el ticket doc-first `01-docs-chart-projection`.
+> **Estado**: Implementado y verificado — review de `/code-review` aplicada y cadena de
+> tickets cerrada (183 tests, 662 expect).
 > **Origen**: `/improve-codebase-architecture` (candidato 2) — la publicación de la carta vivía
 > en `src/commands/chart.ts` (~106 LOC) y la política de precisión tenía tres casas
 > (chart.ts, evolutionary-reading.ts, journey.ts), con journey emitiendo números crudos.

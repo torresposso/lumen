@@ -1,7 +1,7 @@
 ---
 id: 02-projection-module
 type: task
-status: open
+status: resolved
 blockers: [01-docs-chart-projection]
 ---
 
@@ -38,4 +38,9 @@ Crear `src/core/projection.ts` y dejar `commands/chart.ts` sin proyección propi
 - `bun run check:docs` vuelve a verde (árbol + superficie al target).
 
 ## Answer
-<!-- pending -->
+- `src/core/projection.ts` creado: política nombrada + tipos movidos + `project()`
+  llamando a `computeDeclinationAspects`/`computeChartSignature`/`detectAspectPatterns`
+  desde `classical.ts`. `chart.ts` sin proyección propia; su `compute` llama a
+  `project()`. Tras review: `projectLon` lee `TOON_LON_DIGITS` vía `projectPoint`
+  (angles/cusps cruzan la misma constante). Output de carta base byte-idéntico
+  (tests viejos intactos) y `check:docs` en verde.

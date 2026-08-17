@@ -1,7 +1,7 @@
 ---
 id: 03-evo-journey-policy
 type: task
-status: open
+status: resolved
 blockers: [01-docs-chart-projection]
 ---
 
@@ -33,4 +33,8 @@ política nombrada.
   `tests/commands/journey.test.ts` con pins 4dp en progressed.
 
 ## Answer
-<!-- pending -->
+- `evolutionary-reading.ts` usa `roundToon`/`roundSeparation`, con
+  `rulerPlacement.signDeg` (north+south) enrutado explícitamente por `roundToon`
+  (byte-idéntico; ya era 4dp en core — narrativa corregida tras review).
+- `journey.ts` emite `lon`/`signDeg` progresados a 4dp (único cambio de bytes).
+- Arrays de aspects/órbes intactos (ya 4dp en los matchers de core).
