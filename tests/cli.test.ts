@@ -2,6 +2,11 @@ import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { AxiError } from "axi-sdk-js";
 import { profileCommand } from "../src/commands/profile";
+import {
+	ADD_FLAGS,
+	PROFILE_ADD_HINT,
+	PROFILE_ARMS,
+} from "../src/core/cli-surface";
 import type { CliContext } from "../src/core/types";
 import { ProfileStore } from "../src/storage/profile-store";
 
@@ -149,7 +154,7 @@ describe("profileCommand", () => {
 			help?: string[];
 		};
 		expect(empty.profiles).toEqual([]);
-		expect(empty.help?.[0]).toContain("lumen profile add");
+		expect(empty.help?.[0]).toBe(PROFILE_ADD_HINT);
 
 		await profileCommand(["add", ...ADD_ARGS], ctx());
 		const listed = (await profileCommand(["list"], ctx())) as {
@@ -206,12 +211,12 @@ describe("profileCommand", () => {
 			["list", "--help"],
 			undefined,
 		)) as string;
-		expect(addHelp).toContain("--when");
-		expect(addHelp).toContain("--where");
-		expect(addHelp).not.toContain("lumen profile get");
-		expect(listHelp).toContain("lumen profile list");
+		expect(addHelp).toContain(ADD_FLAGS.when);
+		expect(addHelp).toContain(ADD_FLAGS.where);
+		expect(addHelp).not.toContain(PROFILE_ARMS.get);
+		expect(listHelp).toContain(PROFILE_ARMS.list);
 		expect(listHelp).not.toContain("--offset");
-		expect(listHelp).not.toContain("--where");
+		expect(listHelp).not.toContain(ADD_FLAGS.where);
 	});
 
 	test("rejects unknown subcommands", async () => {

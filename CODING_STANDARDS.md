@@ -49,10 +49,11 @@ Already enforced, not reviewable:
    Validation must not be re-implemented at call sites — the command owns
    presence and orchestration, never value checks. The birth-input seam is the
    single place where the ergonomic CLI names (`--when`/`--where`) map onto the
-   model's `birth*` fields. The names themselves live in the add surface
-   (`src/core/cli-surface.ts`): the args spec, usage text and birth-input
-   messages reference the tokens instead of re-typing them (ADR-0006;
-   ADR-0007).
+   model's `birth*` fields. The names themselves live in the command surface
+   (`src/core/cli-surface.ts`): the command and arm tokens, the flag literals,
+   the canonical add example and the shared hints. The args spec, usage text,
+   top-level help and birth-input messages reference the tokens instead of
+   re-typing them, so a vocabulary rename is one edit (ADR-0006; ADR-0007).
 7. **Pure kernels don't validate or do I/O.** `src/core/jd.ts` is arithmetic
    only — no range checks, no imports beyond plain math. Validation belongs to
    the calling contract; I/O belongs to the storage layer.

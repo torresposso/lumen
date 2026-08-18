@@ -1,27 +1,29 @@
 import { AxiError } from "axi-sdk-js";
 import type { ArgsSpec } from "../core/args";
 import { parseBirthInput } from "../core/birth-input";
-import { ADD_FLAGS, PROFILE_ADD_EXAMPLE } from "../core/cli-surface";
+import {
+	ADD_FLAGS,
+	PROFILE_ADD_EXAMPLE,
+	PROFILE_ADD_HINT,
+	PROFILE_ARMS,
+	PROFILE_COMMAND,
+	PROFILE_LIST_HINT,
+} from "../core/cli-surface";
 import { createSubcommandGroup } from "../core/subcommand";
 import { toonProfile } from "../core/toon";
 import type { CliContext } from "../core/types";
 
-/**
- * The empty-state hint pointing an agent at `add`, used by the `list` arm.
- */
-const PROFILE_ADD_HINT = `Run \`${PROFILE_ADD_EXAMPLE}\``;
-
 const profileUsage = [
 	`${PROFILE_ADD_EXAMPLE} [${ADD_FLAGS.name} slug]`,
-	"lumen profile list",
-	"lumen profile get <uuid>",
-	"lumen profile delete <uuid>",
+	PROFILE_ARMS.list,
+	`${PROFILE_ARMS.get} <uuid>`,
+	`${PROFILE_ARMS.delete} <uuid>`,
 	"",
 	"Manage local birth profiles.",
 ].join("\n");
 
 const profileAddUsage = [
-	`lumen profile add ${ADD_FLAGS.when} "YYYY-MM-DDTHH:MM±HH:MM" ${ADD_FLAGS.where} "lat, lon, Place, Country" [${ADD_FLAGS.name} slug]`,
+	`${PROFILE_ARMS.add} ${ADD_FLAGS.when} "YYYY-MM-DDTHH:MM±HH:MM" ${ADD_FLAGS.where} "lat, lon, Place, Country" [${ADD_FLAGS.name} slug]`,
 	"",
 	"Register a birth profile. The agent resolves coordinates and the UTC",
 	`offset, formats them into ${ADD_FLAGS.when} and ${ADD_FLAGS.where}, and calls lumen; lumen`,
@@ -37,19 +39,19 @@ const profileAddUsage = [
 ].join("\n");
 
 const profileListUsage = [
-	"lumen profile list",
+	PROFILE_ARMS.list,
 	"",
 	"Lists saved profiles: id, name, birthplace, birthDateTime, coordinates and birthJdUt.",
 ].join("\n");
 
 const profileGetUsage = [
-	"lumen profile get <uuid>",
+	`${PROFILE_ARMS.get} <uuid>`,
 	"",
 	"Shows one profile by its UUID.",
 ].join("\n");
 
 const profileDeleteUsage = [
-	"lumen profile delete <uuid>",
+	`${PROFILE_ARMS.delete} <uuid>`,
 	"",
 	"Deletes one profile by its UUID. Deleting an unknown profile raises NOT_FOUND.",
 ].join("\n");
@@ -93,7 +95,7 @@ function requireProfileStore(
 }
 
 export const profileCommand = createSubcommandGroup<CliContext>({
-	name: "lumen profile",
+	name: PROFILE_COMMAND,
 	usage: profileUsage,
 	subcommands: {
 		add: {
@@ -137,7 +139,7 @@ export const profileCommand = createSubcommandGroup<CliContext>({
 				const profile = requireProfileStore(context).get(id);
 				if (profile === undefined) {
 					throw new AxiError(`Unknown profile: ${id}`, "NOT_FOUND", [
-						"Run `lumen profile list` to see saved profiles",
+						PROFILE_LIST_HINT,
 					]);
 				}
 				return toonProfile(profile);
@@ -152,7 +154,7 @@ export const profileCommand = createSubcommandGroup<CliContext>({
 				const removed = requireProfileStore(context).remove(id);
 				if (!removed) {
 					throw new AxiError(`Unknown profile: ${id}`, "NOT_FOUND", [
-						"Run `lumen profile list` to see saved profiles",
+						PROFILE_LIST_HINT,
 					]);
 				}
 				return { profile: id, status: "deleted" };

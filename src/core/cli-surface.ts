@@ -1,11 +1,25 @@
 /**
- * The add surface — the single home of the ergonomic `profile add` vocabulary
- * (ADR-0007): the flag literals and the canonical add example. The command's
- * args spec, its usage text and the birth-input contract's messages reference
- * these tokens; none re-types a literal, so a flag rename is one edit in this
- * module. The add surface holds the *names*; the birth-input contract holds
- * the *meanings* (ADR-0006).
+ * The command surface — the single home of the whole agent-facing CLI
+ * vocabulary (ADR-0007): the command and arm tokens, the flag literals, the
+ * canonical add example and the shared empty-state / NOT_FOUND hints. The
+ * top-level help, the command's usage text, the subcommand group name and the
+ * birth-input contract's messages reference these tokens; none re-types a
+ * literal, so a command, arm or flag rename is one edit in this module. The
+ * command surface holds the *names*; the contracts hold the *meanings*
+ * (ADR-0006).
  */
+
+/** The top-level command token — "lumen profile". */
+export const PROFILE_COMMAND = "lumen profile";
+
+/** The four arm command-lines as an agent sees them in help and usage text. */
+export const PROFILE_ARMS = {
+	add: `${PROFILE_COMMAND} add`,
+	list: `${PROFILE_COMMAND} list`,
+	get: `${PROFILE_COMMAND} get`,
+	delete: `${PROFILE_COMMAND} delete`,
+} as const;
+
 export const ADD_FLAGS = {
 	when: "--when",
 	where: "--where",
@@ -13,4 +27,10 @@ export const ADD_FLAGS = {
 } as const;
 
 /** The canonical `add` example — the single source for every usage and empty-state reference. */
-export const PROFILE_ADD_EXAMPLE = `lumen profile add ${ADD_FLAGS.when} "1981-01-26T00:50-05:00" ${ADD_FLAGS.where} "9.15, -74.75, Magangué, Colombia"`;
+export const PROFILE_ADD_EXAMPLE = `${PROFILE_ARMS.add} ${ADD_FLAGS.when} "1981-01-26T00:50-05:00" ${ADD_FLAGS.where} "9.15, -74.75, Magangué, Colombia"`;
+
+/** The empty-state hint pointing an agent at `add` (list arm, top-level home). */
+export const PROFILE_ADD_HINT = `Run \`${PROFILE_ADD_EXAMPLE}\``;
+
+/** The not-found hint pointing an agent at `list` (get/delete arms, top-level home). */
+export const PROFILE_LIST_HINT = `Run \`${PROFILE_ARMS.list}\` to see saved profiles`;

@@ -50,4 +50,3 @@ import type { ProfileStore } from "../storage/profile-store";
 export interface CliContext {
 	profiles: ProfileStore;
 }
-

@@ -46,7 +46,7 @@ function ensureSchema(db: Database): void {
 		throw new AxiError(
 			`Profile store schema version ${user_version} is newer than supported (${SCHEMA_VERSION})`,
 			"PROFILE_ERROR",
-			["Upgrade lumen, then run `lumen profile list` again"],
+			["Upgrade lumen"],
 		);
 	}
 	if (user_version < 1) {

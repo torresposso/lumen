@@ -37,3 +37,15 @@ module.
   holds the *meanings*.
 - `RawBirthInput` keeps its `when` / `where` property identifiers — they are
   the contract's field names, not CLI strings, and never follow a flag rename.
+
+## Update (2026-08-18)
+
+The add surface is widened to the **command surface**. It now also owns the
+command token (`lumen profile`), the four arm command-lines and the shared
+empty-state / NOT_FOUND hints; the top-level help in `src/cli.ts` and the
+`get`/`delete` arm usage interpolate them, so a command or arm rename is one
+edit too — the promise this ADR made for flags now holds for the whole agent
+facing vocabulary. In the same pass the profile store's migration suggestion
+stopped citing a CLI command: persistence keeps no reference to the CLI
+surface (ADR-0006). The `CONTEXT.md` term is now *command surface*; the
+add-slice scope recorded above is subsumed.

@@ -65,11 +65,12 @@ Rules:
   `birthJdUt` at 6 decimals, `birthLat`/`birthLon` at 4, `birthDateTime` echoed
   as stored; display only (the DB keeps full precision). The agent parses the
   text.
-- **Single home for the ergonomic names**: the `--when` / `--where` / `--name`
-  literals and the canonical add example live in the **add surface**
-  (`src/core/cli-surface.ts`, ADR-0007). The command's args spec, its usage
-  text and the birth-input contract's messages interpolate the tokens — a flag
-  rename is one edit.
+- **Single home for the CLI vocabulary**: the command token (`lumen profile`),
+  the four arm command-lines, the `--when` / `--where` / `--name` literals, the
+  canonical add example and the shared empty-state / NOT_FOUND hints live in the
+  **command surface** (`src/core/cli-surface.ts`, ADR-0007). The args spec, the
+  usage text, the top-level help and the birth-input contract's messages
+  interpolate the tokens — a command, arm or flag rename is one edit.
 
 ## 4. Julian Day computation
 
@@ -139,8 +140,8 @@ Removed: `caelus`, `caelus-birth`, `zod`, `luxon` (the last one only transitive 
   usage without running; parse violations propagate as one `VALIDATION_ERROR`
   citing the command; the arm's result (string or object) passes through;
   async arms are awaited; context is forwarded.
-- `tests/cli-surface.test.ts` — the add surface: the flag literals and the
-  canonical add example match the spec §3 surface.
+- `tests/cli-surface.test.ts` — the command surface: the tokens, the canonical
+  add example and the shared hints match the spec §3 surface.
 - `tests/cli.test.ts` — input contract (each flag + combinations); AXI errors; TOON output (rounding applied, `birthDateTime` echoed); `add` prints the UUID; dedupe visible from the CLI; the command seam is crossed against an in-memory store.
 
 ## 8. Suggested source layout
@@ -151,7 +152,7 @@ src/cli.ts                       # runAxiCli + command registration
 src/commands/profile.ts          # add / list / get / delete
 src/core/args.ts                 # CLI-args contract (flag + positional syntax)
 src/core/birth-input.ts          # birth-input contract (parse ISO --when + --where "lat, lon, Place", one error style)
-src/core/cli-surface.ts           # the add surface (ergonomic flag tokens + canonical example)
+src/core/cli-surface.ts           # the command surface (vocabulary tokens + canonical example + hints)
 src/core/jd.ts                   # Meeus arithmetic only (julianDayUt, no validation)
 src/core/subcommand.ts           # subcommand runner (parse + help + dispatch for a command's subcommand arms)
 src/core/types.ts                # Profile, BirthInput, LocalTime, etc.
@@ -160,7 +161,7 @@ src/version.ts                   # package version (fast path)
 src/storage/profile-store.ts     # ProfileStore v2 (bun:sqlite)
 tests/args.test.ts               # CLI-args contract (syntax detail)
 tests/birth-input.test.ts        # contract detail (format + semantic ranges)
-tests/cli-surface.test.ts        # add surface (flag literals + canonical example)
+tests/cli-surface.test.ts        # command surface (tokens + canonical example + shared hints)
 tests/cli.test.ts                # whole-CLI behaviour (errors, TOON, dedupe) against an in-memory store
 tests/jd.test.ts                 # reference vectors + boundary validations
 tests/subcommand.test.ts         # subcommand runner (--help, parse, passthrough, context)
