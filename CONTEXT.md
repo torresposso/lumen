@@ -1,0 +1,37 @@
+# Context — lumen v2
+
+The domain language of lumen v2: a birth-profile manager (AXI CLI). lumen is the
+deterministic interface — it validates, derives the Julian Day and persists; it
+never resolves world facts (the agent resolves geocoding and UTC offset).
+
+The v1 astrology vocabulary (chart, evo, journey, karma, draconic, projection…) is
+gone with the pivot; do not expect it here.
+
+## Glossary
+
+- **Profile** — a stored birth profile: auto-generated UUID `id`, optional
+  descriptive `name` (no lookup), required human-readable `city`, and the
+  resolved **birth**. The unit of `profile add | list | get | rm`.
+- **Birth** — the resolved instant of a profile: local wall-clock time (no
+  seconds), UTC **offset** in minutes, coordinates (`lat`/`lon`), and the derived
+  **jdUt**. The birth is the profile's identity: `add` deduplicates on
+  `jdUt + lat + lon`, discarding the second `add`'s name/city.
+- **BirthInput** — the contract `profile add` receives: `--when` (local time,
+  `YYYY-MM-DDTHH:MM`), `--offset` (integer UTC offset minutes, −840..+840),
+  `--at` (`lat,lon` decimal degrees).
+- **Birth-input contract** — the module `src/core/birth-input.ts` that owns the
+  parsing + semantic validation of those raw flags as one seam: a single
+  `VALIDATION_ERROR` citing every checkable violated rule in its suggestions.
+  Flag *presence* is the command's concern, not the contract's.
+- **Julian Day (jdUt)** — the UT instant of a birth, derived in
+  `src/core/jd.ts` by Meeus ch. 7 pure arithmetic. lumen's only derivation;
+  it never consults timezone databases or calendars.
+- **Profile store** — the persistence module `src/storage/profile-store.ts`:
+  per-project SQLite at `./lumen.db` (overridable with `LUMEN_DB`), created
+  lazily only on `add`, dedupe via `UNIQUE INDEX (jd_ut, lat, lon)`, migrations
+  via `PRAGMA user_version`. The command never creates a store — the CLI wiring
+  provides it through context.
+- **TOON** — the AXI structured-output encoding lumen publishes: display
+  precision only (jdUt 6 decimals, lat/lon 4, offset integer), rounded at
+  output; the DB keeps full float64 precision. Policy lives in
+  `src/core/toon.ts`.

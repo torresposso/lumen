@@ -51,6 +51,15 @@ type AddResult = {
 	jdUt: number;
 };
 
+async function addSuggestions(args: string[]): Promise<string[]> {
+	try {
+		await profileCommand(["add", ...args], ctx());
+		return [];
+	} catch (error) {
+		return (error as AxiError).suggestions ?? [];
+	}
+}
+
 describe("profileCommand", () => {
 	test("add returns an auto-generated UUID and TOON-rounded values", async () => {
 		const result = (await profileCommand(
@@ -121,55 +130,43 @@ describe("profileCommand", () => {
 		).rejects.toThrow(/Invalid birth input/);
 	});
 
-	test("add rejects malformed flags with VALIDATION_ERROR", async () => {
-		await expect(
-			profileCommand(
-				[
-					"add",
-					"--when",
-					"not-a-date",
-					"--offset",
-					"0",
-					"--at",
-					"0,0",
-					"--city",
-					"x",
-				],
-				ctx(),
-			),
-		).rejects.toThrow(/Invalid --when format/);
-		await expect(
-			profileCommand(
-				[
-					"add",
-					"--when",
-					"1990-06-10T14:30",
-					"--offset",
-					"abc",
-					"--at",
-					"0,0",
-					"--city",
-					"x",
-				],
-				ctx(),
-			),
-		).rejects.toThrow(/Invalid --offset/);
-		await expect(
-			profileCommand(
-				[
-					"add",
-					"--when",
-					"1990-06-10T14:30",
-					"--offset",
-					"0",
-					"--at",
-					"zz",
-					"--city",
-					"x",
-				],
-				ctx(),
-			),
-		).rejects.toThrow(/Invalid --at format/);
+	test("add rejects malformed flags with VALIDATION_ERROR citing the rule", async () => {
+		const when = await addSuggestions([
+			"--when",
+			"not-a-date",
+			"--offset",
+			"0",
+			"--at",
+			"0,0",
+			"--city",
+			"x",
+		]);
+		expect(when.join(" ")).toContain("--when");
+
+		const offset = await addSuggestions([
+			"--when",
+			"1990-06-10T14:30",
+			"--offset",
+			"abc",
+			"--at",
+			"0,0",
+			"--city",
+			"x",
+		]);
+		expect(offset.join(" ")).toContain("--offset");
+
+		const at = await addSuggestions([
+			"--when",
+			"1990-06-10T14:30",
+			"--offset",
+			"0",
+			"--at",
+			"zz",
+			"--city",
+			"x",
+		]);
+		expect(at.join(" ")).toContain("--at");
+
 		await expect(
 			profileCommand(["add", ...ADD_ARGS, "--bogus", "1"], ctx()),
 		).rejects.toThrow(/Unknown flag: --bogus/);
@@ -230,6 +227,12 @@ describe("profileCommand", () => {
 				code: "NOT_FOUND",
 			},
 		);
+	});
+
+	test("a store operation without context fails loud (PROFILE_ERROR)", async () => {
+		await expect(profileCommand(["list"], undefined)).rejects.toMatchObject({
+			code: "PROFILE_ERROR",
+		});
 	});
 
 	test("--help returns focused usage per subcommand", async () => {

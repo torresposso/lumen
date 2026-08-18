@@ -1,27 +1,4 @@
-import type { BirthClock, BirthInput } from "./types";
-
-export const MIN_YEAR = 1800;
-export const MAX_YEAR = 2100;
-export const MIN_OFFSET_MINUTES = -840;
-export const MAX_OFFSET_MINUTES = 840;
-
-export function isLeapYear(year: number): boolean {
-	return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
-}
-
-export function daysInMonth(year: number, month: number): number {
-	switch (month) {
-		case 2:
-			return isLeapYear(year) ? 29 : 28;
-		case 4:
-		case 6:
-		case 9:
-		case 11:
-			return 30;
-		default:
-			return 31;
-	}
-}
+import type { BirthClock } from "./types";
 
 /**
  * Julian Day (UT) from local wall-clock time and a fixed UTC offset — Meeus,
@@ -29,6 +6,9 @@ export function daysInMonth(year: number, month: number): number {
  * timezone database: the offset is resolved by the caller (the agent), never by
  * lumen. Verified bit-for-bit identical to caelus's `julianDay` for the same UT
  * instant over 1800–2100 (see research/calculo-jd-y-deps.md).
+ *
+ * The birth-input contract (parse + validation) lives in `core/birth-input.ts`;
+ * this module owns only the arithmetic.
  */
 export function meeusJdUt(local: BirthClock, offsetMinutes: number): number {
 	const utDay =
@@ -46,50 +26,20 @@ export function meeusJdUt(local: BirthClock, offsetMinutes: number): number {
 	);
 }
 
-/**
- * Validates the birth input contract. Each returned string is a human-readable
- * rule violation, ready to be surfaced as an AXI suggestion.
- */
-export function validateBirthInput(input: BirthInput): string[] {
-	const issues: string[] = [];
-	const { local, offsetMinutes, lat, lon } = input;
-
-	checkIntRange(
-		issues,
-		offsetMinutes,
-		MIN_OFFSET_MINUTES,
-		MAX_OFFSET_MINUTES,
-		"--offset",
-	);
-	checkIntRange(issues, local.year, MIN_YEAR, MAX_YEAR, "--when year");
-	checkIntRange(issues, local.month, 1, 12, "--when month");
-	if (
-		!Number.isInteger(local.day) ||
-		local.day < 1 ||
-		local.day > daysInMonth(local.year, local.month)
-	) {
-		issues.push("--when day is invalid for that month");
-	}
-	checkIntRange(issues, local.hour, 0, 23, "--when hour");
-	checkIntRange(issues, local.minute, 0, 59, "--when minute");
-	if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
-		issues.push("--at latitude must be between -90 and 90");
-	}
-	if (!Number.isFinite(lon) || lon < -180 || lon > 180) {
-		issues.push("--at longitude must be between -180 and 180");
-	}
-
-	return issues;
+export function isLeapYear(year: number): boolean {
+	return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
 }
 
-function checkIntRange(
-	issues: string[],
-	value: number,
-	min: number,
-	max: number,
-	label: string,
-): void {
-	if (!Number.isInteger(value) || value < min || value > max) {
-		issues.push(`${label} must be an integer ${min}..${max}`);
+export function daysInMonth(year: number, month: number): number {
+	switch (month) {
+		case 2:
+			return isLeapYear(year) ? 29 : 28;
+		case 4:
+		case 6:
+		case 9:
+		case 11:
+			return 30;
+		default:
+			return 31;
 	}
 }

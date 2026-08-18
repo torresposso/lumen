@@ -1,11 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import {
-	daysInMonth,
-	isLeapYear,
-	meeusJdUt,
-	validateBirthInput,
-} from "../src/core/jd";
-import type { BirthClock, BirthInput } from "../src/core/types";
+import { daysInMonth, isLeapYear, meeusJdUt } from "../src/core/jd";
+import type { BirthClock } from "../src/core/types";
 
 function local(
 	year: number,
@@ -16,17 +11,6 @@ function local(
 ): BirthClock {
 	return { year, month, day, hour, minute };
 }
-
-function input(
-	clock: BirthClock,
-	offsetMinutes: number,
-	lat = 40.42,
-	lon = -3.7,
-): BirthInput {
-	return { local: clock, offsetMinutes, lat, lon };
-}
-
-const VALID = input(local(1990, 6, 10, 14, 30), -240, 27.95, -82.46);
 
 describe("isLeapYear / daysInMonth", () => {
 	test("gregorian leap rule", () => {
@@ -83,72 +67,5 @@ describe("meeusJdUt — reference vectors (research 02)", () => {
 			const asUt = { ...clock, minute: clock.minute - offset };
 			expect(meeusJdUt(clock, offset)).toBe(meeusJdUt(asUt, 0));
 		}
-	});
-});
-
-describe("validateBirthInput", () => {
-	test("accepts a valid input", () => {
-		expect(validateBirthInput(VALID)).toEqual([]);
-	});
-
-	test("feb 29 only in leap years", () => {
-		expect(validateBirthInput(input(local(2000, 2, 29, 12, 0), 0))).toEqual([]);
-		expect(validateBirthInput(input(local(1900, 2, 29, 12, 0), 0))).toEqual([
-			expect.stringContaining("day"),
-		]);
-	});
-
-	test("rejects nonexistent dates", () => {
-		expect(validateBirthInput(input(local(2000, 2, 30, 12, 0), 0))).toEqual([
-			expect.stringContaining("day"),
-		]);
-		expect(validateBirthInput(input(local(2026, 4, 31, 12, 0), 0))).toEqual([
-			expect.stringContaining("day"),
-		]);
-	});
-
-	test.each([
-		[local(2000, 1, 1, 24, 0), "hour"],
-		[local(2000, 1, 1, 12, 60), "minute"],
-		[local(2000, 13, 1, 12, 0), "month"],
-		[local(2000, 0, 1, 12, 0), "month"],
-		[local(2000, 1, 0, 12, 0), "day"],
-	] as Array<[BirthClock, string]>)(
-		"rejects out-of-range clock fields (%j)",
-		(clock, field) => {
-			const issues = validateBirthInput(input(clock, 0));
-			expect(issues.length).toBeGreaterThan(0);
-			expect(issues[0]).toEqual(expect.stringContaining(field));
-		},
-	);
-
-	test("rejects offsets out of range or non-integer", () => {
-		expect(
-			validateBirthInput(input(local(2000, 1, 1, 12, 0), 841))[0],
-		).toContain("--offset");
-		expect(
-			validateBirthInput(input(local(2000, 1, 1, 12, 0), -841))[0],
-		).toContain("--offset");
-		expect(
-			validateBirthInput(input(local(2000, 1, 1, 12, 0), 60.5))[0],
-		).toContain("--offset");
-	});
-
-	test("rejects years outside 1800-2100", () => {
-		expect(validateBirthInput(input(local(1799, 1, 1, 12, 0), 0))[0]).toContain(
-			"year",
-		);
-		expect(validateBirthInput(input(local(2101, 1, 1, 12, 0), 0))[0]).toContain(
-			"year",
-		);
-	});
-
-	test("rejects coordinates out of range", () => {
-		expect(
-			validateBirthInput(input(local(2000, 1, 1, 12, 0), 0, 90.1, 0))[0],
-		).toContain("latitude");
-		expect(
-			validateBirthInput(input(local(2000, 1, 1, 12, 0), 0, 0, 180.1))[0],
-		).toContain("longitude");
 	});
 });

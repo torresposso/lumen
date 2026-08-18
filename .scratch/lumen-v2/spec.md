@@ -99,14 +99,16 @@ Removed: `caelus`, `caelus-birth`, `zod`, `luxon` (the last one only transitive 
 ## 8. Suggested source layout
 
 ```
-bin/lumen.ts                 # entry (executable)
-src/cli.ts                   # runAxiCli + command registration
-src/commands/profile.ts      # add / list / get / rm
-src/core/jd.ts               # Meeus + input contract validation
-src/core/types.ts            # Profile, BirthInput, etc.
-src/core/toon.ts             # format policy (precisions)
-src/version.ts               # package version (fast path)
-src/storage/profile-store.ts # ProfileStore v2 (bun:sqlite)
+bin/lumen.ts                     # entry (executable)
+src/cli.ts                       # runAxiCli + command registration
+src/commands/profile.ts          # add / list / get / rm
+src/core/birth-input.ts          # birth-input contract (parse + validate, one error style)
+src/core/jd.ts                   # Meeus arithmetic only (no validation)
+src/core/types.ts                # Profile, BirthInput, etc.
+src/core/toon.ts                 # format policy (precisions)
+src/version.ts                   # package version (fast path)
+src/storage/profile-store.ts     # ProfileStore v2 (bun:sqlite)
+tests/birth-input.test.ts        # contract detail (format + semantic ranges)
 tests/jd.test.ts
 tests/profile-store.test.ts
 tests/cli.test.ts

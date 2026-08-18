@@ -1,10 +1,11 @@
 import { randomUUID } from "node:crypto";
 import type { AxiCliCommand } from "axi-sdk-js";
 import { AxiError } from "axi-sdk-js";
-import { meeusJdUt, validateBirthInput } from "../core/jd";
+import { parseBirthInput } from "../core/birth-input";
+import { meeusJdUt } from "../core/jd";
 import { formatWhen, roundCoordinate, roundJdUt } from "../core/toon";
-import type { BirthClock, BirthInput, Profile } from "../core/types";
-import { ProfileStore as DefaultProfileStore } from "../storage/profile-store";
+import type { Profile } from "../core/types";
+import type { ProfileStore as DefaultProfileStore } from "../storage/profile-store";
 
 export interface CliContext {
 	profiles: DefaultProfileStore;
@@ -61,7 +62,12 @@ export const profileRmUsage = [
 const ADD_FLAGS = new Set(["--when", "--offset", "--at", "--city", "--name"]);
 
 function store(context: CliContext | undefined): DefaultProfileStore {
-	return context?.profiles ?? new DefaultProfileStore();
+	if (context === undefined) {
+		throw new AxiError("No profile store in context", "PROFILE_ERROR", [
+			"The CLI always provides one — this is a lumen bug",
+		]);
+	}
+	return context.profiles;
 }
 
 function usageFor(sub: string): string {
@@ -161,47 +167,6 @@ function singleId(args: string[], command: string): string {
 	return id;
 }
 
-function parseWhen(value: string): BirthClock {
-	const match = /^(\d{4})-(\d{1,2})-(\d{1,2})[T ](\d{1,2}):(\d{1,2})$/.exec(
-		value.trim(),
-	);
-	if (match === null) {
-		throw new AxiError(
-			`Invalid --when format: "${value}"`,
-			"VALIDATION_ERROR",
-			['Expected "YYYY-MM-DDTHH:MM" (local time, no seconds)'],
-		);
-	}
-	return {
-		year: Number(match[1]),
-		month: Number(match[2]),
-		day: Number(match[3]),
-		hour: Number(match[4]),
-		minute: Number(match[5]),
-	};
-}
-
-function parseAt(value: string): { lat: number; lon: number } {
-	const match = /^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/.exec(
-		value.trim(),
-	);
-	if (match === null) {
-		throw new AxiError(`Invalid --at format: "${value}"`, "VALIDATION_ERROR", [
-			'Expected "lat,lon" in decimal degrees',
-		]);
-	}
-	return { lat: Number(match[1]), lon: Number(match[2]) };
-}
-
-function parseOffset(value: string): number {
-	if (!/^[+-]?\d+$/.test(value.trim())) {
-		throw new AxiError(`Invalid --offset: "${value}"`, "VALIDATION_ERROR", [
-			"Expected an integer number of minutes",
-		]);
-	}
-	return Number(value.trim());
-}
-
 /** The TOON-shaped view of a profile: same fields, display-precision numbers. */
 function displayProfile(profile: Profile) {
 	return {
@@ -230,15 +195,9 @@ export const profileCommand: AxiCliCommand<CliContext> = async (
 			const flags = parseFlags(rest, ADD_FLAGS, "lumen profile add");
 			if (flags.has("--help")) return profileAddUsage;
 
-			const local = parseWhen(
-				requiredFlag(flags, "--when", "lumen profile add"),
-			);
-			const offsetMinutes = parseOffset(
-				requiredFlag(flags, "--offset", "lumen profile add"),
-			);
-			const { lat, lon } = parseAt(
-				requiredFlag(flags, "--at", "lumen profile add"),
-			);
+			const when = requiredFlag(flags, "--when", "lumen profile add");
+			const offset = requiredFlag(flags, "--offset", "lumen profile add");
+			const at = requiredFlag(flags, "--at", "lumen profile add");
 			const city = requiredFlag(flags, "--city", "lumen profile add").trim();
 			if (city === "") {
 				throw new AxiError("--city must not be empty", "VALIDATION_ERROR", [
@@ -247,11 +206,11 @@ export const profileCommand: AxiCliCommand<CliContext> = async (
 			}
 			const name = flags.get("--name")?.trim() || null;
 
-			const input: BirthInput = { local, offsetMinutes, lat, lon };
-			const issues = validateBirthInput(input);
-			if (issues.length > 0) {
-				throw new AxiError("Invalid birth input", "VALIDATION_ERROR", issues);
-			}
+			const { local, offsetMinutes, lat, lon } = parseBirthInput({
+				when,
+				offset,
+				at,
+			});
 			const jdUt = meeusJdUt(local, offsetMinutes);
 
 			const { profile, created } = store(context).add({
