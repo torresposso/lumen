@@ -73,6 +73,13 @@ pushed.
   single `VALIDATION_ERROR` citing each rule. Syntax, presence and value
   normalization live here; value *semantics* (format + ranges) live in the
   contract that consumes the parsed flags (the **birth-input contract**).
+- **Add surface** — the module `src/core/cli-surface.ts` that owns the
+  ergonomic `profile add` vocabulary: the `--when` / `--where` / `--name`
+  flag literals and the canonical add example. The command's args spec, its
+  usage text and the birth-input contract's messages interpolate the tokens —
+  none re-types a literal, so a flag rename is one edit in this module
+  (ADR-0007). It holds the *names*; the birth-input contract holds the
+  *meanings*.
 - **Profile store** — the persistence module `src/storage/profile-store.ts`:
   per-project SQLite at `./lumen.db` (overridable with `LUMEN_DB`), created
   lazily only on `add`, dedupe via `UNIQUE INDEX (birth_jd_ut, birth_lat,

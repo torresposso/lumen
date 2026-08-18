@@ -51,3 +51,8 @@ CLI speaks ergonomically, the model speaks `birth*` — the two are decoupled.**
 - The birth-input seam is where CLI ergonomics meet model vocabulary; a future
   flag rename touches only that seam.
 - Storage, schema (v4), migrations and dedupe are untouched.
+- *Update (2026-08-18, ADR-0007):* the ergonomic literals and the canonical
+  example now live in the add surface (`src/core/cli-surface.ts`); the
+  "rename touches only that seam" consequence above is realised by that one
+  module — the birth-input seam keeps the semantics, the add surface holds
+  the names.

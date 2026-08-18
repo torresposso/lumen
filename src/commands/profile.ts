@@ -2,6 +2,7 @@ import type { AxiCliCommand } from "axi-sdk-js";
 import { AxiError } from "axi-sdk-js";
 import type { ArgsSpec } from "../core/args";
 import { parseBirthInput } from "../core/birth-input";
+import { ADD_FLAGS, PROFILE_ADD_EXAMPLE } from "../core/cli-surface";
 import { runSubcommand } from "../core/subcommand";
 import { toonProfile } from "../core/toon";
 import type { ProfileStore as DefaultProfileStore } from "../storage/profile-store";
@@ -11,17 +12,12 @@ export interface CliContext {
 }
 
 /**
- * The canonical `add` example — the single source for every usage and
- * empty-state reference. Never re-type it: interpolate this constant.
+ * The empty-state hint pointing an agent at `add`, shared by `list` and `home`.
  */
-export const PROFILE_ADD_EXAMPLE =
-	'lumen profile add --when "1981-01-26T00:50-05:00" --where "9.15, -74.75, Magangué, Colombia"';
-
-/** The empty-state hint pointing an agent at `add`, shared by `list` and `home`. */
 export const PROFILE_ADD_HINT = `Run \`${PROFILE_ADD_EXAMPLE}\``;
 
 export const profileUsage = [
-	`${PROFILE_ADD_EXAMPLE} [--name slug]`,
+	`${PROFILE_ADD_EXAMPLE} [${ADD_FLAGS.name} slug]`,
 	"lumen profile list",
 	"lumen profile get <uuid>",
 	"lumen profile delete <uuid>",
@@ -30,16 +26,16 @@ export const profileUsage = [
 ].join("\n");
 
 export const profileAddUsage = [
-	'lumen profile add --when "YYYY-MM-DDTHH:MM±HH:MM" --where "lat, lon, Place, Country" [--name slug]',
+	`lumen profile add ${ADD_FLAGS.when} "YYYY-MM-DDTHH:MM±HH:MM" ${ADD_FLAGS.where} "lat, lon, Place, Country" [${ADD_FLAGS.name} slug]`,
 	"",
 	"Register a birth profile. The agent resolves coordinates and the UTC",
-	"offset, formats them into --when and --where, and calls lumen; lumen",
+	`offset, formats them into ${ADD_FLAGS.when} and ${ADD_FLAGS.where}, and calls lumen; lumen`,
 	"validates, computes the Julian Day and stores it.",
 	"",
 	"Flags:",
-	"  --when    ISO 8601 datetime with UTC offset, e.g. 1990-06-10T14:30-04:00 or ...Z (required)",
-	'  --where   Coordinates then the place: "lat, lon, Place" (required); the place may contain commas',
-	"  --name    Optional descriptive slug (no lookup)",
+	`  ${ADD_FLAGS.when}    ISO 8601 datetime with UTC offset, e.g. 1990-06-10T14:30-04:00 or ...Z (required)`,
+	`  ${ADD_FLAGS.where}   Coordinates then the place: "lat, lon, Place" (required); the place may contain commas`,
+	`  ${ADD_FLAGS.name}    Optional descriptive slug (no lookup)`,
 	"",
 	"Adding the same birth twice (same birthJdUt + coordinates) returns the existing",
 	"profile unchanged.",
@@ -63,15 +59,13 @@ export const profileDeleteUsage = [
 	"Deletes one profile by its UUID. Deleting an unknown profile raises NOT_FOUND.",
 ].join("\n");
 
-const ADD_FLAGS = new Set(["--when", "--where", "--name"]);
-
 /** `profile add` — flags required, no positionals. */
 const ADD_SPEC: ArgsSpec = {
-	known: ADD_FLAGS,
-	required: new Set(["--when", "--where"]),
+	known: new Set(Object.values(ADD_FLAGS)),
+	required: new Set([ADD_FLAGS.when, ADD_FLAGS.where]),
 	positionals: 0,
 	rules: {
-		"--name": { trim: true, emptyAsNull: true },
+		[ADD_FLAGS.name]: { trim: true, emptyAsNull: true },
 	},
 };
 

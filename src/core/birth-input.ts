@@ -1,4 +1,5 @@
 import { AxiError } from "axi-sdk-js";
+import { ADD_FLAGS } from "./cli-surface";
 import { daysInMonth, julianDayUt } from "./jd";
 import type { BirthInput, LocalTime } from "./types";
 
@@ -52,7 +53,7 @@ export function parseBirthInput(raw: RawBirthInput): BirthInput {
 	let offsetMinutes: number | undefined;
 	if (match === null) {
 		issues.push(
-			`--when must look like "YYYY-MM-DDTHH:MM±HH:MM" or "…Z" (got "${when}")`,
+			`${ADD_FLAGS.when} must look like "YYYY-MM-DDTHH:MM±HH:MM" or "…Z" (got "${when}")`,
 		);
 	} else {
 		const offsetSuffix = match[6] as string;
@@ -63,17 +64,23 @@ export function parseBirthInput(raw: RawBirthInput): BirthInput {
 			hour: Number(match[4]),
 			minute: Number(match[5]),
 		};
-		checkIntRange(issues, local.year, MIN_YEAR, MAX_YEAR, "--when year");
-		checkIntRange(issues, local.month, 1, 12, "--when month");
+		checkIntRange(
+			issues,
+			local.year,
+			MIN_YEAR,
+			MAX_YEAR,
+			`${ADD_FLAGS.when} year`,
+		);
+		checkIntRange(issues, local.month, 1, 12, `${ADD_FLAGS.when} month`);
 		if (
 			!Number.isInteger(local.day) ||
 			local.day < 1 ||
 			local.day > daysInMonth(local.year, local.month)
 		) {
-			issues.push("--when day is invalid for that month");
+			issues.push(`${ADD_FLAGS.when} day is invalid for that month`);
 		}
-		checkIntRange(issues, local.hour, 0, 23, "--when hour");
-		checkIntRange(issues, local.minute, 0, 59, "--when minute");
+		checkIntRange(issues, local.hour, 0, 23, `${ADD_FLAGS.when} hour`);
+		checkIntRange(issues, local.minute, 0, 59, `${ADD_FLAGS.when} minute`);
 
 		offsetMinutes =
 			offsetSuffix === "Z" ? 0 : offsetToMinutes(offsetSuffix, issues);
@@ -83,7 +90,7 @@ export function parseBirthInput(raw: RawBirthInput): BirthInput {
 				offsetMinutes,
 				MIN_OFFSET_MINUTES,
 				MAX_OFFSET_MINUTES,
-				"--when offset",
+				`${ADD_FLAGS.when} offset`,
 			);
 		}
 
@@ -98,29 +105,31 @@ export function parseBirthInput(raw: RawBirthInput): BirthInput {
 	let birthPlace: string | undefined;
 	if (whereParts.length < 3) {
 		issues.push(
-			`--where must list coordinates then a place: "lat, lon, Place" (got "${where}")`,
+			`${ADD_FLAGS.where} must list coordinates then a place: "lat, lon, Place" (got "${where}")`,
 		);
 	} else {
 		const latText = whereParts[0]?.trim() ?? "";
 		const lonText = whereParts[1]?.trim() ?? "";
 		if (!NUMBER_RE.test(latText)) {
 			issues.push(
-				`--where latitude must be a decimal number (got "${latText}")`,
+				`${ADD_FLAGS.where} latitude must be a decimal number (got "${latText}")`,
 			);
 		} else {
 			birthLat = Number(latText);
 			if (!Number.isFinite(birthLat) || birthLat < -90 || birthLat > 90) {
-				issues.push("--where latitude must be between -90 and 90");
+				issues.push(`${ADD_FLAGS.where} latitude must be between -90 and 90`);
 			}
 		}
 		if (!NUMBER_RE.test(lonText)) {
 			issues.push(
-				`--where longitude must be a decimal number (got "${lonText}")`,
+				`${ADD_FLAGS.where} longitude must be a decimal number (got "${lonText}")`,
 			);
 		} else {
 			birthLon = Number(lonText);
 			if (!Number.isFinite(birthLon) || birthLon < -180 || birthLon > 180) {
-				issues.push("--where longitude must be between -180 and 180");
+				issues.push(
+					`${ADD_FLAGS.where} longitude must be between -180 and 180`,
+				);
 			}
 		}
 
@@ -130,7 +139,7 @@ export function parseBirthInput(raw: RawBirthInput): BirthInput {
 			.join(", ")
 			.trim();
 		if (place === "") {
-			issues.push("--where place must not be empty");
+			issues.push(`${ADD_FLAGS.where} place must not be empty`);
 		} else {
 			birthPlace = place;
 		}
@@ -165,7 +174,9 @@ function offsetToMinutes(suffix: string, issues: string[]): number {
 		mm < 0 ||
 		mm > 59
 	) {
-		issues.push(`--when offset must be ±HH:MM, e.g. "-05:00" or "Z"`);
+		issues.push(
+			`${ADD_FLAGS.when} offset must be ±HH:MM, e.g. "-05:00" or "Z"`,
+		);
 		return NaN;
 	}
 	return sign * (hh * 60 + mm);
