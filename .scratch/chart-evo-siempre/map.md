@@ -39,7 +39,14 @@ canon (ADR-0014). Decidido por grill del capitán (2026-08-17).
       draconic recalcula sobre el zodíaco draconic (eje fijo por construcción,
       eclipses proyectados por la resta del Nodo, `method` con el marco);
       suite nueva draconic-evo. Verde.
-- [ ] `05-cierre` — `Blocked by: 02, 03, 04` (desbloqueado).
+- [x] `05-cierre` — `Blocked by: 02, 03, 04` — **resolved**: check verde
+      (biome + check:docs), SPEC §6.1 recalibrado (193 tests / 695 expect),
+      smoke natal+draconic con el contrato de `spec.md`, gramática viva sin
+      `--evo` (solo registro histórico ADR-0007/0008/0014).
+
+> **Cadena `chart-evo-siempre` cerrada completa (2026-08-17).** La superficie
+> de `chart` entrega la mecánica siempre (natal + draconic en el canon), el
+> `--evo` desapareció de raíz y la paridad docs ↔ código quedó verde.
 - [ ] `03-command-chart-sin-flag` — `Blocked by: 01`.
 - [ ] `04-draconic-evo` — `Blocked by: 01`.
 - [ ] `05-cierre` — `Blocked by: 02, 03, 04`; check:docs verde + SPEC §6.1 final.

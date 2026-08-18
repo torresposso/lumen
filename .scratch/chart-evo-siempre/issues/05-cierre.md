@@ -1,7 +1,7 @@
 ---
 id: 05-cierre
 type: task
-status: ready-for-agent
+status: resolved
 blockers: [02, 03, 04]
 ---
 
@@ -38,3 +38,29 @@ recalibrados a los finales reales y paper trail del cierre.
 ## Comments
 
 - 2026-08-17: abierto por pi; desbloqueado al resolver los tickets 02–04.
+- 2026-08-17: resuelto por pi.
+
+## Answer
+
+Cierre de la cadena `chart-evo-siempre`:
+
+1. **Contraos finales**: `bun test` 193 tests / 695 expect (crecimiento:
+   suite draconic-evo), typecheck y `bun run check` (biome + check:docs) en
+   verde.
+2. **SPEC §6.1** recalibrado a los conteos finales.
+3. **Gramática**: `--evo` solo en el registro histórico (ADR-0007, ADR-0008,
+   ADR-0014) y en los `.scratch/` de cadenas pasadas; tests de flags rechazados
+   lo usan explícitamente como caso negativo. Cero menciones en src/ ni en la
+   gramática viva de docs.
+4. **Smoke**: `lumen chart natal erik` y `lumen chart draconic erik` entregan
+   el contrato de `spec.md` sin flags — natal con `evo` y `method` sin marco;
+   draconic con el eje fijo (Norte 0° Aries, Sur 180° Libra), mecanica
+   recalculada sobre su zodiaco y `method` declarando el marco draconic. Perfil
+   `erik` agregado (datos de referencia del spec, 1981-01-26 00:51 Magangué).
+5. **Tickets**: 01–05 en `resolved`; map.md con todas las hijas cerradas.
+
+Nota sobre el rojo de la transición: la paridad mecánica que valida
+`check:docs` (lista de comandos de SPEC §3 y árbol src/) nunca cambió en la
+cadena, así que el rojo esperado no se materializó; el verde de cierre se
+verificó igual en este ticket (criterio de ADR-0014 cumplido en efecto, no en
+forma).

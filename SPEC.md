@@ -98,10 +98,10 @@ Si la respuesta no es un sí sentido, la decisión es no.**
 
 ## 6. Criterios de Aceptación
 
-1. `bun test` en verde (187 tests, 672 expect) y `bun run typecheck` sin
-   errores; el conteo se recalibra solo vía tickets de remoción con ticket del
-   norte, y crece con la suite del bloque evo draconic al cierre de la cadena
-   `chart-evo-siempre` (conteos finales actualizados aquí, §6.1).
+1. `bun test` en verde (193 tests, 695 expect — recalibrado al cierre de la
+   cadena `chart-evo-siempre`, cuyo crecimiento vino de la suite del bloque evo
+   draconic) y `bun run typecheck` sin errores; el conteo se recalibra solo vía
+   tickets de remoción con ticket del norte.
 2. `bun run check` (biome) con 0 errores y 0 warnings.
 3. `src/core/` sin I/O, zod, AxiError ni imports fuera de core/caelus.
 4. La superficie de comandos es exactamente la de la sección 3.
