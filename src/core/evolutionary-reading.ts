@@ -30,8 +30,9 @@ import type {
 // three core evolutionary computators — soul (Pluto/PPP), nodal axis, and
 // prenatal eclipses — into the publication `EvoOutput` and its factual atoms.
 // Co-located with the computators that feed it so a field rename surfaces at
-// one site; the commands layer only forwards inputs and translates the
-// `undefined` (missing-input) branch into an AxiError at the CLI seam.
+// one site; the commands layer only forwards inputs. The chart computation
+// invariant (pluto + true node always present) makes the assembly total — no
+// `undefined` branch (ADR-0014).
 // ============================================================================
 
 export interface EvoNodalPoint {
@@ -104,9 +105,9 @@ export interface EvolutionaryReading {
 
 /**
  * Assembles the evolutionary (`evo`) reading from the three core computators.
- * Returns `undefined` when a required input is missing (no pluto or no true
- * node) — matching the `core/` convention of returning `undefined` rather
- * than throwing; the CLI seam translates that into an `AxiError`.
+ * Total: the chart computation invariant (ADR-0014) guarantees `bodies` carries
+ * pluto and the true node, so a missing required input is a programming error
+ * and throws defensively — never returns `undefined`.
  */
 export function computeEvolutionaryReading(input: {
 	bodies: ChartBodiesLite;
@@ -115,11 +116,15 @@ export function computeEvolutionaryReading(input: {
 	birth: ResolvedBirth;
 	houseSystem: HouseSystem;
 	topocentric?: boolean;
-}): EvolutionaryReading | undefined {
+}): EvolutionaryReading {
 	const northNodeLon = input.bodies.true_node?.lon;
 	const soul = computeSoulReading(input.bodies, input.cusps, northNodeLon);
 	const nodal = computeNodalReading(input.bodies, input.cusps);
-	if (!soul || !nodal) return undefined; // missing-input (decision 2)
+	if (!soul || !nodal) {
+		throw new Error(
+			"evo invariant violated: the chart must carry pluto and the true node (default natal bodies)",
+		);
+	}
 
 	const north = nodal.northNode;
 	const south = nodal.southNode;

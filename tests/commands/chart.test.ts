@@ -57,15 +57,16 @@ describe("chartCommand", () => {
 			chart: {
 				birth: { zone: string; year: number };
 				bodies: { sun: { sign: string; house: number } };
-				evolutionary?: unknown;
 			};
+			evo: { pluto: { sign: string } };
 		};
 
 		expect(result.chart.birth.zone).toBe("America/New_York");
 		expect(result.chart.birth.year).toBe(1990);
 		expect(result.chart.bodies.sun.sign).toBe("Gemini");
 		expect(result.chart.bodies.sun.house).toBe(9);
-		expect(result.chart.evolutionary).toBeUndefined();
+		// The mechanics are always part of the reading (ADR-0014).
+		expect(result.evo.pluto.sign).toBe("Scorpio");
 	});
 
 	test("computes a draconic chart with the North Node at 0° Aries", async () => {
@@ -80,8 +81,8 @@ describe("chartCommand", () => {
 					nodeUsed: string;
 					bodies: { true_node: { sign: string; lon: number } };
 				};
-				evolutionary?: unknown;
 			};
+			evo: { pluto: { sign: string } };
 		};
 
 		expect(result.chart.birth.requested.draconic).toBe(true);
@@ -89,7 +90,9 @@ describe("chartCommand", () => {
 		expect(result.chart.draconic.nodeUsed).toBe("true_node");
 		expect(result.chart.draconic.bodies.true_node.sign).toBe("Aries");
 		expect(result.chart.draconic.bodies.true_node.lon).toBeCloseTo(0, 4);
-		expect(result.chart.evolutionary).toBeUndefined();
+		// The reading always carries the evo block (ADR-0014). Until the
+		// draconic frame lands (ticket 04) it is the natal-window evo.
+		expect(result.evo.pluto.sign).toBe("Scorpio");
 	});
 
 	test("rejects unknown chart subcommands", async () => {
@@ -260,35 +263,12 @@ describe("chartCommand", () => {
 		expect(atoms.some((a) => a.startsWith("sol_luna_phase_"))).toBe(true);
 	}, 20_000);
 
-	test("--evo=false keeps the base chart without an evo block", async () => {
+	test("--evo=true is accepted as redundant while the flag still parses (removed in ticket 03)", async () => {
 		const result = (await chartCommand(
-			["natal", ...TAMPA_ARGS, "--evo=false"],
+			["natal", ...TAMPA_ARGS, "--evo=true"],
 			undefined,
 		)) as { evo?: unknown };
-		expect(result.evo).toBeUndefined();
-	});
-
-	test("without --evo the interpretation context excludes evo-only atoms", async () => {
-		const result = (await chartCommand(
-			["natal", ...TAMPA_ARGS],
-			undefined,
-		)) as {
-			evo?: unknown;
-			interpretationContext: { atoms: string[] };
-		};
-		expect(result.evo).toBeUndefined();
-		const evoPrefixes = [
-			"ppp_",
-			"pluto_aspects_",
-			"pluto_nn_",
-			"sol_luna_phase_",
-			"skipped_",
-		];
-		for (const prefix of evoPrefixes) {
-			expect(
-				result.interpretationContext.atoms.some((a) => a.startsWith(prefix)),
-			).toBe(false);
-		}
+		expect(result.evo).toBeDefined();
 	});
 
 	test("draconic rejects --evo with a structured error", async () => {

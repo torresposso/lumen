@@ -15,7 +15,7 @@ export const chartUsage = [
 // ============================================================================
 
 import { CaelusEphemeris } from "../adapters/ephemeris-gateway";
-import { type AstrologicalReading, computeReading } from "../core/reading";
+import { computeReading } from "../core/reading";
 
 // ============================================================================
 // Chart engine commands backing `lumen chart natal|draconic`
@@ -173,18 +173,5 @@ export const chartCommand: AxiCliCommand<CliContext> = async (
 		);
 	}
 	const request = applyMode(await resolveRequest(rest, context), mode);
-	const reading = computeReading(request, new CaelusEphemeris(), { evo });
-	if (evo && reading === undefined) {
-		throw new AxiError(
-			"Could not compute evolutionary mechanics",
-			"CALCULATION_ERROR",
-			[
-				"The chart must contain pluto and the true node (the default natal bodies); --bodies only adds extra bodies",
-			],
-		);
-	}
-	// `computeReading` only returns `undefined` when `--evo` was requested and
-	// the chart lacked pluto/true node — the guard above translated that; the
-	// remaining shape is always a complete reading.
-	return reading as AstrologicalReading;
+	return computeReading(request, new CaelusEphemeris());
 };

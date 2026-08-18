@@ -21,19 +21,15 @@ import type {
 // Natal reading assembly
 //
 // Single source of the published `AstrologicalReading` (ADR-0012). Assembles
-// the complete natal reading: asks the shared chart computation (ADR-0013) for
-// the cleaned raw chart, projects the chart (chart projection policy,
-// ADR-0011), optionally assembles the `evo` block (evolutionary reading,
+// the complete astrological reading: asks the shared chart computation
+// (ADR-0013) for the cleaned raw chart, projects the chart (chart projection
+// policy, ADR-0011), always assembles the `evo` block (evolutionary reading,
 // ADR-0010), fills the advisory `help`, and merges the interpretation atoms.
 // Co-located with the computators and types it publishes so a field rename
-// surfaces at one site; the commands layer only forwards the request and
-// translates the `undefined` (missing-input) branch into an `AxiError` at the
-// CLI seam.
+// surfaces at one site; the commands layer only forwards the request. There is
+// no `undefined` branch — the chart is guaranteed to carry pluto and the true
+// node (chart computation invariant, ADR-0014).
 // ============================================================================
-
-export interface ChartOutputSelection {
-	evo: boolean;
-}
 
 export interface BirthEcho {
 	year: number;
@@ -59,8 +55,8 @@ export type AstrologicalReading = {
 		separating: number;
 		exact: number;
 	};
-	evo?: EvoOutput;
-	interpretationContext?: InterpretationContext;
+	evo: EvoOutput;
+	interpretationContext: InterpretationContext;
 	help?: string[];
 };
 
@@ -85,18 +81,17 @@ function echoBirth(
 }
 
 /**
- * Assembles the complete natal reading. Pure: every input enters through
+ * Assembles the complete astrological reading. Pure: every input enters through
  * parameters (the `Ephemeris` seam is injected, never instantiated). The
- * shared chart computation (`charts.ts`, ADR-0013) applies the true-node canon,
- * so the projected chart and the `evo` block read the same cleaned body set.
- * Returns `undefined` only when `selection.evo` is set and the chart lacks
- * pluto or the true node; the CLI seam translates that into an `AxiError`.
+ * shared chart computation (`charts.ts`, ADR-0013) applies the true-node canon
+ * and enforces the invariant «pluto + the true node are always present», so the
+ * projected chart and the `evo` block read the same cleaned body set. Always
+ * returns the complete reading — there is no `undefined` branch (ADR-0014).
  */
 export function computeReading(
 	request: NatalRequest,
 	ephemeris: Ephemeris,
-	selection: ChartOutputSelection = { evo: false },
-): AstrologicalReading | undefined {
+): AstrologicalReading {
 	const { options } = request;
 	const rawChart = chartAt(request, request.birth.jdUt, ephemeris);
 
@@ -125,20 +120,18 @@ export function computeReading(
 		help.push(`Timezone resolution provenance status: ${request.birth.status}`);
 	}
 
-	const aspects = projected.aspects;
 	const interpretationContext = generateFactAtoms(projected);
-	const evo = selection.evo
-		? computeEvolutionaryReading({
-				bodies: natalBodies,
-				cusps: rawChart.cusps,
-				ephemeris,
-				birth: request.birth,
-				houseSystem: request.options.houseSystem,
-				topocentric: request.options.topocentric,
-			})
-		: undefined;
-	if (selection.evo && !evo) return undefined;
-	if (evo) interpretationContext.atoms.push(...evo.atoms);
+	const evo = computeEvolutionaryReading({
+		bodies: natalBodies,
+		cusps: rawChart.cusps,
+		ephemeris,
+		birth: request.birth,
+		houseSystem: request.options.houseSystem,
+		topocentric: request.options.topocentric,
+	});
+	interpretationContext.atoms.push(...evo.atoms);
+
+	const aspects = projected.aspects;
 
 	return {
 		chart: { ...projected, birth: echoBirth(request.birth, request.options) },
@@ -149,7 +142,7 @@ export function computeReading(
 			separating: aspects.filter((a) => a.phase === "separating").length,
 			exact: aspects.filter((a) => a.phase === "exact").length,
 		},
-		...(evo ? { evo: evo.evo } : {}),
+		evo: evo.evo,
 		interpretationContext,
 		...(help.length > 0 ? { help } : {}),
 	};

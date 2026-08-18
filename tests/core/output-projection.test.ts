@@ -3,19 +3,7 @@ import type { Chart, ChartBody } from "caelus";
 import { BODIES } from "caelus";
 import type { NatalRequest } from "../../src/commands/intake";
 import { describeEvoCriteria } from "../../src/core/classical";
-import {
-	type AstrologicalReading,
-	computeReading,
-} from "../../src/core/reading";
-
-function mustRead(
-	result: AstrologicalReading | undefined,
-): AstrologicalReading {
-	if (result === undefined) {
-		throw new Error("expected an astrological reading");
-	}
-	return result;
-}
+import { computeReading } from "../../src/core/reading";
 
 const request: NatalRequest = {
 	birth: {
@@ -116,7 +104,7 @@ describe("computeReading Output Projection", () => {
 			},
 		});
 
-		const out = mustRead(computeReading(request, mockEphemeris));
+		const out = computeReading(request, mockEphemeris);
 
 		const sun = out.chart.bodies.sun as {
 			lon: number;
@@ -169,7 +157,7 @@ describe("computeReading Output Projection", () => {
 
 	test("maps cusp longitudes onto signs at boundaries", () => {
 		const mockEphemeris = createMockEphemeris({ cusps: [0, 30, 360] });
-		const out = mustRead(computeReading(request, mockEphemeris));
+		const out = computeReading(request, mockEphemeris);
 		expect(out.chart.cusps.map((c) => c.sign)).toEqual([
 			"Aries",
 			"Taurus",
@@ -184,7 +172,7 @@ describe("computeReading Output Projection", () => {
 			houseSystemRequested: "placidus",
 			unavailable: ["chiron"],
 		});
-		const out = mustRead(computeReading(request, mockEphemeris));
+		const out = computeReading(request, mockEphemeris);
 
 		expect(out.help).toEqual([
 			'House system "placidus" fell back to "whole_sign" (undefined above the polar circle)',
@@ -216,42 +204,28 @@ describe("computeReading evo block (mock ephemeris)", () => {
 	}
 
 	test("deactivates ppp with the measured separation and a derived reason", () => {
-		const out = mustRead(
-			computeReading(request, evoEphemeris(230, 232), {
-				evo: true,
-			}),
-		);
-		expect(out.evo).toBeDefined();
-		expect(out.evo?.ppp.active).toBe(false);
-		expect(out.evo?.ppp.separation).toBe(2);
-		expect(out.evo?.ppp.reason).toBe(
+		const out = computeReading(request, evoEphemeris(230, 232));
+		expect(out.evo.ppp.active).toBe(false);
+		expect(out.evo.ppp.separation).toBe(2);
+		expect(out.evo.ppp.reason).toBe(
 			"pluto conjunct north node (separation 2° <= 10°)",
 		);
-		expect(out.interpretationContext?.atoms).toContain("ppp_inactive");
-		expect(out.evo?.method).toBe(describeEvoCriteria());
+		expect(out.interpretationContext.atoms).toContain("ppp_inactive");
+		expect(out.evo.method).toBe(describeEvoCriteria());
 	});
 
 	test("keeps ppp active with the measured separation when Pluto is far from the node", () => {
-		const out = mustRead(
-			computeReading(request, evoEphemeris(230, 130), {
-				evo: true,
-			}),
-		);
-		expect(out.evo).toBeDefined();
-		expect(out.evo?.ppp.active).toBe(true);
-		expect(out.evo?.ppp.separation).toBe(100);
-		expect(out.evo?.ppp.reason).toBeUndefined();
-		expect(out.interpretationContext?.atoms).toContain("ppp_active");
+		const out = computeReading(request, evoEphemeris(230, 130));
+		expect(out.evo.ppp.active).toBe(true);
+		expect(out.evo.ppp.separation).toBe(100);
+		expect(out.evo.ppp.reason).toBeUndefined();
+		expect(out.interpretationContext.atoms).toContain("ppp_active");
 		// counts aggregates once and stays consistent with the published aspects.
-		expect(out.evo?.counts.plutoAspects).toBe(out.evo?.pluto.aspects.length);
+		expect(out.evo.counts.plutoAspects).toBe(out.evo.pluto.aspects.length);
 	});
 
 	test("cleans the mean node once: the evo path reads the same canon as the chart", () => {
-		const out = mustRead(
-			computeReading(request, evoEphemeris(230, 130), {
-				evo: true,
-			}),
-		);
+		const out = computeReading(request, evoEphemeris(230, 130));
 		expect(out.evo).toBeDefined();
 		expect(out.chart.bodies.mean_node).toBeUndefined();
 	});

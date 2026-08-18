@@ -3,10 +3,7 @@ import {
 	CaelusEphemeris,
 	type Ephemeris,
 } from "../../src/adapters/ephemeris-gateway";
-import {
-	type AstrologicalReading,
-	computeReading,
-} from "../../src/core/reading";
+import { computeReading } from "../../src/core/reading";
 import type { NatalRequest } from "../../src/core/types";
 
 const request: NatalRequest = {
@@ -29,53 +26,52 @@ const request: NatalRequest = {
 	},
 };
 
-function expectReading(
-	possiblyUndefined: AstrologicalReading | undefined,
-): AstrologicalReading {
-	if (possiblyUndefined === undefined) {
-		throw new Error("expected an astrological reading");
-	}
-	return possiblyUndefined;
-}
-
 describe("computeReading", () => {
 	const ephemeris = new CaelusEphemeris();
 
 	test("computes an astrological reading with the embedded engine", () => {
-		const reading = expectReading(computeReading(request, ephemeris));
+		const reading = computeReading(request, ephemeris);
 		expect(reading.chart.bodies.sun?.sign).toBe("Gemini");
 		expect(reading.chart.bodies.sun?.house).toBe(9);
 		expect(reading.chart.meta.houseSystem).toBe("placidus");
 	});
 
+	test("always assembles the full reading: evo and interpretationContext are present", () => {
+		const reading = computeReading(request, ephemeris);
+		expect(reading.evo).toBeDefined();
+		expect(reading.evo.pluto.sign).toBe("Scorpio");
+		expect(reading.evo.nodalAxis.north.sign).toBe("Aquarius");
+		expect(reading.interpretationContext.atoms.length).toBeGreaterThan(0);
+		// The mechanics are always part of the atoms (no flag toggles them).
+		expect(
+			reading.interpretationContext.atoms.some((a) => a.startsWith("ppp_")),
+		).toBe(true);
+	});
+
 	test("keeps only the true node (lumen is dedicated to the true node)", () => {
-		const reading = expectReading(computeReading(request, ephemeris));
+		const reading = computeReading(request, ephemeris);
 		expect(reading.chart.bodies.true_node).toBeDefined();
 		expect(reading.chart.bodies.mean_node).toBeUndefined();
 	});
 
 	test("computes requested extra bodies", () => {
-		const reading = expectReading(
-			computeReading(
-				{
-					...request,
-					options: { ...request.options, bodies: ["mean_lilith"] },
-				},
-				ephemeris,
-			),
+		const reading = computeReading(
+			{
+				...request,
+				options: { ...request.options, bodies: ["mean_lilith"] },
+			},
+			ephemeris,
 		);
 		expect(reading.chart.bodies.mean_lilith).toBeDefined();
 	});
 
 	test("keeps the natal chart and exposes the draconic projection as a separate section", () => {
-		const draconicReading = expectReading(
-			computeReading(
-				{
-					...request,
-					options: { ...request.options, draconic: true },
-				},
-				ephemeris,
-			),
+		const draconicReading = computeReading(
+			{
+				...request,
+				options: { ...request.options, draconic: true },
+			},
+			ephemeris,
 		);
 
 		expect(draconicReading.chart.bodies.true_node?.sign).toBe("Aquarius");
@@ -110,6 +106,19 @@ describe("computeReading", () => {
 						dec: 23,
 						dignities: [],
 					},
+					pluto: {
+						lon: 240,
+						sign: "Scorpio",
+						signDeg: 0,
+						house: 2,
+						retrograde: true,
+						speed: -0.02,
+						lat: 0,
+						dist: 30,
+						ra: 240,
+						dec: -20,
+						dignities: [],
+					},
 					true_node: {
 						lon: 280,
 						sign: "Capricorn",
@@ -132,11 +141,11 @@ describe("computeReading", () => {
 			lunarEclipses: () => [],
 		} as unknown as Ephemeris;
 
-		const reading = expectReading(computeReading(request, mockEphemeris));
+		const reading = computeReading(request, mockEphemeris);
 		expect(reading.chart.bodies.sun?.sign).toBe("Gemini");
 	});
 
-	test("returns undefined when evo is requested but the chart lacks pluto", () => {
+	test("enforces the chart-computation invariant: a custom seam missing pluto throws", () => {
 		const mockEphemeris = {
 			chartAt: () => ({
 				jdUt: request.birth.jdUt,
@@ -167,12 +176,49 @@ describe("computeReading", () => {
 			lunarEclipses: () => [],
 		} as unknown as Ephemeris;
 
-		const reading = computeReading(request, mockEphemeris, { evo: true });
-		expect(reading).toBeUndefined();
+		expect(() => computeReading(request, mockEphemeris)).toThrow(
+			/chartAt invariant violated: missing 'pluto'/,
+		);
+	});
+
+	test("enforces the chart-computation invariant: a custom seam missing the true node throws", () => {
+		const mockEphemeris = {
+			chartAt: () => ({
+				jdUt: request.birth.jdUt,
+				zodiac: "tropical",
+				houseSystem: "placidus",
+				houseSystemRequested: "placidus",
+				unavailable: [],
+				bodies: {
+					pluto: {
+						lon: 240,
+						sign: "Scorpio",
+						signDeg: 0,
+						house: 2,
+						retrograde: true,
+						speed: -0.02,
+						lat: 0,
+						dist: 30,
+						ra: 240,
+						dec: -20,
+						dignities: [],
+					},
+				},
+				angles: { asc: 180, mc: 90, vertex: 200, eastPoint: 175 },
+				cusps: [180, 210, 240, 270, 300, 330, 0, 30, 60, 90, 120, 150],
+				aspects: [],
+			}),
+			solarEclipses: () => [],
+			lunarEclipses: () => [],
+		} as unknown as Ephemeris;
+
+		expect(() => computeReading(request, mockEphemeris)).toThrow(
+			/chartAt invariant violated: missing 'true_node'/,
+		);
 	});
 
 	test("detects aspect patterns and computes chartSignature and interpretationContext", () => {
-		const reading = expectReading(computeReading(request, ephemeris));
+		const reading = computeReading(request, ephemeris);
 
 		expect(reading.chart.signature).toBeDefined();
 		expect(reading.chart.signature?.hemispheres).toBeDefined();
@@ -184,7 +230,7 @@ describe("computeReading", () => {
 		expect(Array.isArray(reading.chart.declinationAspects)).toBe(true);
 
 		expect(reading.interpretationContext).toBeDefined();
-		expect(Array.isArray(reading.interpretationContext?.atoms)).toBe(true);
-		expect(reading.interpretationContext?.atoms.length).toBeGreaterThan(0);
+		expect(Array.isArray(reading.interpretationContext.atoms)).toBe(true);
+		expect(reading.interpretationContext.atoms.length).toBeGreaterThan(0);
 	});
 });

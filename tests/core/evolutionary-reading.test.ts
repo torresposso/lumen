@@ -110,40 +110,38 @@ describe("computeEvolutionaryReading (direct assembly)", () => {
 			topocentric: false,
 		});
 
-		expect(reading).toBeDefined();
-
 		// ppp reflects the measured (rounded) Pluto–North Node separation.
-		expect(reading?.evo?.ppp.active).toBe(false);
-		expect(reading?.evo?.ppp.separation).toBe(2);
-		expect(reading?.evo?.ppp.reason).toBe(
+		expect(reading.evo.ppp.active).toBe(false);
+		expect(reading.evo.ppp.separation).toBe(2);
+		expect(reading.evo.ppp.reason).toBe(
 			"pluto conjunct north node (separation 2° <= 10°)",
 		);
-		expect(reading?.atoms).toContain("ppp_inactive");
+		expect(reading.atoms).toContain("ppp_inactive");
 
 		// counts aggregate once and stay consistent with the published aspects.
-		expect(reading?.evo?.counts.plutoAspects).toBe(
-			reading?.evo?.pluto.aspects.length,
+		expect(reading.evo.counts.plutoAspects).toBe(
+			reading.evo.pluto.aspects.length,
 		);
-		expect(reading?.evo?.method).toBe(describeEvoCriteria());
+		expect(reading.evo.method).toBe(describeEvoCriteria());
 
 		// rulerPlacement is published WITHOUT the core `description` field
 		// (decision 5): the agent reads structured fields only.
-		expect(reading?.evo?.nodalAxis.north.rulerPlacement).toBeDefined();
-		expect(reading?.evo?.nodalAxis.north.rulerPlacement).not.toHaveProperty(
+		expect(reading.evo.nodalAxis.north.rulerPlacement).toBeDefined();
+		expect(reading.evo.nodalAxis.north.rulerPlacement).not.toHaveProperty(
 			"description",
 		);
-		expect(reading?.evo?.nodalAxis.south.rulerPlacement).not.toHaveProperty(
+		expect(reading.evo.nodalAxis.south.rulerPlacement).not.toHaveProperty(
 			"description",
 		);
 
 		// rulerPlacement.signDeg is explicitly routed through the chart-projection
 		// policy (ADR-0011). Core already produced 4 dp, so this pins the published
 		// surface via the named helper, not a byte change.
-		expect(reading?.evo?.nodalAxis.north.rulerPlacement?.signDeg).toBe(20.1235);
+		expect(reading.evo.nodalAxis.north.rulerPlacement?.signDeg).toBe(20.1235);
 
 		// phase is derived from sun/moon (both default to Aries/0° → "New").
-		expect(reading?.evo?.phase).toBe("New");
-		expect(reading?.atoms).toContain("sol_luna_phase_new");
+		expect(reading.evo.phase).toBe("New");
+		expect(reading.atoms).toContain("sol_luna_phase_new");
 	});
 
 	test("keeps ppp active with the measured separation when Pluto is far from the node", () => {
@@ -171,14 +169,13 @@ describe("computeEvolutionaryReading (direct assembly)", () => {
 			topocentric: false,
 		});
 
-		expect(reading).toBeDefined();
-		expect(reading?.evo?.ppp.active).toBe(true);
-		expect(reading?.evo?.ppp.separation).toBe(100);
-		expect(reading?.evo?.ppp.reason).toBeUndefined();
-		expect(reading?.atoms).toContain("ppp_active");
+		expect(reading.evo.ppp.active).toBe(true);
+		expect(reading.evo.ppp.separation).toBe(100);
+		expect(reading.evo.ppp.reason).toBeUndefined();
+		expect(reading.atoms).toContain("ppp_active");
 	});
 
-	test("returns undefined on the missing-input branch (no pluto)", () => {
+	test("throws on the missing-input branch (no pluto) — the invariant is contractual", () => {
 		const { ephemeris, bodies, cusps } = mockChart({
 			pluto: undefined,
 			true_node: body({
@@ -189,19 +186,19 @@ describe("computeEvolutionaryReading (direct assembly)", () => {
 			}),
 		});
 
-		const reading = computeEvolutionaryReading({
-			bodies,
-			cusps,
-			ephemeris,
-			birth,
-			houseSystem: "placidus",
-			topocentric: false,
-		});
-
-		expect(reading).toBeUndefined();
+		expect(() =>
+			computeEvolutionaryReading({
+				bodies,
+				cusps,
+				ephemeris,
+				birth,
+				houseSystem: "placidus",
+				topocentric: false,
+			}),
+		).toThrow(/must carry pluto and the true node/);
 	});
 
-	test("returns undefined on the missing-input branch (no node bodies)", () => {
+	test("throws on the missing-input branch (no node bodies) — the invariant is contractual", () => {
 		const { ephemeris, bodies, cusps } = mockChart({
 			pluto: body({
 				lon: 230,
@@ -213,15 +210,15 @@ describe("computeEvolutionaryReading (direct assembly)", () => {
 			mean_node: undefined,
 		});
 
-		const reading = computeEvolutionaryReading({
-			bodies,
-			cusps,
-			ephemeris,
-			birth,
-			houseSystem: "placidus",
-			topocentric: false,
-		});
-
-		expect(reading).toBeUndefined();
+		expect(() =>
+			computeEvolutionaryReading({
+				bodies,
+				cusps,
+				ephemeris,
+				birth,
+				houseSystem: "placidus",
+				topocentric: false,
+			}),
+		).toThrow(/must carry pluto and the true node/);
 	});
 });
