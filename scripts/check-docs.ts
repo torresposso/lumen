@@ -123,7 +123,7 @@ if (problems.length > 0) {
 	console.error("check:docs — docs ↔ code divergence:");
 	for (const p of problems) console.error(`  - ${p}`);
 	console.error(
-		"\nDoc-first rule: docs are updated BEFORE implementing (see docs/agents/issue-tracker.md).",
+		"\nDoc-first rule: docs are updated BEFORE implementing (see AGENTS.md — Workflow → Doc-first rule).",
 	);
 	process.exit(1);
 }
