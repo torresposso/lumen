@@ -11,8 +11,18 @@ export interface CliContext {
 	profiles: DefaultProfileStore;
 }
 
+/**
+ * The canonical `add` example — the single source for every usage and
+ * empty-state reference. Never re-type it: interpolate this constant.
+ */
+export const PROFILE_ADD_EXAMPLE =
+	'lumen profile add --when "1981-01-26T00:50" --offset 60 --at "9.15,-74.75" --birthplace "Magangué, Colombia"';
+
+/** The empty-state hint pointing an agent at `add`, shared by `list` and `home`. */
+export const PROFILE_ADD_HINT = `Run \`${PROFILE_ADD_EXAMPLE}\``;
+
 export const profileUsage = [
-	'lumen profile add --when 1981-01-26T00:50 --offset 60 --at "9.15,-74.75" --birthplace "Magangué, Colombia" [--name slug]',
+	`${PROFILE_ADD_EXAMPLE} [--name slug]`,
 	"lumen profile list",
 	"lumen profile get <uuid>",
 	"lumen profile rm <uuid>",
@@ -36,10 +46,6 @@ export const profileAddUsage = [
 	"Adding the same birth twice (same jdUt + coordinates) returns the existing",
 	"profile unchanged.",
 ].join("\n");
-
-/** The canonical `add` example, shared by the home screen and the empty `list` hint. */
-export const PROFILE_ADD_EXAMPLE =
-	'lumen profile add --when "1981-01-26T00:50" --offset 60 --at "9.15,-74.75" --birthplace "Magangué, Colombia"';
 
 export const profileListUsage = [
 	"lumen profile list",
@@ -171,7 +177,7 @@ export const profileCommand: AxiCliCommand<CliContext> = async (
 			const profiles = requireProfileStore(context).list().map(toonProfile);
 			return profiles.length > 0
 				? { profiles }
-				: { profiles: [], help: [`Run \`${PROFILE_ADD_EXAMPLE}\``] };
+				: { profiles: [], help: [PROFILE_ADD_HINT] };
 		}
 
 		case "get": {

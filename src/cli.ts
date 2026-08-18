@@ -1,7 +1,7 @@
 import { runAxiCli } from "axi-sdk-js";
 import {
 	type CliContext,
-	PROFILE_ADD_EXAMPLE,
+	PROFILE_ADD_HINT,
 	profileCommand,
 	requireProfileStore,
 } from "./commands/profile";
@@ -34,7 +34,7 @@ export async function main(): Promise<void> {
 				profiles: profiles.length,
 				help: [
 					profiles.length === 0
-						? `Run \`${PROFILE_ADD_EXAMPLE}\``
+						? PROFILE_ADD_HINT
 						: "Run `lumen profile list` to see saved profiles",
 				],
 			};
