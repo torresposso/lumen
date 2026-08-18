@@ -3,9 +3,10 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { NewProfile } from "../../src/core/types";
+import type { NewProfile } from "../../src/core/model";
 import {
 	defaultDbFile,
+	InMemoryProfileStore,
 	SqliteProfileStore,
 } from "../../src/storage/profile-store";
 
@@ -161,13 +162,13 @@ describe("SqliteProfileStore", () => {
 	});
 });
 
-describe("SqliteProfileStore with an injected in-memory Database", () => {
+describe("InMemoryProfileStore — the in-memory adapter", () => {
 	let db: Database;
-	let store: SqliteProfileStore;
+	let store: InMemoryProfileStore;
 
 	beforeEach(() => {
 		db = new Database(":memory:");
-		store = new SqliteProfileStore(undefined, () => new Date(), db);
+		store = new InMemoryProfileStore(db, () => new Date());
 	});
 
 	afterEach(() => {
@@ -193,17 +194,5 @@ describe("SqliteProfileStore with an injected in-memory Database", () => {
 		expect(second.profile.id).toBeDefined();
 		expect(second.profile.name).toBe("erik");
 		expect(store.list()).toHaveLength(1);
-	});
-
-	test("reads against the injected db never consult the filesystem", () => {
-		// A sentinel path that only a file-backed store would create.
-		const sentinel = join(
-			tmpdir(),
-			`lumen-mem-sentinel-${Math.random().toString(36).slice(2)}.db`,
-		);
-		const s = new SqliteProfileStore(sentinel, () => new Date(), db);
-		s.add(newProfile());
-		expect(existsSync(sentinel)).toBe(false);
-		s.close();
 	});
 });

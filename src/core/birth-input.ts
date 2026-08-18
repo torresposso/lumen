@@ -1,7 +1,7 @@
 import { AxiError } from "axi-sdk-js";
 import { ADD_FLAGS } from "./cli-surface";
-import { daysInMonth, julianDayUt } from "./jd";
-import type { BirthInput, LocalTime } from "./types";
+import { daysInMonth, julianDayUt, type LocalTime } from "./jd";
+import type { BirthInput } from "./model";
 
 export const MIN_YEAR = 1800;
 export const MAX_YEAR = 2100;

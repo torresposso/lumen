@@ -49,3 +49,14 @@ facing vocabulary. In the same pass the profile store's migration suggestion
 stopped citing a CLI command: persistence keeps no reference to the CLI
 surface (ADR-0006). The `CONTEXT.md` term is now *command surface*; the
 add-slice scope recorded above is subsumed.
+
+## Update (2026-08-18, architecture review)
+
+The surface now also owns the **arm help catalog** (per-arm one-liners) and
+derives the top-level "Commands:" block (`profileCommandsHelp`) from it, so
+`src/cli.ts` stops re-typing the arm lines — adding an arm is one catalog
+row, not an edit in the root wiring. The **home view** (`homeView`: the
+profile count + the empty-state hint a bare invocation publishes) lives here
+too, beside the rule that selects the hint; the root calls the seam instead
+of re-composing the empty-state decision. The promise this ADR made for
+renames now also holds for *additions* and for *rendering*.

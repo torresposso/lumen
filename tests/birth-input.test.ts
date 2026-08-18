@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { AxiError } from "axi-sdk-js";
 import { parseBirthInput } from "../src/core/birth-input";
-import type { BirthInput } from "../src/core/types";
+import type { BirthInput } from "../src/core/model";
 
 const VALID = {
 	when: "1990-06-10T14:30-04:00",

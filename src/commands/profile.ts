@@ -9,9 +9,9 @@ import {
 	PROFILE_COMMAND,
 	PROFILE_LIST_HINT,
 } from "../core/cli-surface";
+import { type CliContext, requireProfileStore } from "../core/context";
 import { createSubcommandGroup } from "../core/subcommand";
 import { toonProfile } from "../core/toon";
-import type { CliContext } from "../core/types";
 
 const profileUsage = [
 	`${PROFILE_ADD_EXAMPLE} [${ADD_FLAGS.name} slug]`,
@@ -76,23 +76,6 @@ const ID_SPEC: ArgsSpec = {
 	positionalName: "profile id",
 	positionalHint: "Use the UUID printed by `lumen profile add`",
 };
-
-/**
- * The one seam the command module reaches through to persistence. The command
- * never creates a store — the CLI wiring provides it through context — so a
- * store operation without context fails loud instead of default-constructing
- * (which would silently create `./lumen.db` in the cwd).
- */
-function requireProfileStore(
-	context: CliContext | undefined,
-): CliContext["profiles"] {
-	if (context === undefined) {
-		throw new AxiError("No profile store in context", "PROFILE_ERROR", [
-			"The CLI always provides one — this is a lumen bug",
-		]);
-	}
-	return context.profiles;
-}
 
 export const profileCommand = createSubcommandGroup<CliContext>({
 	name: PROFILE_COMMAND,

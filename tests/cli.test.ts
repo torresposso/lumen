@@ -8,8 +8,8 @@ import {
 	PROFILE_ARMS,
 	PROFILE_COMMAND,
 } from "../src/core/cli-surface";
-import type { CliContext } from "../src/core/types";
-import { SqliteProfileStore } from "../src/storage/profile-store";
+import type { CliContext } from "../src/core/context";
+import { InMemoryProfileStore } from "../src/storage/profile-store";
 
 let db: Database;
 
@@ -23,7 +23,7 @@ afterEach(() => {
 
 function ctx(): CliContext {
 	return {
-		profiles: new SqliteProfileStore(undefined, () => new Date(), db),
+		profiles: new InMemoryProfileStore(db, () => new Date()),
 	};
 }
 

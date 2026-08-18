@@ -3,12 +3,8 @@ import { randomUUID } from "node:crypto";
 import { chmodSync, existsSync, mkdirSync, openSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { AxiError } from "axi-sdk-js";
-import type {
-	AddResult,
-	NewProfile,
-	Profile,
-	ProfileStore,
-} from "../core/types";
+import type { NewProfile, Profile } from "../core/model";
+import type { AddResult, ProfileStore } from "../core/store";
 import { ensureSchema } from "./schema";
 
 /** `./lumen.db` in the cwd (per-project), overridable with `LUMEN_DB`. */
@@ -43,86 +39,27 @@ function toProfile(row: ProfileRow): Profile {
 }
 
 /**
- * The SQLite adapter behind the `ProfileStore` port (in `src/core/types.ts`):
- * per-project embedded SQLite for birth profiles (`./lumen.db`, override with
- * `LUMEN_DB`). Created lazily on first write — `list`/`get`/`delete` against a
- * missing file respond empty without creating it. 0600 permissions, rollback
- * journal (no WAL), migrations via PRAGMA user_version. A bun:sqlite
- * `Database` may be injected instead (in-memory, tests): the same interface,
- * with no filesystem side effects — a second adapter behind the port.
+ * The SQL core both adapters share: the four store operations, the dedupe, the
+ * UUID generation and the clock, over an already-opened bun:sqlite `Database`.
+ * No file policy, no lifecycle — gaining a `Database` is the adapter's job
+ * (file policy) or the caller's (in-memory). `add` owns profile identity: it
+ * generates the profile's UUID — the command never supplies one.
  */
-export class SqliteProfileStore implements ProfileStore {
-	private db: Database | null = null;
-	/** True when this store is file-backed (created lazily, 0600); false when a Database was injected. */
-	private readonly fileBacked: boolean;
-
+class ProfileDb implements ProfileStore {
 	constructor(
-		readonly dbPath: string = defaultDbFile(),
+		private readonly db: Database,
 		private readonly now: () => Date = () => new Date(),
-		db?: Database,
-	) {
-		this.fileBacked = db === undefined;
-		if (db !== undefined) this.injectedDb = db;
-	}
-	private injectedDb: Database | null = null;
-
-	/** Opens (creating if needed) the database. Only `add` calls this. */
-	private open(): Database {
-		if (this.db !== null) return this.db;
-		if (!this.fileBacked) {
-			// In-memory adapter: the caller owns the Database; a fresh `:memory:`
-			// hits the schema check like a fresh install.
-			const injected = this.injectedDb;
-			if (injected === null) {
-				throw new AxiError(
-					"In-memory profile store is closed",
-					"PROFILE_ERROR",
-					["This is a lumen bug — the CLI always constructs a fresh store"],
-				);
-			}
-			this.db = injected;
-			ensureSchema(this.db);
-			return this.db;
-		}
-		try {
-			mkdirSync(dirname(this.dbPath), { recursive: true, mode: 0o700 });
-			if (!existsSync(this.dbPath)) {
-				openSync(this.dbPath, "a");
-				chmodSync(this.dbPath, 0o600);
-			}
-			this.db = new Database(this.dbPath);
-			ensureSchema(this.db);
-		} catch (err) {
-			if (err instanceof AxiError) throw err;
-			throw new AxiError(
-				`Could not open profile store: ${err instanceof Error ? err.message : String(err)}`,
-				"PROFILE_ERROR",
-				[
-					"Check that the working directory is writable",
-					"Or set LUMEN_DB to a writable path",
-				],
-			);
-		}
-		return this.db;
-	}
-
-	private fileExists(): boolean {
-		return existsSync(this.dbPath);
-	}
+	) {}
 
 	list(): Profile[] {
-		if (this.fileBacked && !this.fileExists()) return [];
-		const db = this.open();
-		const rows = db
+		const rows = this.db
 			.prepare("SELECT * FROM profiles ORDER BY id")
 			.all() as ProfileRow[];
 		return rows.map(toProfile);
 	}
 
 	get(id: string): Profile | undefined {
-		if (this.fileBacked && !this.fileExists()) return undefined;
-		const db = this.open();
-		const row = db
+		const row = this.db
 			.prepare("SELECT * FROM profiles WHERE id = ?")
 			.get(id) as ProfileRow | null;
 		return row ? toProfile(row) : undefined;
@@ -132,13 +69,13 @@ export class SqliteProfileStore implements ProfileStore {
 	 * Inserts a profile, generating its UUID, and deduplicating on the birth: a
 	 * profile with the same `birthJdUt + birthLat + birthLon` already stored
 	 * wins and is returned unchanged (the new name/birthPlace are discarded —
-	 * the birth is the identity).
+	 * the birth is the identity). Inserted timestamps come from the injected
+	 * clock.
 	 */
 	add(profile: NewProfile): AddResult {
-		const db = this.open();
 		const nowIso = this.now().toISOString();
 		const id = randomUUID();
-		const result = db
+		const result = this.db
 			.prepare(
 				`INSERT INTO profiles (
 					id, name, birth_place, birth_date_time, birth_lat, birth_lon, birth_jd_ut,
@@ -163,7 +100,7 @@ export class SqliteProfileStore implements ProfileStore {
 		}
 
 		// Duplicate birth — return the existing profile, unchanged.
-		const row = db
+		const row = this.db
 			.prepare(
 				"SELECT * FROM profiles WHERE birth_jd_ut = ? AND birth_lat = ? AND birth_lon = ?",
 			)
@@ -176,18 +113,125 @@ export class SqliteProfileStore implements ProfileStore {
 	}
 
 	remove(id: string): boolean {
-		if (this.fileBacked && !this.fileExists()) return false;
-		const db = this.open();
-		return db.prepare("DELETE FROM profiles WHERE id = ?").run(id).changes > 0;
+		return (
+			this.db.prepare("DELETE FROM profiles WHERE id = ?").run(id).changes > 0
+		);
+	}
+}
+
+/**
+ * The file-backed adapter behind the `ProfileStore` port: per-project embedded
+ * SQLite for birth profiles (`./lumen.db`, override with `LUMEN_DB`). Created
+ * lazily on first write — reads against a missing file respond empty without
+ * creating it. 0600 permissions, rollback journal (no WAL), migrations via
+ * PRAGMA user_version. This class owns the file policy; the SQL lives in the
+ * shared `ProfileDb` core.
+ */
+export class SqliteProfileStore implements ProfileStore {
+	private core: ProfileDb | null = null;
+	private database: Database | null = null;
+	private closed = false;
+
+	constructor(
+		readonly dbPath: string = defaultDbFile(),
+		private readonly now: () => Date = () => new Date(),
+	) {}
+
+	/** Opens (creating if needed) the database. Only writes call this. */
+	private open(): ProfileDb {
+		if (this.core !== null) return this.core;
+		try {
+			mkdirSync(dirname(this.dbPath), { recursive: true, mode: 0o700 });
+			if (!existsSync(this.dbPath)) {
+				openSync(this.dbPath, "a");
+				chmodSync(this.dbPath, 0o600);
+			}
+			const database = new Database(this.dbPath);
+			ensureSchema(database);
+			this.database = database;
+			this.core = new ProfileDb(database, this.now);
+		} catch (err) {
+			if (err instanceof AxiError) throw err;
+			throw new AxiError(
+				`Could not open profile store: ${err instanceof Error ? err.message : String(err)}`,
+				"PROFILE_ERROR",
+				[
+					"Check that the working directory is writable",
+					"Or set LUMEN_DB to a writable path",
+				],
+			);
+		}
+		return this.core;
+	}
+
+	private fileExists(): boolean {
+		return existsSync(this.dbPath);
+	}
+
+	list(): Profile[] {
+		if (!this.fileExists()) return [];
+		return this.open().list();
+	}
+
+	get(id: string): Profile | undefined {
+		if (!this.fileExists()) return undefined;
+		return this.open().get(id);
+	}
+
+	add(profile: NewProfile): AddResult {
+		return this.open().add(profile);
+	}
+
+	remove(id: string): boolean {
+		if (!this.fileExists()) return false;
+		return this.open().remove(id);
 	}
 
 	close(): void {
-		if (this.db !== null) {
-			this.db.close();
-		} else if (this.injectedDb !== null) {
-			this.injectedDb.close();
-		}
-		this.db = null;
-		this.injectedDb = null;
+		if (this.closed) return;
+		this.closed = true;
+		this.database?.close();
+		this.database = null;
+		this.core = null;
+	}
+}
+
+/**
+ * The in-memory adapter behind the `ProfileStore` port: a thin wrapper over an
+ * injected bun:sqlite `Database` (tests: `:memory:`). No file policy, no
+ * lifecycle of its own — the caller owns the `Database`; this store's `close`
+ * closes it.
+ */
+export class InMemoryProfileStore implements ProfileStore {
+	private readonly database: Database;
+	private readonly core: ProfileDb;
+	private closed = false;
+
+	constructor(database: Database, now: () => Date = () => new Date()) {
+		ensureSchema(database);
+		this.database = database;
+		this.core = new ProfileDb(database, now);
+	}
+
+	list(): Profile[] {
+		return this.core.list();
+	}
+
+	get(id: string): Profile | undefined {
+		return this.core.get(id);
+	}
+
+	add(profile: NewProfile): AddResult {
+		return this.core.add(profile);
+	}
+
+	remove(id: string): boolean {
+		return this.core.remove(id);
+	}
+
+	close(): void {
+		if (this.closed) return;
+		this.closed = true;
+		this.database.close();
 	}
 }

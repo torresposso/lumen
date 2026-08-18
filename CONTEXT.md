@@ -46,8 +46,9 @@ pushed.
   contract's interface — they are implementation, not interface (ADR-0005).
 - **LocalTime** — the transient broken-down local wall-clock (year…minute) the
   birth-input contract yields *internally* from `--when` and feeds to
-  `julianDayUt`; never stored and never part of a published interface.
-  (Formerly `BirthClock`.)
+  `julianDayUt`; never stored. It crosses only the JD arithmetic seam
+  (`src/core/jd.ts`, exported beside `julianDayUt`) — never a contract's
+  interface. (Formerly `BirthClock`.)
 - **RawBirthInput** — the raw flag strings `profile add` receives, in their
   ergonomic CLI names (ADR-0006): `--when` (ISO 8601 datetime with UTC offset:
   `YYYY-MM-DDTHH:MM±HH:MM` or `…Z`) and `--where "lat, lon, Place"` (coordinates
@@ -88,16 +89,31 @@ pushed.
   the *meanings*. It also owns the shared empty-state rule — the hint tokens
   and the selection between them (`emptyStateHint`: empty store → add-hint,
   non-empty → list-hint) live beside each other, so `home` and the `list` arm
-  never re-implement the decision.
-- **Profile store** — the persistence port `ProfileStore` (`src/core/types.ts`:
+  never re-implement the decision. It owns the per-arm help catalog
+  (`PROFILE_ARM_HELP`) and derives the top-level "Commands:" block
+  (`profileCommandsHelp`) from it — the top-level help in `src/cli.ts` and the
+  command usage text render the same arm lines from the same tokens, so adding
+  an arm is one catalog row, not an edit in the root wiring.
+- **Home view** — the summary a bare `lumen` invocation (no command) publishes:
+  the profile count plus the command surface's empty-state hint, composed by
+  `homeView` (`src/core/cli-surface.ts`) — "snapshot the store, apply the
+  empty-state rule". It is the same decision the `list` arm applies to its
+  rows, with one home; the root wiring (`src/cli.ts`) calls the seam instead
+  of re-composing it.
+- **Profile store** — the persistence port `ProfileStore` (`src/core/store.ts`:
   `list` / `get` / `add` / `remove` — no file policy, no lifecycle) and the
-  SQLite adapter `SqliteProfileStore` (`src/storage/profile-store.ts`) that
-  serves it: per-project SQLite at `./lumen.db` (overridable with `LUMEN_DB`),
-  created lazily only on `add`, dedupe via `UNIQUE INDEX (birth_jd_ut,
-  birth_lat, birth_lon)`, migrations via `PRAGMA user_version` (current schema
-  v4). The command types against the port and never creates a store — the CLI
-  wiring provides one through context. The adapter owns profile identity:
-  `add` generates the profile's UUID — the command never supplies one.
+  two SQLite adapters that serve it (`src/storage/profile-store.ts`, sharing
+  one internal SQL core): `SqliteProfileStore` — per-project SQLite at
+  `./lumen.db` (overridable with `LUMEN_DB`), created lazily only on `add`,
+  0600 permissions, dedupe via `UNIQUE INDEX (birth_jd_ut, birth_lat,
+  birth_lon)`, migrations via `PRAGMA user_version` (current schema v4) — and
+  `InMemoryProfileStore`, a thin wrapper over an injected `bun:sqlite`
+  `Database` for tests (same interface, no filesystem side effects). The
+  command and the home view type against the port and never create a store —
+  the CLI wiring provides one through context, and `requireProfileStore`
+  (`src/core/context.ts`, with `CliContext`) fails loud when context is
+  missing. The adapters own profile identity: `add` generates the profile's
+  UUID — the command never supplies one.
 - **TOON** — the AXI structured-output encoding lumen publishes: display
   precision only (`birthJdUt` 6 decimals, `birthLat`/`birthLon` 4),
   `birthDateTime` echoed as stored (ISO 8601), rounded at output; the DB keeps

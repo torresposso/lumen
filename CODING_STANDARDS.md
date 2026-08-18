@@ -36,7 +36,10 @@ Already enforced, not reviewable:
 4. **Layered layout per spec.md §8.** `bin/` → `src/cli.ts` (wiring) →
    `src/commands/` (orchestration) → `src/core/` (domain) → `src/storage/`
    (persistence). `src/cli.ts` stays thin: it registers commands and provides
-   dependencies through context; commands never construct the store.
+   dependencies through context; commands never construct the store. `main` is
+   a thin runner over the declarative, injectable `buildCliOptions`
+   (`argv`/`stdout`/store seams), so the whole agent-facing surface is
+   testable.
 5. **Domain logic lives in `core/`, persistence in `storage/`.** A command file
    coordinates; it does not compute Julian Days, format output, or talk to the
    DB directly.
@@ -51,24 +54,29 @@ Already enforced, not reviewable:
    single place where the ergonomic CLI names (`--when`/`--where`) map onto the
    model's `birth*` fields. The names themselves live in the command surface
    (`src/core/cli-surface.ts`): the command and arm tokens, the flag literals,
-   the canonical add example and the shared hints. The args spec, usage text,
-   top-level help and birth-input messages reference the tokens instead of
-   re-typing them, so a vocabulary rename is one edit (ADR-0006; ADR-0007).
+   the canonical add example, the arm help catalog and the shared hints — plus
+   the derived top-level "Commands:" block (`profileCommandsHelp`) and the
+   home view (`homeView`: the profile count + empty-state hint a bare
+   invocation publishes). The args spec, usage text, top-level help and
+   birth-input messages reference the tokens instead of re-typing them, so a
+   vocabulary rename is one edit and an added arm is one catalog row
+   (ADR-0006; ADR-0007).
 7. **Pure kernels don't validate or do I/O.** `src/core/jd.ts` is arithmetic
    only — no range checks, no imports beyond plain math. Validation belongs to
    the calling contract; I/O belongs to the storage layer.
 8. **No speculative generality.** Abstract, parameterize or add hooks only when
    the spec needs it. Keep modules small and deep: a narrow interface hiding
    real behaviour beats broad one.
-9. **Storage rules** (`src/storage/profile-store.ts`, `SqliteProfileStore`):
-   the command and the CLI context see only the persistence port `ProfileStore`
-   (`src/core/types.ts` — `list`/`get`/`add`/`remove`); the SQLite adapter
-   owns the policies: the DB is created **lazily** (only `add`); permissions
-   `0600`; rollback journal (no WAL); migrations via `PRAGMA user_version`.
-   Reads against a missing DB return empty / not-found without creating files.
-   The constructor also accepts an injected in-memory `bun:sqlite` `Database`
-   for tests — the second adapter behind the port; the file adapter keeps the
-   rules above as production policy.
+9. **Storage rules** (`src/storage/profile-store.ts`): the command, the home
+   view and the CLI context see only the persistence port `ProfileStore`
+   (`src/core/store.ts` — `list`/`get`/`add`/`remove`); the file adapter
+   `SqliteProfileStore` owns the policies: the DB is created **lazily** (only
+   `add`); permissions `0600`; rollback journal (no WAL); migrations via
+   `PRAGMA user_version`. Reads against a missing DB return empty / not-found
+   without creating files. `InMemoryProfileStore` is the second adapter behind
+   the port — a thin wrapper over an injected in-memory `bun:sqlite` `Database`
+   for tests, no filesystem side effects. Both adapters share one internal SQL
+   core; neither file policy nor lifecycle leaks into the port.
 
 ## Data & identity
 

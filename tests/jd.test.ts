@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import type { LocalTime } from "../src/core/jd";
 import { daysInMonth, isLeapYear, julianDayUt } from "../src/core/jd";
-import type { LocalTime } from "../src/core/types";
 
 function local(
 	year: number,

@@ -1,4 +1,4 @@
-import type { Profile } from "./types";
+import type { Profile } from "./model";
 
 /**
  * The TOON-shaped view of a profile — the shape lumen *publishes*. The

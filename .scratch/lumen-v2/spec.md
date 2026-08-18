@@ -110,8 +110,9 @@ quoting.
 
 Notes: unwritable cwd → AxiError `PROFILE_ERROR` with a suggestion; add `lumen.db` to `.gitignore`.
 
-Tests may inject an in-memory `bun:sqlite` `Database` (the second adapter); the
-file adapter keeps the guarantees above as the production policy.
+Tests may drive the port through `InMemoryProfileStore` (the second adapter)
+over an injected in-memory `bun:sqlite` `Database`; the file adapter
+(`SqliteProfileStore`) keeps the guarantees above as the production policy.
 
 ## 6. Dependencies
 
@@ -136,8 +137,8 @@ Removed: `caelus`, `caelus-birth`, `zod`, `luxon` (the last one only transitive 
 - `tests/profile-store.test.ts` — CRUD; `add` generates the UUID; dedupe (ON
   CONFLICT returns the existing profile); lazy creation (`list` does not create
   the file, `add` does); 0600 permissions; `LUMEN_DB` override; `user_version`
-  migration (v1→v4, v2→v4, v3→v4); the in-memory `Database` injection (CRUD +
-  dedupe without touching files).
+  migration (v1→v4, v2→v4, v3→v4); the in-memory adapter
+  (`InMemoryProfileStore`, CRUD + dedupe without touching files).
 - `tests/subcommand.test.ts` — the subcommand runner: `--help` returns the
   usage without running; parse violations propagate as one `VALIDATION_ERROR`
   citing the command; the arm's result (string or object) passes through;
@@ -145,6 +146,7 @@ Removed: `caelus`, `caelus-birth`, `zod`, `luxon` (the last one only transitive 
 - `tests/cli-surface.test.ts` — the command surface: the tokens, the canonical
   add example and the shared hints match the spec §3 surface.
 - `tests/cli.test.ts` — input contract (each flag + combinations); AXI errors; TOON output (rounding applied, `birthDateTime` echoed); `add` prints the UUID; dedupe visible from the CLI; the command seam is crossed against an in-memory store.
+- `tests/home.test.ts` — the home view (count + empty-state hint) and the injectable composition root (`buildCliOptions` with stubbed `argv`/`stdout`, whole-CLI bare invocation and `--help`).
 
 ## 8. Suggested source layout
 
@@ -154,18 +156,21 @@ src/cli.ts                       # runAxiCli + command registration
 src/commands/profile.ts          # add / list / get / delete
 src/core/args.ts                 # CLI-args contract (flag + positional syntax)
 src/core/birth-input.ts          # birth-input contract (parse ISO --when + --where "lat, lon, Place", one error style)
-src/core/cli-surface.ts           # the command surface (vocabulary tokens + canonical example + hints)
-src/core/jd.ts                   # Meeus arithmetic only (julianDayUt, no validation)
+src/core/cli-surface.ts          # the command surface (vocabulary tokens + arm help catalog + derived Commands block + home view + hints)
+src/core/context.ts              # CliContext + the requireProfileStore guard
+src/core/jd.ts                   # Meeus arithmetic + the transient LocalTime read (julianDayUt, no validation)
+src/core/model.ts                # the model: BirthInput, NewProfile, Profile
+src/core/store.ts                # the ProfileStore port + AddResult
 src/core/subcommand.ts           # subcommand runner (parse + dispatch; help detection delegates to the args contract)
-src/core/types.ts                # Profile, BirthInput, LocalTime, the ProfileStore port, etc.
 src/core/toon.ts                 # display policy (shape + precisions)
 src/version.ts                   # package version (fast path)
 src/storage/schema.ts            # schema definition & migrations (bun:sqlite)
-src/storage/profile-store.ts     # SqliteProfileStore v2 (bun:sqlite; serves the ProfileStore port in core)
+src/storage/profile-store.ts     # SqliteProfileStore (file policy) + InMemoryProfileStore (injected Database) over a shared SQL core
 tests/args.test.ts               # CLI-args contract (syntax detail)
 tests/birth-input.test.ts        # contract detail (format + semantic ranges)
 tests/cli-surface.test.ts        # command surface (tokens + canonical example + shared hints)
 tests/cli.test.ts                # whole-CLI behaviour (errors, TOON, dedupe) against an in-memory store
+tests/home.test.ts               # home view + injectable composition root (argv/stdout, bare invocation, --help)
 tests/jd.test.ts                 # reference vectors + boundary validations
 tests/subcommand.test.ts         # subcommand runner (--help, parse, passthrough, context)
 tests/storage/schema.test.ts     # schema DDL & migrations (v1→v4, v2→v4, v3→v4)

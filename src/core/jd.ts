@@ -1,4 +1,15 @@
-import type { LocalTime } from "./types";
+/**
+ * The transient broken-down local wall-clock reading the birth-input contract
+ * yields internally from `--when` and feeds to `julianDayUt`. Never stored; it
+ * crosses only this arithmetic seam (never a contract's interface).
+ */
+export interface LocalTime {
+	year: number;
+	month: number;
+	day: number;
+	hour: number;
+	minute: number;
+}
 
 /**
  * Julian Day (UT) from local wall-clock time and a fixed UTC offset — Meeus,
@@ -8,7 +19,8 @@ import type { LocalTime } from "./types";
  * instant over 1800–2100 (see research/calculo-jd-y-deps.md).
  *
  * The birth-input contract (parse + validation) lives in `core/birth-input.ts`;
- * this module owns only the arithmetic.
+ * this module owns only the arithmetic and the transient `LocalTime` read it
+ * consumes.
  */
 export function julianDayUt(local: LocalTime, offsetMinutes: number): number {
 	const utDay =
