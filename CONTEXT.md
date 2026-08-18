@@ -101,4 +101,6 @@ pushed.
 - **TOON** — the AXI structured-output encoding lumen publishes: display
   precision only (`birthJdUt` 6 decimals, `birthLat`/`birthLon` 4),
   `birthDateTime` echoed as stored (ISO 8601), rounded at output; the DB keeps
-  full float64 precision. Policy lives in `src/core/toon.ts`.
+  full float64 precision. The published key set derives from the stored
+  profile minus its timestamps — never a hand-mirrored duplicate. Policy lives
+  in `src/core/toon.ts`.

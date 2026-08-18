@@ -1,20 +1,14 @@
 import type { Profile } from "./types";
 
 /**
- * The TOON-shaped view of a profile — the shape lumen *publishes*. Stored
- * values always keep full float64 precision; these round only on output (the
- * outer envelope is TOON, the AXI structured-output encoding). This module is
- * the single display policy: field selection, order and precision.
+ * The TOON-shaped view of a profile — the shape lumen *publishes*. The
+ * published key set derives from the stored `Profile` (every stored field but
+ * the timestamps is published); this module authors only the display policy —
+ * field order and precision. Stored values always keep full float64 precision;
+ * these round only on output (the outer envelope is TOON, the AXI
+ * structured-output encoding).
  */
-export type ToonProfile = {
-	id: string;
-	name: string | null;
-	birthPlace: string;
-	birthDateTime: string;
-	birthLat: number;
-	birthLon: number;
-	birthJdUt: number;
-};
+export type ToonProfile = Omit<Profile, "createdAt" | "updatedAt">;
 
 const JDUT_DIGITS = 6;
 const COORD_DIGITS = 4;
