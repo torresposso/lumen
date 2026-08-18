@@ -1,0 +1,105 @@
+# CODING_STANDARDS.md
+
+Coding standards for lumen v2. Consumed by the Standards axis of `/code-review`:
+every rule below is a citation target (cite the file + the rule number). Where
+this document is silent, `/code-review` falls back to its Fowler smell baseline
+(_Refactoring_, ch. 3). Anything tooling already enforces is skipped by reviews
+and is not restated here — see [Tooling](#tooling) for the boundary.
+
+## Tooling
+
+Already enforced, not reviewable:
+
+- **Biome** (`bun run check`): tab indentation, double quotes, recommended lint
+  preset, import organization.
+- **TypeScript** (`bun run typecheck`, strict): `strict`, `verbatimModuleSyntax`,
+  `noUncheckedIndexedAccess`, `noImplicitOverride`, `noFallthroughCasesInSwitch`.
+- **check:docs** (`bun run check`): spec ↔ code parity (spec.md §3 / §8).
+
+## Language & vocabulary
+
+1. **English only in code and docs.** Code identifiers, comments, error and
+   output messages, docs and commit messages are written in English. Spanish is
+   reserved for human↔agent conversation and never lands in the repo
+   (`CONTEXT.md` — Language).
+2. **Use the domain vocabulary as-is.** Name things with the exact terms of
+   `CONTEXT.md` (birth, birthplace, birth input, jdUt, TOON…); do not drift to
+   synonyms. A term that needs resolving is a `CONTEXT.md` change in the same
+   commit, not a new word in the code.
+3. **lumen never resolves world facts.** No geocoding, timezone/calendar
+   lookups, or world-data dependencies in any layer. If a feature needs a world
+   fact, the agent supplies it as input; lumen only validates, derives (jdUt via
+   Meeus) and persists (`CONTEXT.md`; ADR-0002).
+
+## Architecture & module shape
+
+4. **Layered layout per spec.md §8.** `bin/` → `src/cli.ts` (wiring) →
+   `src/commands/` (orchestration) → `src/core/` (domain) → `src/storage/`
+   (persistence). `src/cli.ts` stays thin: it registers commands and provides
+   dependencies through context; commands never construct the store.
+5. **Domain logic lives in `core/`, persistence in `storage/`.** A command file
+   coordinates; it does not compute Julian Days, format output, or talk to the
+   DB directly.
+6. **One seam per concern.** A contract owns its parsing + validation in one
+   place with one error style (`src/core/birth-input.ts` is the model: it
+   accumulates every *checkable* violation and throws one error citing all of
+   them). Validation must not be re-implemented at call sites.
+7. **Pure kernels don't validate or do I/O.** `src/core/jd.ts` is arithmetic
+   only — no range checks, no imports beyond plain math. Validation belongs to
+   the calling contract; I/O belongs to the storage layer.
+8. **No speculative generality.** Abstract, parameterize or add hooks only when
+   the spec needs it. Keep modules small and deep: a narrow interface hiding
+   real behaviour beats broad one.
+9. **Storage rules** (`src/storage/profile-store.ts`): the DB is created
+   **lazily** (only `add`); permissions `0600`; rollback journal (no WAL);
+   migrations via `PRAGMA user_version`. Reads against a missing DB return
+   empty / not-found without creating files.
+
+## Data & identity
+
+10. **The birth is the identity.** Dedupe on `jdUt + lat + lon` via a `UNIQUE
+    INDEX` + `ON CONFLICT`; `id` is an opaque auto-generated UUID; `get`/`rm`
+    accept a UUID only. `name`/`birthplace` are display metadata — never
+    identity, never lookup keys (ADR-0003).
+11. **Display precision is a policy, not data.** The DB keeps full float64
+    precision; rounding to display precision (jdUt 6 decimals, lat/lon 4,
+    offset integer) happens only at output, in the single format-policy module
+    (`src/core/toon.ts`). No other module rounds.
+
+## Errors & output (AXI)
+
+12. **AXI error convention.** Throw `AxiError` with the AXI codes
+    (`VALIDATION_ERROR`, `NOT_FOUND`, `PROFILE_ERROR`). Input errors cite the
+    violated rule; a contract accumulates every checkable violation into the
+    error's suggestions so an agent gets the whole verdict in one round-trip.
+13. **TOON-only output.** No `--json`. All formatting goes through the TOON
+    policy module; output messages are English and parseable by an agent
+    (`CONTEXT.md` — TOON).
+
+## Dependencies
+
+14. **Minimal dependencies.** Prefer hand-rolling a small contract over pulling
+    a schema/date library (ADR-0002: the ~7-field birth-input contract is
+    hand-rolled; no `zod`, no date/time library). A new runtime dependency must
+    be justified in the spec and/or an ADR.
+
+## Tests
+
+15. **`bun test`, suites per spec.md §7.** Derived arithmetic is pinned by
+    reference vectors; contract detail (formats + semantic ranges) is tested at
+    unit level; CLI behaviour (errors, TOON rounding, dedupe) through the CLI.
+    `bun run typecheck` and `bun run check` stay green.
+
+## Doc-first
+
+16. **Docs lead, code follows.** `.scratch/<feature>/spec.md` is the contract
+    the implementation lands against; `CONTEXT.md` and `docs/adr/` are updated
+    in the same change that touches a term or records a decision. A change that
+    alters the CLI surface or the file layout lands with its docs in the same
+    commit (AGENTS.md — Doc-first rule).
+
+## Override rule
+
+This document **overrides** the `/code-review` smell baseline where they
+conflict; where this document is silent, the baseline applies. A rule listed
+here is a hard standard; a baseline smell is always a judgement call.
