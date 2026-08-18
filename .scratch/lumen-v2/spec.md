@@ -158,6 +158,7 @@ src/core/subcommand.ts           # subcommand runner (parse + help + dispatch fo
 src/core/types.ts                # Profile, BirthInput, LocalTime, etc.
 src/core/toon.ts                 # display policy (shape + precisions)
 src/version.ts                   # package version (fast path)
+src/storage/schema.ts            # schema definition & migrations (bun:sqlite)
 src/storage/profile-store.ts     # ProfileStore v2 (bun:sqlite)
 tests/args.test.ts               # CLI-args contract (syntax detail)
 tests/birth-input.test.ts        # contract detail (format + semantic ranges)
@@ -165,7 +166,8 @@ tests/cli-surface.test.ts        # command surface (tokens + canonical example +
 tests/cli.test.ts                # whole-CLI behaviour (errors, TOON, dedupe) against an in-memory store
 tests/jd.test.ts                 # reference vectors + boundary validations
 tests/subcommand.test.ts         # subcommand runner (--help, parse, passthrough, context)
-tests/storage/profile-store.test.ts  # file adapter (lazy, 0600, migrations) + in-memory CRUD
+tests/storage/schema.test.ts     # schema DDL & migrations (v1→v4, v2→v4, v3→v4)
+tests/storage/profile-store.test.ts  # file adapter (lazy, 0600) + in-memory CRUD & dedupe
 tests/version.test.ts            # package version (fast path)
 ```
 
