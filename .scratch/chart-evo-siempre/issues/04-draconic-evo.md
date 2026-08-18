@@ -1,7 +1,7 @@
 ---
 id: 04-draconic-evo
 type: task
-status: ready-for-agent
+status: resolved
 blockers: [01]
 ---
 
@@ -51,3 +51,24 @@ declara el marco draconic y sus constantes.
 ## Comments
 
 - 2026-08-17: abierto por pi; desbloqueado al resolver 01.
+- 2026-08-17: resuelto por pi.
+
+## Answer
+
+- `src/core/nodes.ts`: `computePrenatalEclipses(..., eclipseShiftLon?)` — el
+  lon del eclipse se desplaza (`lon − shift`) antes de proyectar contra las
+  cusps de entrada.
+- `src/core/evolutionary-reading.ts`: entradas `eclipseShiftLon?` y
+  `frameDisclosure?`; pasan al cálculo de eclipses; `method` compone
+  `describeEvoCriteria() + "; " + frameDisclosure`.
+- `src/core/classical.ts`: `DRACONIC_FRAME_DISCLOSURE` junto a la proyección.
+- `src/core/reading.ts`: en modo draconic el par (bodies, cusps,
+  eclipseShiftLon, frameDisclosure) sale de `toDraconicChart`; en modo natal el
+  par clásico.
+- Tests: suite nueva `tests/core/draconic-evo.test.ts` (eje fijo para cualquier
+  Nodo, pluto recalculado sobre el zodíaco draconic, eclipses proyectados,
+  method con el marco en draconic y sin él en natal, integración caelus con
+  `north_node_ruler_mars`); chart.test draconic al target (evo recalculado,
+  method con disclosure). El bloque sigue siendo puramente geométrico.
+
+Estado: `bun test` 193/695, typecheck y check verdes. Desbloqueado el 05.

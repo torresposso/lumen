@@ -1,5 +1,6 @@
 import { chartAt } from "./charts";
 import {
+	DRACONIC_FRAME_DISCLOSURE,
 	generateFactAtoms,
 	type InterpretationContext,
 	toDraconicChart,
@@ -121,13 +122,19 @@ export function computeReading(
 	}
 
 	const interpretationContext = generateFactAtoms(projected);
+	// Evo frame (ADR-0014): the natal window by default; over the draconic
+	// zodiac when the request is draconic — bodies and cusps draconic (true
+	// node at 0° Aries by construction), eclipses shifted by the same
+	// North-Node subtraction, and the frame declared in `method`.
 	const evo = computeEvolutionaryReading({
-		bodies: natalBodies,
-		cusps: rawChart.cusps,
+		bodies: draconic ? draconic.bodies : natalBodies,
+		cusps: draconic ? draconic.cusps : rawChart.cusps,
 		ephemeris,
 		birth: request.birth,
 		houseSystem: request.options.houseSystem,
 		topocentric: request.options.topocentric,
+		eclipseShiftLon: draconic ? rawChart.bodies.true_node?.lon : undefined,
+		frameDisclosure: draconic ? DRACONIC_FRAME_DISCLOSURE : undefined,
 	});
 	interpretationContext.atoms.push(...evo.atoms);
 

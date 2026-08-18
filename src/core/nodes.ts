@@ -238,13 +238,21 @@ export interface EclipsesResult {
 	lunar?: EclipseInfo;
 }
 
-/** Computes the prenatal solar and lunar eclipses within 180 days before birth. */
+/**
+ * Computes the prenatal solar and lunar eclipses within 180 days before birth.
+ *
+ * `eclipseShiftLon` (draconic frame, ADR-0014): when set, the natal eclipse
+ * longitude is shifted (`lon − eclipseShiftLon`) before projecting against the
+ * given `cusps` — the same North-Node subtraction the draconic projection
+ * applies to bodies, so the eclipse is published on the draconic zodiac.
+ */
 export function computePrenatalEclipses(
 	ephemeris: Ephemeris,
 	birth: ResolvedBirth,
 	cusps: number[],
 	houseSystem: HouseSystem,
 	topocentric = false,
+	eclipseShiftLon?: number,
 ): EclipsesResult {
 	const jdStart = birth.jdUt - 180;
 	const jdEnd = birth.jdUt;
@@ -271,7 +279,12 @@ export function computePrenatalEclipses(
 				`${isLunar ? "Moon" : "Sun"} position unavailable for eclipse calculation`,
 			);
 		}
-		const point = projectPoint(targetBody.lon, cusps);
+		const rawLon = targetBody.lon;
+		const frameLon =
+			eclipseShiftLon === undefined
+				? rawLon
+				: normalizeLongitude(rawLon - eclipseShiftLon);
+		const point = projectPoint(frameLon, cusps);
 		return {
 			tMax: roundPrecision(tMax),
 			type,

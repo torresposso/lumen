@@ -116,6 +116,12 @@ export function computeEvolutionaryReading(input: {
 	birth: ResolvedBirth;
 	houseSystem: HouseSystem;
 	topocentric?: boolean;
+	/** Draconic frame (ADR-0014): subtract this longitude from the natal
+	 *  prenatals so their published position lives on the draconic zodiac. */
+	eclipseShiftLon?: number;
+	/** Draconic frame (ADR-0014): factual disclosure appended to `method`
+	 *  declaring the frame and its constants. */
+	frameDisclosure?: string;
 }): EvolutionaryReading {
 	const northNodeLon = input.bodies.true_node?.lon;
 	const soul = computeSoulReading(input.bodies, input.cusps, northNodeLon);
@@ -147,6 +153,7 @@ export function computeEvolutionaryReading(input: {
 		input.cusps,
 		input.houseSystem,
 		input.topocentric ?? false,
+		input.eclipseShiftLon,
 	);
 
 	// Aggregated once; feeds both `evo.counts` and the atoms input (the
@@ -234,7 +241,10 @@ export function computeEvolutionaryReading(input: {
 		},
 		prenatalEclipses: eclipses,
 		counts,
-		method: describeEvoCriteria(),
+		method:
+			input.frameDisclosure === undefined
+				? describeEvoCriteria()
+				: `${describeEvoCriteria()}; ${input.frameDisclosure}`,
 	};
 
 	const atoms = generateEvoAtoms({

@@ -35,7 +35,11 @@ canon (ADR-0014). Decidido por grill del capitán (2026-08-17).
 - [x] `03-command-chart-sin-flag` — `Blocked by: 01` — **resolved**:
       `--evo` fuera de raíz (parseEvoFlag, rechazo draconic, usages, help de
       home/profile, flag spec de intake); tests de flags rechazados. Verde.
-- [ ] `04-draconic-evo` — `Blocked by: 01` (desbloqueado).
+- [x] `04-draconic-evo` — `Blocked by: 01` — **resolved**: el bloque evo
+      draconic recalcula sobre el zodíaco draconic (eje fijo por construcción,
+      eclipses proyectados por la resta del Nodo, `method` con el marco);
+      suite nueva draconic-evo. Verde.
+- [ ] `05-cierre` — `Blocked by: 02, 03, 04` (desbloqueado).
 - [ ] `03-command-chart-sin-flag` — `Blocked by: 01`.
 - [ ] `04-draconic-evo` — `Blocked by: 01`.
 - [ ] `05-cierre` — `Blocked by: 02, 03, 04`; check:docs verde + SPEC §6.1 final.

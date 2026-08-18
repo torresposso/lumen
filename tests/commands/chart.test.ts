@@ -79,10 +79,20 @@ describe("chartCommand", () => {
 				bodies: { true_node: { sign: string } };
 				draconic: {
 					nodeUsed: string;
-					bodies: { true_node: { sign: string; lon: number } };
+					bodies: {
+						true_node: { sign: string; lon: number };
+						pluto: { sign: string; lon: number };
+					};
 				};
 			};
-			evo: { pluto: { sign: string } };
+			evo: {
+				pluto: { sign: string; lon: number };
+				nodalAxis: {
+					north: { sign: string; lon: number };
+					south: { sign: string; lon: number };
+				};
+				method: string;
+			};
 		};
 
 		expect(result.chart.birth.requested.draconic).toBe(true);
@@ -90,9 +100,16 @@ describe("chartCommand", () => {
 		expect(result.chart.draconic.nodeUsed).toBe("true_node");
 		expect(result.chart.draconic.bodies.true_node.sign).toBe("Aries");
 		expect(result.chart.draconic.bodies.true_node.lon).toBeCloseTo(0, 4);
-		// The reading always carries the evo block (ADR-0014). Until the
-		// draconic frame lands (ticket 04) it is the natal-window evo.
-		expect(result.evo.pluto.sign).toBe("Scorpio");
+		// The reading always carries the evo block (ADR-0014), recalculated
+		// over the draconic zodiac: axis fixed by construction and the mechanics
+		// matching the projected draconic pluto.
+		expect(result.evo.nodalAxis.north.sign).toBe("Aries");
+		expect(result.evo.nodalAxis.north.lon).toBe(0);
+		expect(result.evo.nodalAxis.south.sign).toBe("Libra");
+		expect(result.evo.nodalAxis.south.lon).toBe(180);
+		expect(result.evo.pluto.sign).toBe(result.chart.draconic.bodies.pluto.sign);
+		expect(result.evo.pluto.lon).toBe(result.chart.draconic.bodies.pluto.lon);
+		expect(result.evo.method).toContain("draconic frame");
 	});
 
 	test("rejects unknown chart subcommands", async () => {

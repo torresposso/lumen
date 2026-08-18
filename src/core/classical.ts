@@ -69,6 +69,15 @@ export function toDraconicChart(chart: Chart): DraconicChart {
 	};
 }
 
+/**
+ * Factual disclosure appended to `evo.method` in the draconic frame (ADR-0014):
+ * the draconic nodal axis is constant by construction, so the agent must not
+ * read a constant as variable information. Derived text, never hand-written at
+ * the call site.
+ */
+export const DRACONIC_FRAME_DISCLOSURE =
+	"draconic frame: nodal axis fixed at 0° Aries/0° Libra by projection (subtract the natal north node); nodal-axis-dependent sections (axis rulers, skipped steps, ppp separation) are constant across charts; eclipses projected by the same subtraction";
+
 // ---------------------------------------------------------------------------
 // Chart synthesis: patterns, signatures, and fact atoms
 // ---------------------------------------------------------------------------
