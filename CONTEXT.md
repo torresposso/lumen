@@ -86,13 +86,15 @@ pushed.
   literal, so a command, arm or flag rename is one edit in this module
   (ADR-0006; ADR-0007). It holds the *names*; the birth-input contract holds
   the *meanings*.
-- **Profile store** — the persistence module `src/storage/profile-store.ts`:
-  per-project SQLite at `./lumen.db` (overridable with `LUMEN_DB`), created
-  lazily only on `add`, dedupe via `UNIQUE INDEX (birth_jd_ut, birth_lat,
-  birth_lon)`, migrations via `PRAGMA user_version` (current schema v4). The
-  command never creates a store — the CLI wiring provides it through context.
-  It also owns profile identity: `add` generates the profile's UUID — the
-  command never supplies one.
+- **Profile store** — the persistence port `ProfileStore` (`src/core/types.ts`:
+  `list` / `get` / `add` / `remove` — no file policy, no lifecycle) and the
+  SQLite adapter `SqliteProfileStore` (`src/storage/profile-store.ts`) that
+  serves it: per-project SQLite at `./lumen.db` (overridable with `LUMEN_DB`),
+  created lazily only on `add`, dedupe via `UNIQUE INDEX (birth_jd_ut,
+  birth_lat, birth_lon)`, migrations via `PRAGMA user_version` (current schema
+  v4). The command types against the port and never creates a store — the CLI
+  wiring provides one through context. The adapter owns profile identity:
+  `add` generates the profile's UUID — the command never supplies one.
 - **TOON** — the AXI structured-output encoding lumen publishes: display
   precision only (`birthJdUt` 6 decimals, `birthLat`/`birthLon` 4),
   `birthDateTime` echoed as stored (ISO 8601), rounded at output; the DB keeps

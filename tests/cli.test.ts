@@ -9,7 +9,7 @@ import {
 	PROFILE_COMMAND,
 } from "../src/core/cli-surface";
 import type { CliContext } from "../src/core/types";
-import { ProfileStore } from "../src/storage/profile-store";
+import { SqliteProfileStore } from "../src/storage/profile-store";
 
 let db: Database;
 
@@ -22,7 +22,9 @@ afterEach(() => {
 });
 
 function ctx(): CliContext {
-	return { profiles: new ProfileStore(undefined, () => new Date(), db) };
+	return {
+		profiles: new SqliteProfileStore(undefined, () => new Date(), db),
+	};
 }
 
 function invalidCode(error: unknown): string {

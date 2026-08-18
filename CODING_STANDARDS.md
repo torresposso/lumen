@@ -60,13 +60,15 @@ Already enforced, not reviewable:
 8. **No speculative generality.** Abstract, parameterize or add hooks only when
    the spec needs it. Keep modules small and deep: a narrow interface hiding
    real behaviour beats broad one.
-9. **Storage rules** (`src/storage/profile-store.ts`): the DB is created
-   **lazily** (only `add`); permissions `0600`; rollback journal (no WAL);
-   migrations via `PRAGMA user_version`. Reads against a missing DB return
-   empty / not-found without creating files. The constructor also accepts an
-   injected in-memory `bun:sqlite` `Database` for tests — the second adapter
-   at the persistence seam; the file adapter keeps the rules above as
-   production policy.
+9. **Storage rules** (`src/storage/profile-store.ts`, `SqliteProfileStore`):
+   the command and the CLI context see only the persistence port `ProfileStore`
+   (`src/core/types.ts` — `list`/`get`/`add`/`remove`); the SQLite adapter
+   owns the policies: the DB is created **lazily** (only `add`); permissions
+   `0600`; rollback journal (no WAL); migrations via `PRAGMA user_version`.
+   Reads against a missing DB return empty / not-found without creating files.
+   The constructor also accepts an injected in-memory `bun:sqlite` `Database`
+   for tests — the second adapter behind the port; the file adapter keeps the
+   rules above as production policy.
 
 ## Data & identity
 

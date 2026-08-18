@@ -40,12 +40,28 @@ export interface AddResult {
 	created: boolean;
 }
 
+/**
+ * The persistence port — what the command arms, the top-level home and the
+ * CLI wiring see of a store: four operations, no file policy, no lifecycle.
+ * The command never creates or closes a store, and never sees a constructor —
+ * the composition root provides one through context. The SQLite adapter
+ * (`SqliteProfileStore` in `src/storage/profile-store.ts`) implements this.
+ */
+export interface ProfileStore {
+	/** Every saved profile, ordered by id. */
+	list(): Profile[];
+	/** One profile by its UUID; `undefined` when unknown. */
+	get(id: string): Profile | undefined;
+	/** Inserts a profile (generating its UUID), deduplicating on the birth. */
+	add(profile: NewProfile): AddResult;
+	/** Removes one profile by UUID; false when unknown. */
+	remove(id: string): boolean;
+}
+
 // ---------------------------------------------------------------------------
 // CLI context — the composition root's shape, consumed by commands and wiring.
-// The import is type-only: no runtime coupling from core/ to storage/.
+// core/ defines the port; storage/ implements it — no storage import here.
 // ---------------------------------------------------------------------------
-
-import type { ProfileStore } from "../storage/profile-store";
 
 export interface CliContext {
 	profiles: ProfileStore;

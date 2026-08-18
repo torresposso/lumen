@@ -3,7 +3,12 @@ import { randomUUID } from "node:crypto";
 import { chmodSync, existsSync, mkdirSync, openSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { AxiError } from "axi-sdk-js";
-import type { AddResult, NewProfile, Profile } from "../core/types";
+import type {
+	AddResult,
+	NewProfile,
+	Profile,
+	ProfileStore,
+} from "../core/types";
 import { ensureSchema } from "./schema";
 
 /** `./lumen.db` in the cwd (per-project), overridable with `LUMEN_DB`. */
@@ -38,14 +43,15 @@ function toProfile(row: ProfileRow): Profile {
 }
 
 /**
- * Per-project embedded SQLite store for birth profiles (`./lumen.db`, override
- * with `LUMEN_DB`). Created lazily on first write — `list`/`get`/`delete`
- * against a missing file respond empty without creating it. 0600 permissions,
- * rollback journal (no WAL), migrations via PRAGMA user_version. A
- * bun:sqlite `Database` may be injected instead (in-memory, tests): the same
- * interface, with no filesystem side effects — the seam has two adapters.
+ * The SQLite adapter behind the `ProfileStore` port (in `src/core/types.ts`):
+ * per-project embedded SQLite for birth profiles (`./lumen.db`, override with
+ * `LUMEN_DB`). Created lazily on first write — `list`/`get`/`delete` against a
+ * missing file respond empty without creating it. 0600 permissions, rollback
+ * journal (no WAL), migrations via PRAGMA user_version. A bun:sqlite
+ * `Database` may be injected instead (in-memory, tests): the same interface,
+ * with no filesystem side effects — a second adapter behind the port.
  */
-export class ProfileStore {
+export class SqliteProfileStore implements ProfileStore {
 	private db: Database | null = null;
 	/** True when this store is file-backed (created lazily, 0600); false when a Database was injected. */
 	private readonly fileBacked: boolean;

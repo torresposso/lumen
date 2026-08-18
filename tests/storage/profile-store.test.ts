@@ -4,7 +4,10 @@ import { existsSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { NewProfile } from "../../src/core/types";
-import { defaultDbFile, ProfileStore } from "../../src/storage/profile-store";
+import {
+	defaultDbFile,
+	SqliteProfileStore,
+} from "../../src/storage/profile-store";
 
 function newProfile(overrides: Partial<NewProfile> = {}): NewProfile {
 	const base: NewProfile = {
@@ -33,10 +36,10 @@ describe("defaultDbFile", () => {
 	});
 });
 
-describe("ProfileStore", () => {
+describe("SqliteProfileStore", () => {
 	let dir: string;
 	let dbPath: string;
-	let store: ProfileStore;
+	let store: SqliteProfileStore;
 
 	beforeEach(() => {
 		dir = join(
@@ -44,7 +47,7 @@ describe("ProfileStore", () => {
 			`lumen-v4-test-${Math.random().toString(36).slice(2)}`,
 		);
 		dbPath = join(dir, "lumen.db");
-		store = new ProfileStore(dbPath);
+		store = new SqliteProfileStore(dbPath);
 	});
 
 	afterEach(() => {
@@ -100,7 +103,7 @@ describe("ProfileStore", () => {
 
 	test("sets timestamps from the injected clock and keeps them on dedupe", async () => {
 		const clock = { value: "2026-01-01T00:00:00.000Z" };
-		store = new ProfileStore(dbPath, () => new Date(clock.value));
+		store = new SqliteProfileStore(dbPath, () => new Date(clock.value));
 
 		const first = store.add(newProfile());
 		expect(first.profile.createdAt).toBe("2026-01-01T00:00:00.000Z");
@@ -144,7 +147,7 @@ describe("ProfileStore", () => {
 		expect(store.remove(profile.id)).toBe(false);
 		store.close();
 
-		const reloaded = new ProfileStore(dbPath);
+		const reloaded = new SqliteProfileStore(dbPath);
 		expect(reloaded.get(profile.id)).toBeUndefined();
 		reloaded.close();
 	});
@@ -152,19 +155,19 @@ describe("ProfileStore", () => {
 	test("reopens an existing lumen.db", () => {
 		store.add(newProfile());
 		store.close();
-		const reopened = new ProfileStore(dbPath);
+		const reopened = new SqliteProfileStore(dbPath);
 		expect(reopened.list()).toHaveLength(1);
 		reopened.close();
 	});
 });
 
-describe("ProfileStore with an injected in-memory Database", () => {
+describe("SqliteProfileStore with an injected in-memory Database", () => {
 	let db: Database;
-	let store: ProfileStore;
+	let store: SqliteProfileStore;
 
 	beforeEach(() => {
 		db = new Database(":memory:");
-		store = new ProfileStore(undefined, () => new Date(), db);
+		store = new SqliteProfileStore(undefined, () => new Date(), db);
 	});
 
 	afterEach(() => {
@@ -198,7 +201,7 @@ describe("ProfileStore with an injected in-memory Database", () => {
 			tmpdir(),
 			`lumen-mem-sentinel-${Math.random().toString(36).slice(2)}.db`,
 		);
-		const s = new ProfileStore(sentinel, () => new Date(), db);
+		const s = new SqliteProfileStore(sentinel, () => new Date(), db);
 		s.add(newProfile());
 		expect(existsSync(sentinel)).toBe(false);
 		s.close();

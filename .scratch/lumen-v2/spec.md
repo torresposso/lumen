@@ -155,11 +155,11 @@ src/core/birth-input.ts          # birth-input contract (parse ISO --when + --wh
 src/core/cli-surface.ts           # the command surface (vocabulary tokens + canonical example + hints)
 src/core/jd.ts                   # Meeus arithmetic only (julianDayUt, no validation)
 src/core/subcommand.ts           # subcommand runner (parse + dispatch; help detection delegates to the args contract)
-src/core/types.ts                # Profile, BirthInput, LocalTime, etc.
+src/core/types.ts                # Profile, BirthInput, LocalTime, the ProfileStore port, etc.
 src/core/toon.ts                 # display policy (shape + precisions)
 src/version.ts                   # package version (fast path)
 src/storage/schema.ts            # schema definition & migrations (bun:sqlite)
-src/storage/profile-store.ts     # ProfileStore v2 (bun:sqlite)
+src/storage/profile-store.ts     # SqliteProfileStore v2 (bun:sqlite; serves the ProfileStore port in core)
 tests/args.test.ts               # CLI-args contract (syntax detail)
 tests/birth-input.test.ts        # contract detail (format + semantic ranges)
 tests/cli-surface.test.ts        # command surface (tokens + canonical example + shared hints)

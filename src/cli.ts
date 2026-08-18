@@ -7,7 +7,7 @@ import {
 	PROFILE_LIST_HINT,
 } from "./core/cli-surface";
 import type { CliContext } from "./core/types";
-import { ProfileStore } from "./storage/profile-store";
+import { SqliteProfileStore } from "./storage/profile-store";
 import { VERSION } from "./version";
 
 const topLevelHelp = [
@@ -26,7 +26,7 @@ export async function main(): Promise<void> {
 		version: VERSION,
 		argv: process.argv.slice(2),
 		topLevelHelp,
-		resolveContext: async () => ({ profiles: new ProfileStore() }),
+		resolveContext: async () => ({ profiles: new SqliteProfileStore() }),
 		commands: {
 			profile: profileCommand,
 		},
