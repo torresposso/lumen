@@ -7,11 +7,20 @@ never resolves world facts (the agent resolves geocoding and UTC offset).
 The v1 astrology vocabulary (chart, evo, journey, karma, draconic, projection…) is
 gone with the pivot; do not expect it here.
 
-## Glossary
+Code and documentation are always written in English — Spanish is reserved for
+conversation between the human and the agent, never for what gets persisted or
+pushed.
+
+## Language
 
 - **Profile** — a stored birth profile: auto-generated UUID `id`, optional
-  descriptive `name` (no lookup), required human-readable `city`, and the
-  resolved **birth**. The unit of `profile add | list | get | rm`.
+  descriptive `name` (no lookup), required human-readable **birthplace**, and
+  the resolved **birth**. The unit of `profile add | list | get | rm`.
+- **Birthplace** — the human-readable place where a birth happened, provided
+  by the human and stored as-is (e.g. `"Magangué, Colombia"`). The domain
+  term is *birthplace*, not *city*: a birth can happen anywhere, and the
+  agent (not lumen) resolves coordinates and offset from it. The CLI flag is
+  `--city` (surface only).
 - **Birth** — the resolved instant of a profile: local wall-clock time (no
   seconds), UTC **offset** in minutes, coordinates (`lat`/`lon`), and the derived
   **jdUt**. The birth is the profile's identity: `add` deduplicates on
