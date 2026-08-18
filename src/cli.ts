@@ -1,11 +1,7 @@
 import { runAxiCli } from "axi-sdk-js";
-import {
-	type CliContext,
-	PROFILE_ADD_HINT,
-	profileCommand,
-	requireProfileStore,
-} from "./commands/profile";
-import { ADD_FLAGS } from "./core/cli-surface";
+import { profileCommand } from "./commands/profile";
+import { ADD_FLAGS, PROFILE_ADD_EXAMPLE } from "./core/cli-surface";
+import type { CliContext } from "./core/types";
 import { ProfileStore } from "./storage/profile-store";
 import { VERSION } from "./version";
 
@@ -30,15 +26,16 @@ export async function main(): Promise<void> {
 			profile: profileCommand,
 		},
 		home: async (_args, context) => {
-			const profiles = requireProfileStore(context).list();
+			const profiles = context!.profiles.list();
 			return {
 				profiles: profiles.length,
 				help: [
 					profiles.length === 0
-						? PROFILE_ADD_HINT
+						? `Run \`${PROFILE_ADD_EXAMPLE}\``
 						: "Run `lumen profile list` to see saved profiles",
 				],
 			};
 		},
 	});
 }
+

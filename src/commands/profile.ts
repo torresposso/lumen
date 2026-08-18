@@ -4,18 +4,14 @@ import { parseBirthInput } from "../core/birth-input";
 import { ADD_FLAGS, PROFILE_ADD_EXAMPLE } from "../core/cli-surface";
 import { createSubcommandGroup } from "../core/subcommand";
 import { toonProfile } from "../core/toon";
-import type { ProfileStore as DefaultProfileStore } from "../storage/profile-store";
-
-export interface CliContext {
-	profiles: DefaultProfileStore;
-}
+import type { CliContext } from "../core/types";
 
 /**
- * The empty-state hint pointing an agent at `add`, shared by `list` and `home`.
+ * The empty-state hint pointing an agent at `add`, used by the `list` arm.
  */
-export const PROFILE_ADD_HINT = `Run \`${PROFILE_ADD_EXAMPLE}\``;
+const PROFILE_ADD_HINT = `Run \`${PROFILE_ADD_EXAMPLE}\``;
 
-export const profileUsage = [
+const profileUsage = [
 	`${PROFILE_ADD_EXAMPLE} [${ADD_FLAGS.name} slug]`,
 	"lumen profile list",
 	"lumen profile get <uuid>",
@@ -24,7 +20,7 @@ export const profileUsage = [
 	"Manage local birth profiles.",
 ].join("\n");
 
-export const profileAddUsage = [
+const profileAddUsage = [
 	`lumen profile add ${ADD_FLAGS.when} "YYYY-MM-DDTHH:MM±HH:MM" ${ADD_FLAGS.where} "lat, lon, Place, Country" [${ADD_FLAGS.name} slug]`,
 	"",
 	"Register a birth profile. The agent resolves coordinates and the UTC",
@@ -40,19 +36,19 @@ export const profileAddUsage = [
 	"profile unchanged.",
 ].join("\n");
 
-export const profileListUsage = [
+const profileListUsage = [
 	"lumen profile list",
 	"",
 	"Lists saved profiles: id, name, birthplace, birthDateTime, coordinates and birthJdUt.",
 ].join("\n");
 
-export const profileGetUsage = [
+const profileGetUsage = [
 	"lumen profile get <uuid>",
 	"",
 	"Shows one profile by its UUID.",
 ].join("\n");
 
-export const profileDeleteUsage = [
+const profileDeleteUsage = [
 	"lumen profile delete <uuid>",
 	"",
 	"Deletes one profile by its UUID. Deleting an unknown profile raises NOT_FOUND.",
@@ -85,9 +81,9 @@ const ID_SPEC: ArgsSpec = {
  * store operation without context fails loud instead of default-constructing
  * (which would silently create `./lumen.db` in the cwd).
  */
-export function requireProfileStore(
+function requireProfileStore(
 	context: CliContext | undefined,
-): DefaultProfileStore {
+): CliContext["profiles"] {
 	if (context === undefined) {
 		throw new AxiError("No profile store in context", "PROFILE_ERROR", [
 			"The CLI always provides one — this is a lumen bug",

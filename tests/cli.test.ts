@@ -1,7 +1,8 @@
 import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { AxiError } from "axi-sdk-js";
-import { type CliContext, profileCommand } from "../src/commands/profile";
+import { profileCommand } from "../src/commands/profile";
+import type { CliContext } from "../src/core/types";
 import { ProfileStore } from "../src/storage/profile-store";
 
 let db: Database;

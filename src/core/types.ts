@@ -39,3 +39,15 @@ export interface AddResult {
 	/** false when a profile with the same birth (birthJdUt + birthLat + birthLon) already existed. */
 	created: boolean;
 }
+
+// ---------------------------------------------------------------------------
+// CLI context — the composition root's shape, consumed by commands and wiring.
+// The import is type-only: no runtime coupling from core/ to storage/.
+// ---------------------------------------------------------------------------
+
+import type { ProfileStore } from "../storage/profile-store";
+
+export interface CliContext {
+	profiles: ProfileStore;
+}
+
