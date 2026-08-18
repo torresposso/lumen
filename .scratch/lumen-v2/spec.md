@@ -126,6 +126,10 @@ Removed: `caelus`, `caelus-birth`, `zod`, `luxon` (the last one only transitive 
   CONFLICT returns the existing profile); lazy creation (`list` does not create
   the file, `add` does); 0600 permissions; `LUMEN_DB` override; `user_version`
   migration (v1→v4, v2→v4, v3→v4).
+- `tests/subcommand.test.ts` — the subcommand runner: `--help` returns the
+  usage without running; parse violations propagate as one `VALIDATION_ERROR`
+  citing the command; the arm's result (string or object) passes through;
+  async arms are awaited; context is forwarded.
 - `tests/cli.test.ts` — input contract (each flag + combinations); AXI errors; TOON output (rounding applied, `birthDateTime` echoed); `add` prints the UUID; dedupe visible from the CLI.
 
 ## 8. Suggested source layout
@@ -137,15 +141,18 @@ src/commands/profile.ts          # add / list / get / delete
 src/core/args.ts                 # CLI-args contract (flag + positional syntax)
 src/core/birth-input.ts          # birth-input contract (parse ISO --when + --where "lat, lon, Place", one error style)
 src/core/jd.ts                   # Meeus arithmetic only (julianDayUt, no validation)
+src/core/subcommand.ts           # subcommand runner (parse + help + dispatch for a command's subcommand arms)
 src/core/types.ts                # Profile, BirthInput, LocalTime, etc.
 src/core/toon.ts                 # display policy (shape + precisions)
 src/version.ts                   # package version (fast path)
 src/storage/profile-store.ts     # ProfileStore v2 (bun:sqlite)
 tests/args.test.ts               # CLI-args contract (syntax detail)
 tests/birth-input.test.ts        # contract detail (format + semantic ranges)
-tests/jd.test.ts
-tests/profile-store.test.ts
-tests/cli.test.ts
+tests/cli.test.ts                # whole-CLI behaviour (errors, TOON, dedupe)
+tests/jd.test.ts                 # reference vectors + boundary validations
+tests/subcommand.test.ts         # subcommand runner (--help, parse, passthrough, context)
+tests/storage/profile-store.test.ts  # file adapter (lazy, 0600, migrations)
+tests/version.test.ts            # package version (fast path)
 ```
 
 (Advisory layout — implementation choices are free within this scheme.)
