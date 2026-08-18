@@ -62,7 +62,7 @@ Midpoint, Sol-Luna phase, dispositor chains, and prenatal eclipses.
 _Avoid_: soul reading
 
 **Evolutionary criteria**:
-The single source of the orbs and thresholds governing the `evo` block: the `PLUTO_ASPECTS` table, the PPP major-only rule (orb 5°, `PPP_MAJOR_ASPECTS`), the skipped-square orb (`SKIPPED_STEPS_ORB`), and the PPP deactivation orb (`PPP_DEACTIVATION_ORB`), all living in `src/core/`. `describeEvoCriteria()` serializes them into `evo.method`, so the disclosure is derived from the tables, never hand-written, and cannot diverge from the calculation.
+The single source of the orbs and thresholds governing the `evo` block: the `PLUTO_ASPECTS` table, the PPP major-only rule (orb 5°, `PPP_MAJOR_ASPECTS`), the skipped-square orb (`SKIPPED_STEPS_ORB`), and the PPP deactivation orb (`PPP_DEACTIVATION_ORB`), all living in `src/core/evo-criteria.ts`. `describeEvoCriteria()` serializes them into `evo.method`, so the disclosure is derived from the tables, never hand-written, and cannot diverge from the calculation.
 
 **Evo block**:
 The `evo` block published by `chart natal` and `chart draconic` — always present, never opt-in; on draconic it is recalculated over the draconic zodiac.

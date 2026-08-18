@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { Chart, ChartBody } from "caelus";
 import { BODIES } from "caelus";
-import { describeEvoCriteria } from "../../src/core/classical";
+import { describeEvoCriteria } from "../../src/core/evo-criteria";
 import { computeEvolutionaryReading } from "../../src/core/evolutionary-reading";
 import type { Ephemeris } from "../../src/core/types";
 

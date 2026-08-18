@@ -1,9 +1,13 @@
 import type { HouseSystem } from "caelus";
 import {
+	type AspectStress,
+	PLUTO_ASPECTS,
+	SKIPPED_STEPS_ORB,
+} from "./evo-criteria";
+import {
 	buildDispositorChain,
 	type DispositorStep,
 	NON_PLANETARY_IDS,
-	PLUTO_ASPECTS,
 	SIGN_RULERS,
 } from "./soul";
 import type {
@@ -23,16 +27,14 @@ import {
 	shiftLongitude,
 } from "./types";
 
+export { SKIPPED_STEPS_ORB } from "./evo-criteria";
 export type { NodalRulerPlacement, NodeMotionStatus, SkippedStep };
-
-/** Orb (degrees) within which a planet on the nodal axis counts as a Skipped Step. */
-export const SKIPPED_STEPS_ORB = 5;
 
 export interface NodeAspect {
 	body: string;
 	aspect: string;
 	orb: number;
-	stress: "stressful" | "nonstressful";
+	stress: AspectStress;
 }
 
 export interface NodalAxisReading {

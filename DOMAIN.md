@@ -11,6 +11,7 @@ Límites estrictos: `core/` no realiza I/O (ni red ni filesystem). Los adaptador
 ```text
 src/
 ├── core/                         # 🧠 CÁLCULO PURO & MECÁNICA EVOLUTIVA (Zero I/O, Zero CLI)
+│   ├── evo-criteria.ts          # Criterios evolutivos (orbes/umbrales) y `describeEvoCriteria` en una sola fuente
 │   ├── types.ts                  # Tipos de dominio, geometría zodiacal compartida y seam `Ephemeris`
 │   ├── birth.ts                  # Puro: Zonas, Julian Day UT y procedencia (la validación de flags vive en commands/intake.ts)
 │   ├── charts.ts                 # Cálculo de cartas desde NatalRequest: opciones completas + canon true-node (ADR-0013)

@@ -5,10 +5,8 @@ import {
 	CaelusEphemeris,
 	type Ephemeris,
 } from "../../src/adapters/ephemeris-gateway";
-import {
-	DRACONIC_FRAME_DISCLOSURE,
-	describeEvoCriteria,
-} from "../../src/core/classical";
+import { DRACONIC_FRAME_DISCLOSURE } from "../../src/core/classical";
+import { describeEvoCriteria } from "../../src/core/evo-criteria";
 import {
 	type AstrologicalReading,
 	computeReading,

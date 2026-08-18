@@ -1,5 +1,6 @@
 import type { HouseSystem } from "caelus";
-import { describeEvoCriteria, generateEvoAtoms } from "./classical";
+import { generateEvoAtoms } from "./classical";
+import { describeEvoCriteria, PPP_DEACTIVATION_ORB } from "./evo-criteria";
 import {
 	computeNodalReading,
 	computePrenatalEclipses,
@@ -13,7 +14,6 @@ import {
 	computeSoulReading,
 	type DispositorStep,
 	type PlutoAspect,
-	PPP_DEACTIVATION_ORB,
 	type PPPAspect,
 } from "./soul";
 import type {

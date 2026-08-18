@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type { Chart, ChartBody } from "caelus";
 import { BODIES } from "caelus";
 import type { NatalRequest } from "../../src/commands/intake";
-import { describeEvoCriteria } from "../../src/core/classical";
+import { describeEvoCriteria } from "../../src/core/evo-criteria";
 import { computeReading } from "../../src/core/reading";
 
 const request: NatalRequest = {

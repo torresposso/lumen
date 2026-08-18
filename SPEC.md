@@ -19,7 +19,7 @@ mantiene geométrico y TOON-mínimo.
 
 | Capa | Responsabilidad | Prohibido |
 |---|---|---|
-| `src/core/` (11 módulos puros) | Cálculo astrológico determinista | I/O, zod, AxiError, imports de adapters/storage/commands |
+| `src/core/` (12 módulos puros de cálculo) | Cálculo astrológico determinista | I/O, zod, AxiError, imports de adapters/storage/commands |
 | `src/adapters/` | Red y efemérides (Open-Meteo, Caelus) | Lógica de dominio |
 | `src/storage/` | Persistencia XDG (`0600`, escritura atómica) | Cálculo |
 | `src/commands/` | Parseo, llamado a core, salida TOON | Cálculo astrológico |

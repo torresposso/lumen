@@ -1,10 +1,11 @@
 import type { Chart, ChartBody } from "caelus";
+
+export { describeEvoCriteria } from "./evo-criteria";
+
 import {
 	type ChartPattern as CaelusChartPattern,
 	detectPatternsIn as detectCaelusPatternsIn,
 } from "caelus";
-import { SKIPPED_STEPS_ORB } from "./nodes";
-import { PLUTO_ASPECTS, PPP_DEACTIVATION_ORB, PPP_MAJOR_ASPECTS } from "./soul";
 import {
 	findDeclinationAspect,
 	type NodeMotionStatus,
@@ -450,32 +451,6 @@ function degreeAtom(value: number): string {
 /** Flattens "Disseminating" / "First Quarter" into snake_case identifiers. */
 function snakeAtom(value: string): string {
 	return value.toLowerCase().replace(/\s+/g, "_");
-}
-
-/** Serializes the evolutionary criteria (orbs and thresholds) that core owns
- *  into the factual `method` line of the `evo` block. Derived from the live
- *  tables and constants — not hand-written — so the disclosure cannot diverge
- *  from the calculation. */
-export function describeEvoCriteria(): string {
-	const orbGroups = new Map<number, string[]>();
-	for (const def of PLUTO_ASPECTS) {
-		const names = orbGroups.get(def.orb);
-		if (names) names.push(def.name);
-		else orbGroups.set(def.orb, [def.name]);
-	}
-	const plutoOrbs = [...orbGroups.entries()]
-		.sort(([a], [b]) => b - a)
-		.map(([orb, names]) => `${orb}° ${names.join("/")}`)
-		.join(", ");
-
-	const firstPppAspect = PPP_MAJOR_ASPECTS[0];
-	if (firstPppAspect === undefined) {
-		throw new Error(
-			"unreachable: PPP_MAJOR_ASPECTS is a non-empty const table",
-		);
-	}
-
-	return `orbs PLUTO_ASPECTS: ${plutoOrbs}; ppp: major aspects only (orb ${firstPppAspect.orb}°); skipped: squares to the nodal axis (orb ${SKIPPED_STEPS_ORB}°); ppp inactive when pluto conjunct the north node (orb ${PPP_DEACTIVATION_ORB}°)`;
 }
 
 /** Generates deterministic factual atoms for the evolutionary mechanics block (`evo`). */

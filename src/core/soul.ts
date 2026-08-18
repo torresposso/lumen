@@ -1,3 +1,9 @@
+import type { AspectStress, StressedAspectDef } from "./evo-criteria";
+import {
+	PLUTO_ASPECTS,
+	PPP_DEACTIVATION_ORB,
+	PPP_MAJOR_ASPECTS,
+} from "./evo-criteria";
 import type {
 	ChartBodiesLite,
 	ChartBodyLite,
@@ -13,42 +19,14 @@ import {
 	SIGN_RULERS,
 } from "./types";
 
+export type { AspectStress, StressedAspectDef } from "./evo-criteria";
+
+export {
+	PLUTO_ASPECTS,
+	PPP_DEACTIVATION_ORB,
+	PPP_MAJOR_ASPECTS,
+} from "./evo-criteria";
 export { SIGN_RULERS };
-
-export type AspectStress = "stressful" | "nonstressful";
-
-/** Orb (degrees) within which Pluto conjunct the North Node deactivates the PPP. */
-export const PPP_DEACTIVATION_ORB = 10;
-
-export interface StressedAspectDef {
-	name: string;
-	target: number;
-	orb: number;
-	stress: AspectStress;
-}
-
-export const PLUTO_ASPECTS: StressedAspectDef[] = [
-	{ name: "conjunction", target: 0, orb: 10, stress: "stressful" },
-	{ name: "semisextile", target: 30, orb: 3, stress: "nonstressful" },
-	{ name: "semisquare", target: 45, orb: 3, stress: "stressful" },
-	{ name: "septile", target: 360 / 7, orb: 2, stress: "nonstressful" },
-	{ name: "sextile", target: 60, orb: 6, stress: "nonstressful" },
-	{ name: "quintile", target: 72, orb: 2, stress: "nonstressful" },
-	{ name: "square", target: 90, orb: 8, stress: "stressful" },
-	{ name: "trine", target: 120, orb: 8, stress: "nonstressful" },
-	{ name: "sesquiquadrate", target: 135, orb: 3, stress: "stressful" },
-	{ name: "biquintile", target: 144, orb: 2, stress: "nonstressful" },
-	{ name: "quincunx", target: 150, orb: 3, stress: "stressful" },
-	{ name: "opposition", target: 180, orb: 10, stress: "stressful" },
-];
-
-export const PPP_MAJOR_ASPECTS = [
-	{ name: "conjunction", target: 0, orb: 5 },
-	{ name: "sextile", target: 60, orb: 5 },
-	{ name: "square", target: 90, orb: 5 },
-	{ name: "trine", target: 120, orb: 5 },
-	{ name: "opposition", target: 180, orb: 5 },
-] as const;
 
 export const NON_PLANETARY_IDS = new Set([
 	"mean_node",

@@ -94,7 +94,8 @@ instrumento a la pregunta real del practicante: «¿qué dice mi carta?».
   localidad rota de `describeEvoCriteria` (tablas en `soul.ts`/`nodes.ts`,
   disclosure en `classical.ts`): con evo siempre, ese camino es troncal — se
   atiende en ticket aparte, después de esta cadena (decisión del capitán,
-  ronda 2 del grill).
+  ronda 2 del grill). Atendido: las tablas y `describeEvoCriteria` viven en
+  `src/core/evo-criteria.ts` (una sola fuente, consumida por soul/nodes/evo).
 
 ## Alternativas
 
