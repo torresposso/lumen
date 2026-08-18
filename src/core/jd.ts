@@ -54,25 +54,15 @@ export function validateBirthInput(input: BirthInput): string[] {
 	const issues: string[] = [];
 	const { local, offsetMinutes, lat, lon } = input;
 
-	if (
-		!Number.isInteger(offsetMinutes) ||
-		offsetMinutes < MIN_OFFSET_MINUTES ||
-		offsetMinutes > MAX_OFFSET_MINUTES
-	) {
-		issues.push(
-			`--offset must be an integer between ${MIN_OFFSET_MINUTES} and +${MAX_OFFSET_MINUTES} minutes`,
-		);
-	}
-	if (
-		!Number.isInteger(local.year) ||
-		local.year < MIN_YEAR ||
-		local.year > MAX_YEAR
-	) {
-		issues.push(`--when year out of supported range ${MIN_YEAR}-${MAX_YEAR}`);
-	}
-	if (!Number.isInteger(local.month) || local.month < 1 || local.month > 12) {
-		issues.push("--when month must be 1-12");
-	}
+	checkIntRange(
+		issues,
+		offsetMinutes,
+		MIN_OFFSET_MINUTES,
+		MAX_OFFSET_MINUTES,
+		"--offset",
+	);
+	checkIntRange(issues, local.year, MIN_YEAR, MAX_YEAR, "--when year");
+	checkIntRange(issues, local.month, 1, 12, "--when month");
 	if (
 		!Number.isInteger(local.day) ||
 		local.day < 1 ||
@@ -80,16 +70,8 @@ export function validateBirthInput(input: BirthInput): string[] {
 	) {
 		issues.push("--when day is invalid for that month");
 	}
-	if (!Number.isInteger(local.hour) || local.hour < 0 || local.hour > 23) {
-		issues.push("--when hour must be 0-23");
-	}
-	if (
-		!Number.isInteger(local.minute) ||
-		local.minute < 0 ||
-		local.minute > 59
-	) {
-		issues.push("--when minute must be 0-59");
-	}
+	checkIntRange(issues, local.hour, 0, 23, "--when hour");
+	checkIntRange(issues, local.minute, 0, 59, "--when minute");
 	if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
 		issues.push("--at latitude must be between -90 and 90");
 	}
@@ -98,4 +80,16 @@ export function validateBirthInput(input: BirthInput): string[] {
 	}
 
 	return issues;
+}
+
+function checkIntRange(
+	issues: string[],
+	value: number,
+	min: number,
+	max: number,
+	label: string,
+): void {
+	if (!Number.isInteger(value) || value < min || value > max) {
+		issues.push(`${label} must be an integer ${min}..${max}`);
+	}
 }

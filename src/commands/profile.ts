@@ -36,6 +36,10 @@ export const profileAddUsage = [
 	"profile unchanged.",
 ].join("\n");
 
+/** The canonical `add` example, shared by the home screen and the empty `list` hint. */
+export const PROFILE_ADD_EXAMPLE =
+	'lumen profile add --when "1981-01-26T00:50" --offset 60 --at "9.15,-74.75" --city "Magangué, Colombia"';
+
 export const profileListUsage = [
 	"lumen profile list",
 	"",
@@ -51,7 +55,7 @@ export const profileGetUsage = [
 export const profileRmUsage = [
 	"lumen profile rm <uuid>",
 	"",
-	"Removes one profile by its UUID. Removing an absent profile is a successful no-op.",
+	"Removes one profile by its UUID. Removing an unknown profile raises NOT_FOUND.",
 ].join("\n");
 
 const ADD_FLAGS = new Set(["--when", "--offset", "--at", "--city", "--name"]);
@@ -267,12 +271,7 @@ export const profileCommand: AxiCliCommand<CliContext> = async (
 			const profiles = store(context).list().map(displayProfile);
 			return profiles.length > 0
 				? { profiles }
-				: {
-						profiles: [],
-						help: [
-							'Run `lumen profile add --when "..." --offset ... --at "..." --city "..."`',
-						],
-					};
+				: { profiles: [], help: [`Run \`${PROFILE_ADD_EXAMPLE}\``] };
 		}
 
 		case "get": {
@@ -291,10 +290,12 @@ export const profileCommand: AxiCliCommand<CliContext> = async (
 			assertNoFlags(rest, "lumen profile rm");
 			const id = singleId(rest, "lumen profile rm");
 			const removed = store(context).remove(id);
-			return {
-				profile: id,
-				status: removed ? "removed" : "already absent (no-op)",
-			};
+			if (!removed) {
+				throw new AxiError(`Unknown profile: ${id}`, "NOT_FOUND", [
+					"Run `lumen profile list` to see saved profiles",
+				]);
+			}
+			return { profile: id, status: "removed" };
 		}
 
 		default:

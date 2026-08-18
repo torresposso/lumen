@@ -52,6 +52,11 @@ describe("meeusJdUt — reference vectors (research 02)", () => {
 		[local(1999, 1, 1, 0, 0), 0, 2451179.5],
 		[local(1957, 10, 4, 19, 26), 0, 2436116.3097222224],
 		[local(1987, 1, 27, 0, 0), 0, 2446822.5],
+		// proleptic Gregorian cross-checks (research 02, #6-8): historical
+		// Julian 1582-10-04 = proleptic Gregorian 1582-10-14.
+		[local(1582, 10, 4, 0, 0), 0, 2299149.5],
+		[local(1582, 10, 14, 0, 0), 0, 2299159.5],
+		[local(1582, 10, 15, 0, 0), 0, 2299160.5],
 		[local(2000, 1, 1, 7, 0), -300, 2451545.0],
 		[local(2000, 1, 1, 0, 0), 570, 2451544.1041666665],
 		[local(2000, 1, 1, 0, 0), 330, 2451544.2708333335],
@@ -63,6 +68,22 @@ describe("meeusJdUt — reference vectors (research 02)", () => {
 			expect(meeusJdUt(clock, offsetMinutes)).toBeCloseTo(expected, 9);
 		},
 	);
+
+	// Research 02 vector #12 (seconds) is not expressible: the v2 contract is
+	// minute-granular by decision (ticket 01).
+	test("offset round-trip: local+offset ⇄ shifted clock + offset 0 give the same jdUt", () => {
+		const samples: Array<[BirthClock, number]> = [
+			[local(1981, 1, 26, 0, 50), 60],
+			[local(1990, 6, 10, 14, 30), -240],
+			[local(2000, 12, 31, 23, 59), 840],
+			[local(2000, 1, 1, 0, 0), -840],
+			[local(1957, 10, 4, 19, 26), 0],
+		];
+		for (const [clock, offset] of samples) {
+			const asUt = { ...clock, minute: clock.minute - offset };
+			expect(meeusJdUt(clock, offset)).toBe(meeusJdUt(asUt, 0));
+		}
+	});
 });
 
 describe("validateBirthInput", () => {

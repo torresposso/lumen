@@ -215,7 +215,7 @@ describe("profileCommand", () => {
 		});
 	});
 
-	test("rm removes a profile; removing an absent one is a no-op", async () => {
+	test("rm removes a profile; removing an unknown one raises NOT_FOUND", async () => {
 		const added = (await profileCommand(
 			["add", ...ADD_ARGS],
 			ctx(),
@@ -225,10 +225,11 @@ describe("profileCommand", () => {
 		};
 		expect(removed.status).toBe("removed");
 
-		const noop = (await profileCommand(["rm", added.id], ctx())) as {
-			status: string;
-		};
-		expect(noop.status).toBe("already absent (no-op)");
+		await expect(profileCommand(["rm", added.id], ctx())).rejects.toMatchObject(
+			{
+				code: "NOT_FOUND",
+			},
+		);
 	});
 
 	test("--help returns focused usage per subcommand", async () => {

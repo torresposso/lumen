@@ -1,5 +1,9 @@
 import { runAxiCli } from "axi-sdk-js";
-import { type CliContext, profileCommand } from "./commands/profile";
+import {
+	type CliContext,
+	PROFILE_ADD_EXAMPLE,
+	profileCommand,
+} from "./commands/profile";
 import { ProfileStore } from "./storage/profile-store";
 import { VERSION } from "./version";
 
@@ -29,7 +33,7 @@ export async function main(): Promise<void> {
 				profiles: profiles.length,
 				help: [
 					profiles.length === 0
-						? 'Run `lumen profile add --when "1981-01-26T00:50" --offset 60 --at "9.15,-74.75" --city "Magangué, Colombia"`'
+						? `Run \`${PROFILE_ADD_EXAMPLE}\``
 						: "Run `lumen profile list` to see saved profiles",
 				],
 			};
