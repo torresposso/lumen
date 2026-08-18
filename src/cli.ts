@@ -5,6 +5,7 @@ import {
 	profileCommand,
 	requireProfileStore,
 } from "./commands/profile";
+import { ADD_FLAGS } from "./core/cli-surface";
 import { ProfileStore } from "./storage/profile-store";
 import { VERSION } from "./version";
 
@@ -12,7 +13,7 @@ const topLevelHelp = [
 	"lumen — birth profile manager (AXI CLI)",
 	"",
 	"Commands:",
-	"  profile add    Register a birth (ISO --when + --where coordinates/place)",
+	`  profile add    Register a birth (ISO ${ADD_FLAGS.when} + ${ADD_FLAGS.where} coordinates/place)`,
 	"  profile list   List saved profiles",
 	"  profile get    Show one profile by UUID",
 	"  profile delete Remove one profile by UUID",

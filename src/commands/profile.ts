@@ -117,9 +117,9 @@ export const profileCommand: AxiCliCommand<CliContext> = async (
 				spec: ADD_SPEC,
 				usage: profileAddUsage,
 				run: (parsed) => {
-					const when = parsed.flags.get("--when") as string;
-					const where = parsed.flags.get("--where") as string;
-					const name = parsed.flags.get("--name") ?? null;
+					const when = parsed.flags.get(ADD_FLAGS.when) as string;
+					const where = parsed.flags.get(ADD_FLAGS.where) as string;
+					const name = parsed.flags.get(ADD_FLAGS.name) ?? null;
 
 					// One seam: the raw flags in, the complete birth (birthJdUt derived)
 					// out — the store generates the profile's UUID.
