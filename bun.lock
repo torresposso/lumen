@@ -6,9 +6,6 @@
       "name": "lumen",
       "dependencies": {
         "axi-sdk-js": "^0.1.10",
-        "caelus": "^0.23.0",
-        "caelus-birth": "^0.23.0",
-        "zod": "^4.4.3",
       },
       "devDependencies": {
         "@biomejs/biome": "^2.5.8",
@@ -48,18 +45,8 @@
 
     "bun-types": ["bun-types@1.3.14", "", { "dependencies": { "@types/node": "*" } }, "sha512-4N0ig0fEomHt5R0KCFWjovxow98rIoRwKolrYdCcknNwMekCXRnWEUvgu5soYV8QXtVsrUD8B95MBOZGPvr6KQ=="],
 
-    "caelus": ["caelus@0.23.0", "", {}, "sha512-nHezRfVqV7tLwBB/TuhvuaNL+TtY4HTf//xrlI/E5g/lOz51xgaoCciBO7yX5eArFM2rDII97lk/rxXhHAiT4w=="],
-
-    "caelus-birth": ["caelus-birth@0.23.0", "", { "dependencies": { "caelus": "^0.23.0", "luxon": "^3.7.2", "tz-lookup": "^6.1.25" } }, "sha512-exWAd2MWAj8DsU4B1W06z/3jM4rvuHFoXE5y+0gro74LlpB1MMdyW8NX1SC7wNeTp4F2l4AhcmPX7aBIp5Gdrg=="],
-
-    "luxon": ["luxon@3.7.2", "", {}, "sha512-vtEhXh/gNjI9Yg1u4jX/0YVPMvxzHuGgCm6tC5kZyb08yjGWGnqAjGJvcXbqQR2P3MyMEFnRbpcdFS6PBcLqew=="],
-
     "typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
-    "tz-lookup": ["tz-lookup@6.1.25", "", {}, "sha512-fFewT9o1uDzsW1QnUU1ValqaihFnwiUiiHr1S79/fxOzKXYYvX+EHeRnpvQJ9B3Qg67wPXT6QF2Esc4pFOrvLg=="],
-
     "undici-types": ["undici-types@8.3.0", "", {}, "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ=="],
-
-    "zod": ["zod@4.4.3", "", {}, "sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ=="],
   }
 }

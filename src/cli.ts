@@ -1,55 +1,36 @@
 import { runAxiCli } from "axi-sdk-js";
-import { chartCommand } from "./commands/chart";
-import { journeyCommand } from "./commands/journey";
-import { karmaCommand } from "./commands/karma";
-import { profileCommand } from "./commands/profile";
-import { setupCommand } from "./commands/setup";
-import { ConfigStore } from "./storage/config";
+import { type CliContext, profileCommand } from "./commands/profile";
 import { ProfileStore } from "./storage/profile-store";
 import { VERSION } from "./version";
 
 const topLevelHelp = [
-	"Comandos Evolutivos (JWG):",
-	"  journey    Progresiones secundarias y giros estacionales",
-	"  karma      Sinastría evolutiva y acuerdos entre Almas",
-	"  profile    Los seres de la práctica: perfiles locales de nacimiento",
-	"  chart      Carta: natal (mecánica siempre) y draconic (canónico, recalculado en su zodíaco)",
-	"  setup      Instala/actualiza la integración de sesión",
+	"lumen — birth profile manager (AXI CLI)",
+	"",
+	"Commands:",
+	"  profile add   Register a birth (local time + offset + coordinates + city)",
+	"  profile list  List saved profiles",
+	"  profile get   Show one profile by UUID",
+	"  profile rm    Remove one profile by UUID",
 ].join("\n");
 
 export async function main(): Promise<void> {
-	const profiles = new ProfileStore();
-	const config = new ConfigStore();
-
-	await runAxiCli<{
-		profiles: ProfileStore;
-		config: ConfigStore;
-	}>({
-		description: "Astrología evolutiva computacional desde la terminal",
+	await runAxiCli<CliContext>({
+		description: "lumen — birth profile manager",
 		version: VERSION,
 		argv: process.argv.slice(2),
 		topLevelHelp,
-		resolveContext: async () => ({ profiles, config }),
+		resolveContext: async () => ({ profiles: new ProfileStore() }),
 		commands: {
-			journey: journeyCommand,
-			karma: karmaCommand,
 			profile: profileCommand,
-			chart: chartCommand,
-			setup: setupCommand,
 		},
 		home: async (_args, context) => {
-			const profiles = (context?.profiles.list() ?? []).map((profile) => ({
-				id: profile.id,
-				provenance: profile.birthStatus,
-			}));
-
+			const profiles = context?.profiles.list() ?? [];
 			return {
-				profiles: profiles.length > 0 ? profiles : "0 profiles found",
+				profiles: profiles.length,
 				help: [
-					'Run `lumen profile add <id> --when "1981-01-26T00:50" --place "Magangué, Colombia"`',
-					"Run `lumen chart natal <profile>` for your chart with its evolutionary mechanics",
-					"Run `lumen journey progressed <profile> --at <YYYY-MM-DD>` for progressions",
-					"Run `lumen karma pair --a <id> --b <id>` to compare two charts",
+					profiles.length === 0
+						? 'Run `lumen profile add --when "1981-01-26T00:50" --offset 60 --at "9.15,-74.75" --city "Magangué, Colombia"`'
+						: "Run `lumen profile list` to see saved profiles",
 				],
 			};
 		},

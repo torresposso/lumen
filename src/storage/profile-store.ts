@@ -1,59 +1,39 @@
 import { Database } from "bun:sqlite";
-import { chmodSync, mkdirSync } from "node:fs";
-import { homedir } from "node:os";
+import { chmodSync, existsSync, mkdirSync, openSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { AxiError } from "axi-sdk-js";
-import type { BirthStatus, ResolvedBirth } from "../core/types";
+import type { AddResult, NewProfile, Profile } from "../core/types";
 
 const SCHEMA_VERSION = 1;
 
-/** Privacy-safe summary: id, provenance status and last update. Never a birth date. */
-export interface ProfileSummary {
-	id: string;
-	birthStatus: BirthStatus;
-	updatedAt: string;
-}
-
-export interface StoredProfile {
-	id: string;
-	birth: ResolvedBirth;
-	createdAt: string;
-	updatedAt: string;
+/** `./lumen.db` in the cwd (per-project), overridable with `LUMEN_DB`. */
+export function defaultDbFile(): string {
+	return process.env.LUMEN_DB?.trim() || join(process.cwd(), "lumen.db");
 }
 
 interface ProfileRow {
 	id: string;
-	jd_ut: number;
-	lat: number;
-	lon: number;
+	name: string | null;
+	city: string;
 	local_year: number;
 	local_month: number;
 	local_day: number;
 	local_hour: number;
 	local_minute: number;
-	zone: string;
 	offset_minutes: number;
-	dst: number;
-	status: BirthStatus;
+	lat: number;
+	lon: number;
+	jd_ut: number;
 	created_at: string;
 	updated_at: string;
 }
 
-export function defaultProfilesDir(): string {
-	return process.env.LUMEN_PROFILES_DIR ?? join(homedir(), ".config", "lumen");
-}
-
-export function defaultProfilesFile(): string {
-	return join(defaultProfilesDir(), "lumen.db");
-}
-
-function toProfile(row: ProfileRow): StoredProfile {
+function toProfile(row: ProfileRow): Profile {
 	return {
 		id: row.id,
+		name: row.name,
+		city: row.city,
 		birth: {
-			jdUt: row.jd_ut,
-			lat: row.lat,
-			lon: row.lon,
 			local: {
 				year: row.local_year,
 				month: row.local_month,
@@ -61,17 +41,17 @@ function toProfile(row: ProfileRow): StoredProfile {
 				hour: row.local_hour,
 				minute: row.local_minute,
 			},
-			zone: row.zone,
 			offsetMinutes: row.offset_minutes,
-			dst: row.dst === 1,
-			status: row.status,
+			lat: row.lat,
+			lon: row.lon,
+			jdUt: row.jd_ut,
 		},
 		createdAt: row.created_at,
 		updatedAt: row.updated_at,
 	};
 }
 
-function migrate(db: Database): void {
+function createSchema(db: Database): void {
 	const { user_version } = db.prepare("PRAGMA user_version").get() as {
 		user_version: number;
 	};
@@ -79,138 +59,151 @@ function migrate(db: Database): void {
 		throw new AxiError(
 			`Profile store schema version ${user_version} is newer than supported (${SCHEMA_VERSION})`,
 			"PROFILE_ERROR",
-			["Run `lumen profile list` again"],
+			["Upgrade lumen, then run `lumen profile list` again"],
 		);
 	}
 	if (user_version < SCHEMA_VERSION) {
 		db.exec(`
 			CREATE TABLE IF NOT EXISTS profiles (
 				id             TEXT    PRIMARY KEY,
-				jd_ut          REAL    NOT NULL,
-				lat            REAL    NOT NULL,
-				lon            REAL    NOT NULL,
+				name           TEXT,
+				city           TEXT    NOT NULL,
 				local_year     INTEGER NOT NULL,
 				local_month    INTEGER NOT NULL,
 				local_day      INTEGER NOT NULL,
 				local_hour     INTEGER NOT NULL,
 				local_minute   INTEGER NOT NULL,
-				zone           TEXT    NOT NULL,
 				offset_minutes INTEGER NOT NULL,
-				dst            INTEGER NOT NULL,
-				status         TEXT    NOT NULL CHECK (status IN ('ok','ambiguous','nonexistent')),
+				lat            REAL    NOT NULL,
+				lon            REAL    NOT NULL,
+				jd_ut          REAL    NOT NULL,
 				created_at     TEXT    NOT NULL,
 				updated_at     TEXT    NOT NULL
 			)
+		`);
+		db.exec(`
+			CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_birth
+			ON profiles (jd_ut, lat, lon)
 		`);
 		db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
 	}
 }
 
 /**
- * Embedded bun:sqlite store for saved birth profiles.
- * `~/.config/lumen/lumen.db`, 0600 permissions, migrations via PRAGMA user_version.
- * No WAL: the default rollback journal avoids lingering `-wal`/`-shm` files.
+ * Per-project embedded SQLite store for birth profiles (`./lumen.db`, override
+ * with `LUMEN_DB`). Created lazily on first write — `list`/`get`/`rm` against a
+ * missing file respond empty without creating it. 0600 permissions, rollback
+ * journal (no WAL), migrations via PRAGMA user_version.
  */
 export class ProfileStore {
-	private readonly db: Database;
+	private db: Database | null = null;
 
 	constructor(
-		dbPath: string = defaultProfilesFile(),
+		readonly dbPath: string = defaultDbFile(),
 		private readonly now: () => Date = () => new Date(),
-	) {
+	) {}
+
+	/** Opens (creating if needed) the database. Only `add` calls this. */
+	private open(): Database {
+		if (this.db !== null) return this.db;
 		try {
-			mkdirSync(dirname(dbPath), { recursive: true, mode: 0o700 });
-			this.db = new Database(dbPath);
-			chmodSync(dbPath, 0o600);
-			migrate(this.db);
+			mkdirSync(dirname(this.dbPath), { recursive: true, mode: 0o700 });
+			if (!existsSync(this.dbPath)) {
+				openSync(this.dbPath, "a");
+				chmodSync(this.dbPath, 0o600);
+			}
+			this.db = new Database(this.dbPath);
+			createSchema(this.db);
 		} catch (err) {
 			if (err instanceof AxiError) throw err;
 			throw new AxiError(
 				`Could not open profile store: ${err instanceof Error ? err.message : String(err)}`,
 				"PROFILE_ERROR",
-				["Check that the profile directory is writable"],
+				[
+					"Check that the working directory is writable",
+					"Or set LUMEN_DB to a writable path",
+				],
 			);
 		}
+		return this.db;
 	}
 
-	list(): ProfileSummary[] {
-		const rows = this.db
-			.prepare(
-				"SELECT id, status, updated_at AS updated_at FROM profiles ORDER BY id",
-			)
-			.all() as Array<Pick<ProfileRow, "id" | "status" | "updated_at">>;
-		return rows.map((row) => ({
-			id: row.id,
-			birthStatus: row.status,
-			updatedAt: row.updated_at,
-		}));
+	private fileExists(): boolean {
+		return existsSync(this.dbPath);
 	}
 
-	get(id: string): StoredProfile | undefined {
-		const row = this.db
+	list(): Profile[] {
+		if (!this.fileExists()) return [];
+		const db = this.open();
+		const rows = db
+			.prepare("SELECT * FROM profiles ORDER BY id")
+			.all() as ProfileRow[];
+		return rows.map(toProfile);
+	}
+
+	get(id: string): Profile | undefined {
+		if (!this.fileExists()) return undefined;
+		const db = this.open();
+		const row = db
 			.prepare("SELECT * FROM profiles WHERE id = ?")
 			.get(id) as ProfileRow | null;
 		return row ? toProfile(row) : undefined;
 	}
 
-	add(id: string, birth: ResolvedBirth): StoredProfile {
-		const now = this.now().toISOString();
-		const previous = this.get(id);
-		const profile: StoredProfile = {
-			id,
-			birth,
-			createdAt: previous?.createdAt ?? now,
-			updatedAt: now,
-		};
-		this.db
+	/**
+	 * Inserts a profile, deduplicating on the birth: a profile with the same
+	 * `jdUt + lat + lon` already stored wins and is returned unchanged (the new
+	 * name/city are discarded — the birth is the identity).
+	 */
+	add(profile: NewProfile): AddResult {
+		const db = this.open();
+		const nowIso = this.now().toISOString();
+		const { birth } = profile;
+		const result = db
 			.prepare(
 				`INSERT INTO profiles (
-					id, jd_ut, lat, lon, local_year, local_month, local_day,
-					local_hour, local_minute, zone, offset_minutes, dst, status,
+					id, name, city, local_year, local_month, local_day,
+					local_hour, local_minute, offset_minutes, lat, lon, jd_ut,
 					created_at, updated_at
-				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-				ON CONFLICT(id) DO UPDATE SET
-					jd_ut = excluded.jd_ut,
-					lat = excluded.lat,
-					lon = excluded.lon,
-					local_year = excluded.local_year,
-					local_month = excluded.local_month,
-					local_day = excluded.local_day,
-					local_hour = excluded.local_hour,
-					local_minute = excluded.local_minute,
-					zone = excluded.zone,
-					offset_minutes = excluded.offset_minutes,
-					dst = excluded.dst,
-					status = excluded.status,
-					updated_at = excluded.updated_at`,
+				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+				ON CONFLICT(jd_ut, lat, lon) DO NOTHING`,
 			)
 			.run(
-				id,
-				birth.jdUt,
-				birth.lat,
-				birth.lon,
+				profile.id,
+				profile.name,
+				profile.city,
 				birth.local.year,
 				birth.local.month,
 				birth.local.day,
 				birth.local.hour,
 				birth.local.minute,
-				birth.zone,
 				birth.offsetMinutes,
-				birth.dst ? 1 : 0,
-				birth.status,
-				profile.createdAt,
-				profile.updatedAt,
+				birth.lat,
+				birth.lon,
+				birth.jdUt,
+				nowIso,
+				nowIso,
 			);
-		return profile;
+
+		if (result.changes > 0) {
+			return { profile: this.get(profile.id) as Profile, created: true };
+		}
+
+		// Duplicate birth — return the existing profile, unchanged.
+		const row = db
+			.prepare("SELECT * FROM profiles WHERE jd_ut = ? AND lat = ? AND lon = ?")
+			.get(birth.jdUt, birth.lat, birth.lon) as ProfileRow | null;
+		return { profile: toProfile(row as ProfileRow), created: false };
 	}
 
 	remove(id: string): boolean {
-		return (
-			this.db.prepare("DELETE FROM profiles WHERE id = ?").run(id).changes > 0
-		);
+		if (!this.fileExists()) return false;
+		const db = this.open();
+		return db.prepare("DELETE FROM profiles WHERE id = ?").run(id).changes > 0;
 	}
 
 	close(): void {
-		this.db.close();
+		this.db?.close();
+		this.db = null;
 	}
 }

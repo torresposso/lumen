@@ -1,47 +1,40 @@
 import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { AxiError } from "axi-sdk-js";
-import type { ResolvedBirth } from "../../src/core/types";
-import {
-	defaultProfilesDir,
-	defaultProfilesFile,
-	ProfileStore,
-} from "../../src/storage/profile-store";
+import type { NewProfile } from "../../src/core/types";
+import { defaultDbFile, ProfileStore } from "../../src/storage/profile-store";
 
-function birth(overrides: Partial<ResolvedBirth> = {}): ResolvedBirth {
-	return {
-		jdUt: 2444068.0625,
-		lat: 27.95,
-		lon: -82.46,
-		local: { year: 1990, month: 6, day: 10, hour: 14, minute: 30 },
-		zone: "America/New_York",
-		offsetMinutes: -240,
-		dst: true,
-		status: "ok",
-		...overrides,
+function newProfile(overrides: Partial<NewProfile> = {}): NewProfile {
+	const base: NewProfile = {
+		id: "11111111-1111-4111-8111-111111111111",
+		name: "erik",
+		city: "Tampa, USA",
+		birth: {
+			local: { year: 1990, month: 6, day: 10, hour: 14, minute: 30 },
+			offsetMinutes: -240,
+			lat: 27.95,
+			lon: -82.46,
+			jdUt: 2444068.0625,
+		},
 	};
+	return { ...base, ...overrides };
 }
 
-describe("defaultProfilesDir", () => {
+describe("defaultDbFile", () => {
 	afterEach(() => {
-		delete process.env.LUMEN_PROFILES_DIR;
+		delete process.env.LUMEN_DB;
 	});
 
-	it("honors LUMEN_PROFILES_DIR when set", () => {
-		process.env.LUMEN_PROFILES_DIR = "/tmp/lumen-custom-profiles";
-		expect(defaultProfilesDir()).toBe("/tmp/lumen-custom-profiles");
+	test("honors LUMEN_DB when set", () => {
+		process.env.LUMEN_DB = "/tmp/lumen-custom/lumen.db";
+		expect(defaultDbFile()).toBe("/tmp/lumen-custom/lumen.db");
 	});
 
-	it("falls back to ~/.config/lumen when unset", () => {
-		expect(defaultProfilesDir()).toMatch(/\.config\/lumen$/);
-	});
-
-	it("defaultProfilesFile joins the lumen.db file name", () => {
-		process.env.LUMEN_PROFILES_DIR = "/tmp/lumen-custom-profiles";
-		expect(defaultProfilesFile()).toBe("/tmp/lumen-custom-profiles/lumen.db");
+	test("falls back to ./lumen.db in the cwd", () => {
+		expect(defaultDbFile()).toBe(join(process.cwd(), "lumen.db"));
 	});
 });
 
@@ -53,7 +46,7 @@ describe("ProfileStore", () => {
 	beforeEach(() => {
 		dir = join(
 			tmpdir(),
-			`lumen-test-profiles-${Math.random().toString(36).slice(2)}`,
+			`lumen-v2-test-${Math.random().toString(36).slice(2)}`,
 		);
 		dbPath = join(dir, "lumen.db");
 		store = new ProfileStore(dbPath);
@@ -61,96 +54,128 @@ describe("ProfileStore", () => {
 
 	afterEach(() => {
 		store.close();
-		if (existsSync(dir)) {
-			rmSync(dir, { recursive: true, force: true });
-		}
+		rmSync(dir, { recursive: true, force: true });
 	});
 
-	it("creates the db file with 0600 permissions", () => {
+	test("reads are lazy: no file is created until add", () => {
+		expect(existsSync(dbPath)).toBe(false);
+		expect(store.list()).toEqual([]);
+		expect(store.get("missing")).toBeUndefined();
+		expect(store.remove("missing")).toBe(false);
+		expect(existsSync(dbPath)).toBe(false);
+	});
+
+	test("add creates the file with 0600 permissions", () => {
+		const { created, profile } = store.add(newProfile());
+		expect(created).toBe(true);
 		expect(existsSync(dbPath)).toBe(true);
 		expect(statSync(dbPath).mode & 0o777).toBe(0o600);
+		expect(profile.id).toBe(newProfile().id);
 	});
 
-	it("missing db reads as an empty store", () => {
-		expect(store.list()).toEqual([]);
-		expect(store.get("erik")).toBeUndefined();
-		expect(store.remove("erik")).toBe(false);
-	});
-
-	it("add and get round-trip the resolved birth", () => {
-		store.add("erik", birth());
-		const stored = store.get("erik");
-		expect(stored?.id).toBe("erik");
-		expect(stored?.birth.status).toBe("ok");
-		expect(stored?.birth.local.year).toBe(1990);
+	test("add and get round-trip the profile", () => {
+		const added = newProfile();
+		store.add(added);
+		const stored = store.get(added.id);
+		expect(stored?.name).toBe("erik");
+		expect(stored?.city).toBe("Tampa, USA");
+		expect(stored?.birth.local).toEqual({
+			year: 1990,
+			month: 6,
+			day: 10,
+			hour: 14,
+			minute: 30,
+		});
+		expect(stored?.birth.offsetMinutes).toBe(-240);
 		expect(stored?.birth.jdUt).toBe(2444068.0625);
-		expect(store.get("kary")).toBeUndefined();
+		expect(store.get("nope")).toBeUndefined();
 	});
 
-	it("add is idempotent: keeps createdAt and refreshes updatedAt", async () => {
+	test("add deduplicates by birth: same jdUt+coords returns the existing profile", () => {
+		const first = store.add(newProfile());
+		const second = store.add(
+			newProfile({
+				id: "22222222-2222-4222-8222-222222222222",
+				name: "other",
+				city: "Somewhere else",
+			}),
+		);
+
+		expect(second.created).toBe(false);
+		expect(second.profile.id).toBe(first.profile.id);
+		expect(second.profile.name).toBe("erik");
+		expect(second.profile.city).toBe("Tampa, USA");
+		expect(store.list()).toHaveLength(1);
+	});
+
+	test("sets timestamps from the injected clock and keeps them on dedupe", async () => {
 		const clock = { value: "2026-01-01T00:00:00.000Z" };
 		store = new ProfileStore(dbPath, () => new Date(clock.value));
-		const first = store.add("erik", birth({ lat: 27.95 }));
+
+		const first = store.add(newProfile());
+		expect(first.profile.createdAt).toBe("2026-01-01T00:00:00.000Z");
+		expect(first.profile.updatedAt).toBe("2026-01-01T00:00:00.000Z");
+
 		clock.value = "2026-02-01T00:00:00.000Z";
-		const second = store.add("erik", birth({ lat: 28.0 }));
-
-		expect(second.createdAt).toBe(first.createdAt);
-		expect(second.updatedAt).toBe("2026-02-01T00:00:00.000Z");
-		expect(second.birth.lat).toBe(28.0);
+		const duplicate = store.add(newProfile());
+		expect(duplicate.created).toBe(false);
+		expect(duplicate.profile.createdAt).toBe("2026-01-01T00:00:00.000Z");
+		expect(duplicate.profile.updatedAt).toBe("2026-01-01T00:00:00.000Z");
 	});
 
-	it("list sorts by id and returns privacy-safe summaries", () => {
-		store.add("zoe", birth());
-		store.add("erik", birth());
-
-		const summaries = store.list();
-		expect(summaries.map((summary) => summary.id)).toEqual(["erik", "zoe"]);
-		for (const summary of summaries) {
-			expect(Object.keys(summary).sort()).toEqual([
-				"birthStatus",
-				"id",
-				"updatedAt",
-			]);
-		}
+	test("list sorts by id and returns full profiles", () => {
+		store.add(
+			newProfile({
+				id: "b",
+				name: null,
+				birth: { ...newProfile().birth, lat: 10, lon: 10, jdUt: 2400000.0 },
+			}),
+		);
+		store.add(
+			newProfile({
+				id: "a",
+				name: null,
+				birth: { ...newProfile().birth, lat: 20, lon: 20, jdUt: 2500000.0 },
+			}),
+		);
+		expect(store.list().map((p) => p.id)).toEqual(["a", "b"]);
+		expect(store.list()[0]?.name).toBeNull();
 	});
 
-	it("remove deletes the profile and persists the change", () => {
-		store.add("erik", birth());
-		store.add("kary", birth());
-
-		expect(store.remove("erik")).toBe(true);
-		expect(store.remove("erik")).toBe(false);
-
+	test("remove deletes and persists", () => {
+		store.add(newProfile());
+		expect(store.remove(newProfile().id)).toBe(true);
+		expect(store.remove(newProfile().id)).toBe(false);
 		store.close();
+
 		const reloaded = new ProfileStore(dbPath);
-		expect(reloaded.get("erik")).toBeUndefined();
-		expect(reloaded.get("kary")?.id).toBe("kary");
+		expect(reloaded.get(newProfile().id)).toBeUndefined();
 		reloaded.close();
 	});
 
-	it("reopens an existing lumen.db with user_version 1", () => {
+	test("reopens an existing lumen.db", () => {
+		store.add(newProfile());
 		store.close();
 		const reopened = new ProfileStore(dbPath);
-		reopened.add("erik", birth());
-		expect(reopened.get("erik")?.id).toBe("erik");
+		expect(reopened.list()).toHaveLength(1);
 		reopened.close();
 	});
 
-	it("rejects a db with a newer user_version as PROFILE_ERROR", () => {
+	test("rejects a db with a newer user_version as PROFILE_ERROR", () => {
+		store.add(newProfile());
 		store.close();
+
 		const manual = new Database(dbPath);
 		manual.exec("PRAGMA user_version = 99");
 		manual.close();
 
 		try {
-			new ProfileStore(dbPath);
+			// The store opens lazily; any read triggers the schema check.
+			new ProfileStore(dbPath).list();
 			expect.unreachable();
 		} catch (error) {
 			expect(error).toBeInstanceOf(AxiError);
 			expect((error as AxiError).code).toBe("PROFILE_ERROR");
-			expect((error as AxiError).suggestions.join(" ")).toContain(
-				"lumen profile",
-			);
 		}
 	});
 });

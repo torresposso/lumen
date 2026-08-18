@@ -6,6 +6,9 @@ out
 dist
 *.tgz
 
+# per-project birth profile database (lumen v2)
+lumen.db
+
 # code coverage
 coverage
 *.lcov

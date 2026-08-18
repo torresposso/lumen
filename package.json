@@ -22,9 +22,6 @@
 		"typescript": "^5"
 	},
 	"dependencies": {
-		"axi-sdk-js": "^0.1.10",
-		"caelus": "^0.23.0",
-		"caelus-birth": "^0.23.0",
-		"zod": "^4.4.3"
+		"axi-sdk-js": "^0.1.10"
 	}
 }

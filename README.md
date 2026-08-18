@@ -1,6 +1,11 @@
 # lumen
 
-Mi instrumento de evolución: astrología evolutiva (Green + Forrest) desde la terminal.
+lumen v2 — gestor de perfiles de nacimiento (CLI AXI).
+
+lumen es un **CLI AXI**: su consumidor principal es un agente de IA. El humano
+conversa con el agente y le da la ciudad/país y la fecha y hora local de
+nacimiento; el agente resuelve coordenadas y offset UTC y llama a lumen. lumen
+valida, calcula el Julian Day (Meeus, aritmética pura) y persiste el perfil.
 
 ## Instalar dependencias
 
@@ -8,46 +13,37 @@ Mi instrumento de evolución: astrología evolutiva (Green + Forrest) desde la t
 bun install
 ```
 
-## Comandos AXI
+## Uso
 
 ```bash
-# Carta natal completa: geometría base + mecánica evolutiva (Plutón/PPP + eje nodal + eclipses prenatales), siempre
-bun run bin/lumen.ts chart natal silvia
+# Alta de un perfil de nacimiento (hora local + offset UTC + coordenadas + ciudad)
+bun run bin/lumen.ts profile add --when "1981-01-26T00:50" --offset 60 --at "9.15,-74.75" --city "Magangué, Colombia" --name silvia
 
-# Carta draconic en el canon: proyección + mecánica evolutiva recalculada sobre su zodíaco
-bun run bin/lumen.ts chart draconic silvia
-
-# Progresiones secundarias y estaciones planetarias
-bun run bin/lumen.ts journey progressed silvia --at 2026-08-13
-bun run bin/lumen.ts journey stations silvia --body mercury --from 2026-01-01 --to 2026-12-31 --limit 30
-
-# Sinastría evolutiva entre dos Almas
-bun run bin/lumen.ts karma pair --a erik --b kary --orb 3
-
-# Perfiles locales de nacimiento (reseñados por chart/journey/karma)
-bun run bin/lumen.ts profile add erik --when "1981-01-26T00:50" --place "Magangué, Colombia"
+# Listar, ver y eliminar
 bun run bin/lumen.ts profile list
-bun run bin/lumen.ts profile show erik
-bun run bin/lumen.ts profile remove erik
-
-# Carta natal (carta + mecánica siempre) y carta draconic (canónica, con la mecánica recalculada sobre su zodíaco)
-bun run bin/lumen.ts chart natal --when "1981-01-26T00:50" --place "Magangué, Colombia"
-bun run bin/lumen.ts chart draconic --when "1981-01-26T00:50" --place "Magangué, Colombia"
+bun run bin/lumen.ts profile get <uuid>
+bun run bin/lumen.ts profile rm <uuid>
 ```
 
-## Privacidad
+- `add` **deduplica por nacimiento**: el mismo jdUt + coordenadas devuelve el
+  perfil existente.
+- Los ids son **UUID auto-generados**; `get`/`rm` solo aceptan el UUID.
+- Mensajes y errores en inglés; salida en **TOON** (Token-Oriented Object
+  Notation) con la política de precisión lumen (jdUt a 6 decimales, lat/lon a 4).
 
-- Los perfiles viven en `~/.config/lumen/lumen.db` (bun:sqlite embebido, permisos `0600`, migraciones con `PRAGMA user_version`).
-- Las opciones de carta por defecto viven en `~/.config/lumen/config.json` (sistema de casas); un flag en la línea de comandos gana a la config.
-- `lumen profile list` y el Home solo muestran `id` y estado de nacimiento (`ok | ambiguous | nonexistent`): nunca fechas de nacimiento.
-- `lumen profile show <id>` es el único comando que expone los datos natales completos.
+## Persistencia
 
-## Integración de sesión
+- La DB vive en `./lumen.db` del directorio de trabajo (per-project), o en la
+  ruta de `LUMEN_DB` si se define.
+- Se crea **perezosamente**: solo `add` crea el archivo.
+- Permisos `0600`, journal de rollback (sin WAL), migraciones por
+  `PRAGMA user_version`.
+- `lumen.db` está en `.gitignore` (es dato per-project).
 
-```bash
-bun run build
-./dist/lumen setup hooks
-```
+## Dependencias
+
+- Runtime: `axi-sdk-js` (framework AXI + convención de errores).
+- Dev: `@biomejs/biome`, `@types/bun`; peer: `typescript`.
 
 ## Desarrollo
 

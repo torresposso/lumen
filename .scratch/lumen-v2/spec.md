@@ -105,6 +105,7 @@ src/commands/profile.ts      # add / list / get / rm
 src/core/jd.ts               # Meeus + validación del contrato
 src/core/types.ts            # Profile, BirthInput, etc.
 src/core/toon.ts             # política de formato (precisiones)
+src/version.ts               # versión del paquete (fast-path)
 src/storage/profile-store.ts # ProfileStore v2 (bun:sqlite)
 tests/jd.test.ts
 tests/profile-store.test.ts
