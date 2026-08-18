@@ -17,7 +17,7 @@ bun install
 
 ```bash
 # Register a birth profile (local time + UTC offset + coordinates + birthplace)
-bun run bin/lumen.ts profile add --when "1981-01-26T00:50" --offset 60 --at "9.15,-74.75" --city "Magangué, Colombia" --name silvia
+bun run bin/lumen.ts profile add --when "1981-01-26T00:50" --offset 60 --at "9.15,-74.75" --birthplace "Magangué, Colombia" --name silvia
 
 # List, view and remove
 bun run bin/lumen.ts profile list

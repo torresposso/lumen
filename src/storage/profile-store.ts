@@ -88,8 +88,8 @@ function createSchema(db: Database): void {
 		`);
 	}
 	if (user_version === 1) {
-		// v1 → v2: the model field was renamed to the domain term *(birthplace)*;
-		// `--city` remains only the CLI flag surface. Rename the stored column.
+		// v1 → v2: the model field was renamed to the domain term *(birthplace)*,
+		// matching the CLI flag. Rename the stored column.
 		db.exec(`ALTER TABLE profiles RENAME COLUMN city TO birthplace`);
 	}
 	if (user_version < SCHEMA_VERSION) {

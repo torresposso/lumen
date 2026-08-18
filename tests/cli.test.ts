@@ -26,7 +26,7 @@ const ADD_ARGS = [
 	"-240",
 	"--at",
 	"27.95,-82.46",
-	"--city",
+	"--birthplace",
 	"Tampa, USA",
 	"--name",
 	"erik",
@@ -106,7 +106,7 @@ describe("profileCommand", () => {
 					"900",
 					"--at",
 					"27.95,-82.46",
-					"--city",
+					"--birthplace",
 					"Tampa, USA",
 				],
 				ctx(),
@@ -122,7 +122,7 @@ describe("profileCommand", () => {
 					"0",
 					"--at",
 					"0,0",
-					"--city",
+					"--birthplace",
 					"x",
 				],
 				ctx(),
@@ -138,7 +138,7 @@ describe("profileCommand", () => {
 			"0",
 			"--at",
 			"0,0",
-			"--city",
+			"--birthplace",
 			"x",
 		]);
 		expect(when.join(" ")).toContain("--when");
@@ -150,7 +150,7 @@ describe("profileCommand", () => {
 			"abc",
 			"--at",
 			"0,0",
-			"--city",
+			"--birthplace",
 			"x",
 		]);
 		expect(offset.join(" ")).toContain("--offset");
@@ -162,7 +162,7 @@ describe("profileCommand", () => {
 			"0",
 			"--at",
 			"zz",
-			"--city",
+			"--birthplace",
 			"x",
 		]);
 		expect(at.join(" ")).toContain("--at");
@@ -172,13 +172,13 @@ describe("profileCommand", () => {
 		).rejects.toThrow(/Unknown flag: --bogus/);
 	});
 
-	test("add requires --city", async () => {
+	test("add requires --birthplace", async () => {
 		await expect(
 			profileCommand(
 				["add", "--when", "1990-06-10T14:30", "--offset", "0", "--at", "0,0"],
 				ctx(),
 			),
-		).rejects.toThrow(/Missing required flag --city/);
+		).rejects.toThrow(/Missing required flag --birthplace/);
 	});
 
 	test("list returns profiles; empty list includes a hint", async () => {
@@ -244,7 +244,7 @@ describe("profileCommand", () => {
 			["list", "--help"],
 			undefined,
 		)) as string;
-		expect(addHelp).toContain("--city");
+		expect(addHelp).toContain("--birthplace");
 		expect(addHelp).not.toContain("lumen profile get");
 		expect(listHelp).toContain("lumen profile list");
 		expect(listHelp).not.toContain("--offset");

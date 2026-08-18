@@ -19,8 +19,8 @@ pushed.
 - **Birthplace** — the human-readable place where a birth happened, provided
   by the human and stored as-is (e.g. `"Magangué, Colombia"`). The domain
   term is *birthplace*, not *city*: a birth can happen anywhere, and the
-  agent (not lumen) resolves coordinates and offset from it. The CLI flag is
-  `--city` (surface only).
+  agent (not lumen) resolves coordinates and offset from it. The CLI flag,
+  the model field and the stored column share the name.
 - **Birth** — the resolved instant of a profile: local wall-clock time (no
   seconds), UTC **offset** in minutes, coordinates (`lat`/`lon`), and the derived
   **jdUt**. The birth is the profile's identity: `add` deduplicates on

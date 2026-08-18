@@ -23,6 +23,7 @@ there is no lookup by name or birthplace anywhere.
   pre-flight.
 - The `name`/`birthplace` fields are display metadata only — never identity,
   never a lookup key. This is why the model carries them off the uniqueness path
-  (they are discarded on conflict). The CLI flag for the birthplace is
-  `--city` (surface only); the model field and the stored column are
-  `birthplace` (ADR-0002 notes the 2026-08-18 rename, schema v1 → v2).
+  (they are discarded on conflict). The CLI flag, the model field and the stored
+  column share the `birthplace` name: the v1→v2 schema migration renamed the
+  stored column from `city` (2026-08-18), and the CLI flag followed, replacing
+  `--city`.
