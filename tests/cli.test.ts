@@ -1,18 +1,21 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { Database } from "bun:sqlite";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { AxiError } from "axi-sdk-js";
 import { type CliContext, profileCommand } from "../src/commands/profile";
 import { ProfileStore } from "../src/storage/profile-store";
 
-const DB = join(
-	tmpdir(),
-	`lumen-cli-test-${Math.random().toString(36).slice(2)}.db`,
-);
+let db: Database;
+
+beforeEach(() => {
+	db = new Database(":memory:");
+});
+
+afterEach(() => {
+	db.close();
+});
 
 function ctx(): CliContext {
-	return { profiles: new ProfileStore(DB) };
+	return { profiles: new ProfileStore(undefined, () => new Date(), db) };
 }
 
 function invalidCode(error: unknown): string {
@@ -27,13 +30,6 @@ const ADD_ARGS = [
 	"--name",
 	"erik",
 ];
-
-afterEach(() => {
-	rmSync(DB, { force: true });
-	rmSync(`${DB}-journal`, { force: true });
-	rmSync(`${DB}-wal`, { force: true });
-	rmSync(`${DB}-shm`, { force: true });
-});
 
 type AddResult = {
 	status: string;

@@ -366,3 +366,50 @@ describe("ProfileStore", () => {
 		}
 	});
 });
+
+describe("ProfileStore with an injected in-memory Database", () => {
+	let db: Database;
+	let store: ProfileStore;
+
+	beforeEach(() => {
+		db = new Database(":memory:");
+		store = new ProfileStore(undefined, () => new Date(), db);
+	});
+
+	afterEach(() => {
+		store.close();
+	});
+
+	test("add/list/get/remove round-trip without touching files", () => {
+		const { created, profile } = store.add(newProfile());
+		expect(created).toBe(true);
+		expect(profile.id).toMatch(
+			/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+		);
+		expect(store.list()).toHaveLength(1);
+		expect(store.get(profile.id)?.name).toBe("erik");
+		expect(store.remove(profile.id)).toBe(true);
+		expect(store.list()).toHaveLength(0);
+	});
+
+	test("dedupe returns the existing profile", () => {
+		store.add(newProfile());
+		const second = store.add(newProfile({ name: "other" }));
+		expect(second.created).toBe(false);
+		expect(second.profile.id).toBeDefined();
+		expect(second.profile.name).toBe("erik");
+		expect(store.list()).toHaveLength(1);
+	});
+
+	test("reads against the injected db never consult the filesystem", () => {
+		// A sentinel path that only a file-backed store would create.
+		const sentinel = join(
+			tmpdir(),
+			`lumen-mem-sentinel-${Math.random().toString(36).slice(2)}.db`,
+		);
+		const s = new ProfileStore(sentinel, () => new Date(), db);
+		s.add(newProfile());
+		expect(existsSync(sentinel)).toBe(false);
+		s.close();
+	});
+});

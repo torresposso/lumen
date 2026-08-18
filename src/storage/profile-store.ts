@@ -118,19 +118,43 @@ function ensureSchema(db: Database): void {
  * Per-project embedded SQLite store for birth profiles (`./lumen.db`, override
  * with `LUMEN_DB`). Created lazily on first write — `list`/`get`/`delete`
  * against a missing file respond empty without creating it. 0600 permissions,
- * rollback journal (no WAL), migrations via PRAGMA user_version.
+ * rollback journal (no WAL), migrations via PRAGMA user_version. A
+ * bun:sqlite `Database` may be injected instead (in-memory, tests): the same
+ * interface, with no filesystem side effects — the seam has two adapters.
  */
 export class ProfileStore {
 	private db: Database | null = null;
+	/** True when this store is file-backed (created lazily, 0600); false when a Database was injected. */
+	private readonly fileBacked: boolean;
 
 	constructor(
 		readonly dbPath: string = defaultDbFile(),
 		private readonly now: () => Date = () => new Date(),
-	) {}
+		db?: Database,
+	) {
+		this.fileBacked = db === undefined;
+		if (db !== undefined) this.injectedDb = db;
+	}
+	private injectedDb: Database | null = null;
 
 	/** Opens (creating if needed) the database. Only `add` calls this. */
 	private open(): Database {
 		if (this.db !== null) return this.db;
+		if (!this.fileBacked) {
+			// In-memory adapter: the caller owns the Database; a fresh `:memory:`
+			// hits the schema check like a fresh install.
+			const injected = this.injectedDb;
+			if (injected === null) {
+				throw new AxiError(
+					"In-memory profile store is closed",
+					"PROFILE_ERROR",
+					["This is a lumen bug — the CLI always constructs a fresh store"],
+				);
+			}
+			this.db = injected;
+			ensureSchema(this.db);
+			return this.db;
+		}
 		try {
 			mkdirSync(dirname(this.dbPath), { recursive: true, mode: 0o700 });
 			if (!existsSync(this.dbPath)) {
@@ -158,7 +182,7 @@ export class ProfileStore {
 	}
 
 	list(): Profile[] {
-		if (!this.fileExists()) return [];
+		if (this.fileBacked && !this.fileExists()) return [];
 		const db = this.open();
 		const rows = db
 			.prepare("SELECT * FROM profiles ORDER BY id")
@@ -167,7 +191,7 @@ export class ProfileStore {
 	}
 
 	get(id: string): Profile | undefined {
-		if (!this.fileExists()) return undefined;
+		if (this.fileBacked && !this.fileExists()) return undefined;
 		const db = this.open();
 		const row = db
 			.prepare("SELECT * FROM profiles WHERE id = ?")
@@ -223,13 +247,18 @@ export class ProfileStore {
 	}
 
 	remove(id: string): boolean {
-		if (!this.fileExists()) return false;
+		if (this.fileBacked && !this.fileExists()) return false;
 		const db = this.open();
 		return db.prepare("DELETE FROM profiles WHERE id = ?").run(id).changes > 0;
 	}
 
 	close(): void {
-		this.db?.close();
+		if (this.db !== null) {
+			this.db.close();
+		} else if (this.injectedDb !== null) {
+			this.injectedDb.close();
+		}
 		this.db = null;
+		this.injectedDb = null;
 	}
 }

@@ -62,7 +62,10 @@ Already enforced, not reviewable:
 9. **Storage rules** (`src/storage/profile-store.ts`): the DB is created
    **lazily** (only `add`); permissions `0600`; rollback journal (no WAL);
    migrations via `PRAGMA user_version`. Reads against a missing DB return
-   empty / not-found without creating files.
+   empty / not-found without creating files. The constructor also accepts an
+   injected in-memory `bun:sqlite` `Database` for tests — the second adapter
+   at the persistence seam; the file adapter keeps the rules above as
+   production policy.
 
 ## Data & identity
 
