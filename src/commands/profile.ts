@@ -4,8 +4,7 @@ import { AxiError } from "axi-sdk-js";
 import { type ArgsSpec, parseArgs } from "../core/args";
 import { parseBirthInput } from "../core/birth-input";
 import { meeusJdUt } from "../core/jd";
-import { formatWhen, roundCoordinate, roundJdUt } from "../core/toon";
-import type { Profile } from "../core/types";
+import { toonProfile } from "../core/toon";
 import type { ProfileStore as DefaultProfileStore } from "../storage/profile-store";
 
 export interface CliContext {
@@ -73,6 +72,10 @@ const ADD_SPEC: ArgsSpec = {
 	known: ADD_FLAGS,
 	required: new Set(["--when", "--offset", "--at", "--birthplace"]),
 	positionals: 0,
+	rules: {
+		"--birthplace": { trim: true, nonEmpty: true },
+		"--name": { trim: true, emptyAsNull: true },
+	},
 };
 
 /** `profile list` — no flags, no positionals. */
@@ -124,20 +127,6 @@ function validationError(command: string, message: string): AxiError {
 	]);
 }
 
-/** The TOON-shaped view of a profile: same fields, display-precision numbers. */
-function displayProfile(profile: Profile) {
-	return {
-		id: profile.id,
-		name: profile.name,
-		birthplace: profile.birthplace,
-		when: formatWhen(profile.birth.local),
-		offset: profile.birth.offsetMinutes,
-		lat: roundCoordinate(profile.birth.lat),
-		lon: roundCoordinate(profile.birth.lon),
-		jdUt: roundJdUt(profile.birth.jdUt),
-	};
-}
-
 export const profileCommand: AxiCliCommand<CliContext> = async (
 	args,
 	context,
@@ -154,15 +143,8 @@ export const profileCommand: AxiCliCommand<CliContext> = async (
 			const when = parsed.flags.get("--when") as string;
 			const offset = parsed.flags.get("--offset") as string;
 			const at = parsed.flags.get("--at") as string;
-			const birthplace = (parsed.flags.get("--birthplace") as string).trim();
-			if (birthplace === "") {
-				throw new AxiError(
-					"--birthplace must not be empty",
-					"VALIDATION_ERROR",
-					['Example: --birthplace "Madrid, Spain"'],
-				);
-			}
-			const name = parsed.flags.get("--name")?.trim() || null;
+			const birthplace = parsed.flags.get("--birthplace") as string;
+			const name = parsed.flags.get("--name") ?? null;
 
 			const { local, offsetMinutes, lat, lon } = parseBirthInput({
 				when,
@@ -179,14 +161,14 @@ export const profileCommand: AxiCliCommand<CliContext> = async (
 			});
 			return {
 				status: created ? "added" : "already exists",
-				...displayProfile(profile),
+				...toonProfile(profile),
 			};
 		}
 
 		case "list": {
 			const parsed = parseArgs(rest, LIST_SPEC, "lumen profile list");
 			if (parsed.help) return usageFor(sub);
-			const profiles = requireProfileStore(context).list().map(displayProfile);
+			const profiles = requireProfileStore(context).list().map(toonProfile);
 			return profiles.length > 0
 				? { profiles }
 				: { profiles: [], help: [`Run \`${PROFILE_ADD_EXAMPLE}\``] };
@@ -202,7 +184,7 @@ export const profileCommand: AxiCliCommand<CliContext> = async (
 					"Run `lumen profile list` to see saved profiles",
 				]);
 			}
-			return displayProfile(profile);
+			return toonProfile(profile);
 		}
 
 		case "rm": {

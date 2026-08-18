@@ -149,3 +149,54 @@ describe("parseArgs", () => {
 		}
 	});
 });
+
+describe("parseArgs value rules", () => {
+	const SPEC: ArgsSpec = {
+		known: new Set(["--birthplace", "--name"]),
+		required: new Set(["--birthplace"]),
+		positionals: 0,
+		rules: {
+			"--birthplace": { trim: true, nonEmpty: true },
+			"--name": { trim: true, emptyAsNull: true },
+		},
+	};
+
+	test("trims values", () => {
+		const parsed = parseArgs(
+			["--birthplace", "  Madrid, Spain  "],
+			SPEC,
+			"lumen profile add",
+		);
+		expect(parsed.flags.get("--birthplace")).toBe("Madrid, Spain");
+	});
+
+	test("nonEmpty: an empty value is a violation", () => {
+		try {
+			parseArgs(["--birthplace", "   "], SPEC, "lumen profile add");
+			expect.unreachable();
+		} catch (error) {
+			expect((error as Error).message).toContain(
+				"Flag --birthplace must not be empty",
+			);
+			expect(code(error)).toBe("VALIDATION_ERROR");
+		}
+	});
+
+	test("emptyAsNull: an empty value becomes null", () => {
+		const parsed = parseArgs(
+			["--birthplace", "Madrid, Spain", "--name", "  "],
+			SPEC,
+			"lumen profile add",
+		);
+		expect(parsed.flags.get("--name")).toBeNull();
+	});
+
+	test("an absent optional flag stays undefined", () => {
+		const parsed = parseArgs(
+			["--birthplace", "Madrid, Spain"],
+			SPEC,
+			"lumen profile add",
+		);
+		expect(parsed.flags.get("--name")).toBeUndefined();
+	});
+});

@@ -41,9 +41,10 @@ Already enforced, not reviewable:
    coordinates; it does not compute Julian Days, format output, or talk to the
    DB directly.
 6. **One seam per concern.** A contract owns its parsing + validation in one
-   place with one error style (`src/core/birth-input.ts` is the model: it
-   accumulates every *checkable* violation and throws one error citing all of
-   them). Validation must not be re-implemented at call sites.
+   place with one error style (`src/core/args.ts` and `src/core/birth-input.ts`
+   are the models: each accumulates every *checkable* violation and throws one
+   error citing all of them). Validation must not be re-implemented at call
+   sites — the command owns presence and orchestration, never value checks.
 7. **Pure kernels don't validate or do I/O.** `src/core/jd.ts` is arithmetic
    only — no range checks, no imports beyond plain math. Validation belongs to
    the calling contract; I/O belongs to the storage layer.
@@ -61,10 +62,11 @@ Already enforced, not reviewable:
     INDEX` + `ON CONFLICT`; `id` is an opaque auto-generated UUID; `get`/`rm`
     accept a UUID only. `name`/`birthplace` are display metadata — never
     identity, never lookup keys (ADR-0003).
-11. **Display precision is a policy, not data.** The DB keeps full float64
-    precision; rounding to display precision (jdUt 6 decimals, lat/lon 4,
-    offset integer) happens only at output, in the single format-policy module
-    (`src/core/toon.ts`). No other module rounds.
+11. **The published output is a policy, not data.** The DB keeps full float64
+    precision. The TOON shape an agent parses — which fields, in what order, at
+    what precision (jdUt 6 decimals, lat/lon 4, offset integer) — lives in the
+    single display-policy module (`src/core/toon.ts`, `toonProfile`). No other
+    module rounds or shapes output.
 
 ## Errors & output (AXI)
 

@@ -12,10 +12,22 @@ export interface ArgsSpec {
 	positionalName?: string;
 	/** Suggestion attached when a required positional is missing. */
 	positionalHint?: string;
+	/** Per-flag value normalization applied after the syntax pass. */
+	rules?: Readonly<Record<string, FlagValueRule>>;
+}
+
+/** How a flag's raw string becomes its semantic value. */
+export interface FlagValueRule {
+	/** Trim whitespace from the value before emptiness checks and in the result. */
+	trim?: boolean;
+	/** An empty value after trim is a violation (`Flag --x must not be empty`). */
+	nonEmpty?: boolean;
+	/** An optional flag whose empty value after trim means null. */
+	emptyAsNull?: boolean;
 }
 
 export interface ParsedArgs {
-	flags: ReadonlyMap<string, string>;
+	flags: ReadonlyMap<string, string | null>;
 	positionals: readonly string[];
 	/** True when `--help` appeared — the caller should show usage, not run. */
 	help: boolean;
@@ -25,11 +37,12 @@ export interface ParsedArgs {
  * The CLI-args contract — the single seam lumen applies to a command's raw
  * argument strings before any value semantics. Owns the flag syntax (known
  * flags, `--flag=value` / `--flag value` forms, duplicates, missing values),
- * `--help` (anywhere, winning over all other checks) and positional counts,
+ * `--help` (anywhere, winning over all other checks), positional counts and
+ * per-flag **value normalization** (trim, non-empty, empty-means-null),
  * accumulating every checkable violation into one `VALIDATION_ERROR` with each
  * cited rule as a suggestion — one verdict per round-trip for an agent caller.
- * Presence and syntax live here; value semantics live in the contract that
- * consumes the parsed flags (e.g. the birth-input contract).
+ * Presence, syntax and value normalization live here; value *semantics* live in
+ * the contract that consumes the parsed flags (e.g. the birth-input contract).
  */
 export function parseArgs(
 	args: string[],
@@ -42,7 +55,7 @@ export function parseArgs(
 
 	const max = spec.positionals ?? 0;
 	const issues: string[] = [];
-	const flags = new Map<string, string>();
+	const flags = new Map<string, string | null>();
 	const positionals: string[] = [];
 
 	for (let i = 0; i < args.length; i++) {
@@ -76,6 +89,22 @@ export function parseArgs(
 		}
 		if (flags.has(flag)) {
 			issues.push(`Flag ${flag} provided more than once`);
+			continue;
+		}
+		flags.set(flag, value);
+	}
+
+	// Value normalization: turn raw strings into semantic values per flag rule.
+	for (const [flag, rule] of Object.entries(spec.rules ?? {})) {
+		const raw = flags.get(flag);
+		if (raw === undefined || raw === null) continue;
+		const value = rule.trim ? raw.trim() : raw;
+		if (rule.nonEmpty && value === "") {
+			issues.push(`Flag ${flag} must not be empty`);
+			continue;
+		}
+		if (rule.emptyAsNull && value === "") {
+			flags.set(flag, null);
 			continue;
 		}
 		flags.set(flag, value);
