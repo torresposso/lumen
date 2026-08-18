@@ -12,10 +12,10 @@ const topLevelHelp = [
 	"lumen — birth profile manager (AXI CLI)",
 	"",
 	"Commands:",
-	"  profile add   Register a birth (local time + offset + coordinates + birthplace)",
-	"  profile list  List saved profiles",
-	"  profile get   Show one profile by UUID",
-	"  profile rm    Remove one profile by UUID",
+	"  profile add    Register a birth (ISO --when + coordinates + birthplace)",
+	"  profile list   List saved profiles",
+	"  profile get    Show one profile by UUID",
+	"  profile delete Remove one profile by UUID",
 ].join("\n");
 
 export async function main(): Promise<void> {

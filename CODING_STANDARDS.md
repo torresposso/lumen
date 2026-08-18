@@ -59,14 +59,15 @@ Already enforced, not reviewable:
 ## Data & identity
 
 10. **The birth is the identity.** Dedupe on `jdUt + lat + lon` via a `UNIQUE
-    INDEX` + `ON CONFLICT`; `id` is an opaque auto-generated UUID; `get`/`rm`
+    INDEX` + `ON CONFLICT`; `id` is an opaque auto-generated UUID; `get`/`delete`
     accept a UUID only. `name`/`birthplace` are display metadata — never
     identity, never lookup keys (ADR-0003).
 11. **The published output is a policy, not data.** The DB keeps full float64
     precision. The TOON shape an agent parses — which fields, in what order, at
-    what precision (jdUt 6 decimals, lat/lon 4, offset integer) — lives in the
+    what precision (jdUt 6 decimals, lat/lon 4) — lives in the
     single display-policy module (`src/core/toon.ts`, `toonProfile`). No other
-    module rounds or shapes output.
+    module rounds or shapes output. A moment value is one ISO string (`when`),
+    echoed verbatim — never split into civil + offset pieces (ADR-0004).
 
 ## Errors & output (AXI)
 

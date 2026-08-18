@@ -21,9 +21,7 @@ function invalidCode(error: unknown): string {
 
 const ADD_ARGS = [
 	"--when",
-	"1990-06-10T14:30",
-	"--offset",
-	"-240",
+	"1990-06-10T14:30-04:00",
 	"--at",
 	"27.95,-82.46",
 	"--birthplace",
@@ -45,7 +43,6 @@ type AddResult = {
 	name: string | null;
 	birthplace: string;
 	when: string;
-	offset: number;
 	lat: number;
 	lon: number;
 	jdUt: number;
@@ -73,8 +70,7 @@ describe("profileCommand", () => {
 		);
 		expect(result.name).toBe("erik");
 		expect(result.birthplace).toBe("Tampa, USA");
-		expect(result.when).toBe("1990-06-10T14:30");
-		expect(result.offset).toBe(-240);
+		expect(result.when).toBe("1990-06-10T14:30-04:00");
 		expect(result.lat).toBe(27.95);
 		expect(result.lon).toBe(-82.46);
 		expect(Number.isInteger(result.jdUt * 1e6)).toBe(true);
@@ -101,9 +97,7 @@ describe("profileCommand", () => {
 				[
 					"add",
 					"--when",
-					"1990-06-10T14:30",
-					"--offset",
-					"900",
+					"1990-06-10T14:30+15:00",
 					"--at",
 					"27.95,-82.46",
 					"--birthplace",
@@ -117,9 +111,7 @@ describe("profileCommand", () => {
 				[
 					"add",
 					"--when",
-					"1990-13-01T00:00",
-					"--offset",
-					"0",
+					"1990-13-01T00:00-05:00",
 					"--at",
 					"0,0",
 					"--birthplace",
@@ -134,8 +126,6 @@ describe("profileCommand", () => {
 		const when = await addSuggestions([
 			"--when",
 			"not-a-date",
-			"--offset",
-			"0",
 			"--at",
 			"0,0",
 			"--birthplace",
@@ -145,21 +135,17 @@ describe("profileCommand", () => {
 
 		const offset = await addSuggestions([
 			"--when",
-			"1990-06-10T14:30",
-			"--offset",
-			"abc",
+			"1990-06-10T14:30+05:99",
 			"--at",
 			"0,0",
 			"--birthplace",
 			"x",
 		]);
-		expect(offset.join(" ")).toContain("--offset");
+		expect(offset.join(" ")).toContain("--when offset");
 
 		const at = await addSuggestions([
 			"--when",
-			"1990-06-10T14:30",
-			"--offset",
-			"0",
+			"1990-06-10T14:30-05:00",
 			"--at",
 			"zz",
 			"--birthplace",
@@ -175,7 +161,7 @@ describe("profileCommand", () => {
 	test("add requires --birthplace", async () => {
 		await expect(
 			profileCommand(
-				["add", "--when", "1990-06-10T14:30", "--offset", "0", "--at", "0,0"],
+				["add", "--when", "1990-06-10T14:30-05:00", "--at", "0,0"],
 				ctx(),
 			),
 		).rejects.toThrow(/Missing required flag --birthplace/);
@@ -212,21 +198,21 @@ describe("profileCommand", () => {
 		});
 	});
 
-	test("rm removes a profile; removing an unknown one raises NOT_FOUND", async () => {
+	test("delete removes a profile; deleting an unknown one raises NOT_FOUND", async () => {
 		const added = (await profileCommand(
 			["add", ...ADD_ARGS],
 			ctx(),
 		)) as AddResult;
-		const removed = (await profileCommand(["rm", added.id], ctx())) as {
+		const removed = (await profileCommand(["delete", added.id], ctx())) as {
 			status: string;
 		};
-		expect(removed.status).toBe("removed");
+		expect(removed.status).toBe("deleted");
 
-		await expect(profileCommand(["rm", added.id], ctx())).rejects.toMatchObject(
-			{
-				code: "NOT_FOUND",
-			},
-		);
+		await expect(
+			profileCommand(["delete", added.id], ctx()),
+		).rejects.toMatchObject({
+			code: "NOT_FOUND",
+		});
 	});
 
 	test("a store operation without context fails loud (PROFILE_ERROR)", async () => {

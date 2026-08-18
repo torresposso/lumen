@@ -1,4 +1,4 @@
-import type { BirthClock, Profile } from "./types";
+import type { Profile } from "./types";
 
 /**
  * The TOON-shaped view of a profile — the shape lumen *publishes*. Stored
@@ -11,7 +11,6 @@ export type ToonProfile = {
 	name: string | null;
 	birthplace: string;
 	when: string;
-	offset: number;
 	lat: number;
 	lon: number;
 	jdUt: number;
@@ -34,23 +33,13 @@ function roundCoordinate(value: number): number {
 	return roundTo(value, COORD_DIGITS);
 }
 
-function pad2(value: number): string {
-	return String(value).padStart(2, "0");
-}
-
-/** `1988-03-14T08:30` — the local time as given (no seconds). */
-function formatWhen(local: BirthClock): string {
-	return `${local.year}-${pad2(local.month)}-${pad2(local.day)}T${pad2(local.hour)}:${pad2(local.minute)}`;
-}
-
 /** The published profile: same fields as the stored one, display-precision numbers. */
 export function toonProfile(profile: Profile): ToonProfile {
 	return {
 		id: profile.id,
 		name: profile.name,
 		birthplace: profile.birthplace,
-		when: formatWhen(profile.birth.local),
-		offset: profile.birth.offsetMinutes,
+		when: profile.birth.when,
 		lat: roundCoordinate(profile.birth.lat),
 		lon: roundCoordinate(profile.birth.lon),
 		jdUt: roundJdUt(profile.birth.jdUt),

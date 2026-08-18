@@ -3,8 +3,8 @@ import type { AxiError } from "axi-sdk-js";
 import { type ArgsSpec, parseArgs } from "../src/core/args";
 
 const ADD_SPEC: ArgsSpec = {
-	known: new Set(["--when", "--offset", "--at", "--birthplace", "--name"]),
-	required: new Set(["--when", "--offset", "--at", "--birthplace"]),
+	known: new Set(["--when", "--at", "--birthplace", "--name"]),
+	required: new Set(["--when", "--at", "--birthplace"]),
 	positionals: 0,
 };
 
@@ -28,10 +28,8 @@ describe("parseArgs", () => {
 		const parsed = parseArgs(
 			[
 				"--when",
-				"1990-06-10T14:30",
-				"--offset=-240",
-				"--at",
-				"0,0",
+				"1990-06-10T14:30-05:00",
+				"--at=0,0",
 				"--birthplace",
 				"Tampa, USA",
 			],
@@ -39,19 +37,19 @@ describe("parseArgs", () => {
 			"lumen profile add",
 		);
 		expect(parsed.help).toBe(false);
-		expect(parsed.flags.get("--when")).toBe("1990-06-10T14:30");
-		expect(parsed.flags.get("--offset")).toBe("-240");
+		expect(parsed.flags.get("--when")).toBe("1990-06-10T14:30-05:00");
 		expect(parsed.flags.get("--at")).toBe("0,0");
+		expect(parsed.flags.get("--birthplace")).toBe("Tampa, USA");
 		expect(parsed.positionals).toEqual([]);
 	});
 
-	test("accepts a value starting with a single dash (--offset -240)", () => {
+	test("accepts a value starting with a single dash (--at -9.15,-74.75)", () => {
 		const parsed = parseArgs(
-			["--offset", "-240"],
-			{ known: new Set(["--offset"]), positionals: 0 },
+			["--at", "-9.15,-74.75"],
+			{ known: new Set(["--at"]), positionals: 0 },
 			"lumen profile add",
 		);
-		expect(parsed.flags.get("--offset")).toBe("-240");
+		expect(parsed.flags.get("--at")).toBe("-9.15,-74.75");
 	});
 
 	test("rejects an unknown flag with VALIDATION_ERROR", () => {
@@ -74,7 +72,7 @@ describe("parseArgs", () => {
 		expect(() => parseArgs(["--when"], ADD_SPEC, "x")).toThrow(
 			/requires a value/,
 		);
-		expect(() => parseArgs(["--when", "--offset", "1"], ADD_SPEC, "x")).toThrow(
+		expect(() => parseArgs(["--when", "--at", "1"], ADD_SPEC, "x")).toThrow(
 			/requires a value/,
 		);
 	});
@@ -95,7 +93,7 @@ describe("parseArgs", () => {
 	test("reports missing required flags", () => {
 		expect(() =>
 			parseArgs(["--when", "a"], ADD_SPEC, "lumen profile add"),
-		).toThrow(/Missing required flag --offset/);
+		).toThrow(/Missing required flag/);
 	});
 
 	test("positionals: 0 rejects any positional", () => {

@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { AxiError } from "axi-sdk-js";
 import type { AddResult, NewProfile, Profile } from "../core/types";
 
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 /** `./lumen.db` in the cwd (per-project), overridable with `LUMEN_DB`. */
 export function defaultDbFile(): string {
@@ -15,12 +15,7 @@ interface ProfileRow {
 	id: string;
 	name: string | null;
 	birthplace: string;
-	local_year: number;
-	local_month: number;
-	local_day: number;
-	local_hour: number;
-	local_minute: number;
-	offset_minutes: number;
+	when: string;
 	lat: number;
 	lon: number;
 	jd_ut: number;
@@ -34,14 +29,7 @@ function toProfile(row: ProfileRow): Profile {
 		name: row.name,
 		birthplace: row.birthplace,
 		birth: {
-			local: {
-				year: row.local_year,
-				month: row.local_month,
-				day: row.local_day,
-				hour: row.local_hour,
-				minute: row.local_minute,
-			},
-			offsetMinutes: row.offset_minutes,
+			when: row.when,
 			lat: row.lat,
 			lon: row.lon,
 			jdUt: row.jd_ut,
@@ -51,7 +39,7 @@ function toProfile(row: ProfileRow): Profile {
 	};
 }
 
-function createSchema(db: Database): void {
+function ensureSchema(db: Database): void {
 	const { user_version } = db.prepare("PRAGMA user_version").get() as {
 		user_version: number;
 	};
@@ -63,23 +51,19 @@ function createSchema(db: Database): void {
 		);
 	}
 	if (user_version < 1) {
-		// Fresh install: v1 schema with the *(birthplace)* domain term.
+		// Fresh install: v3 schema — the moment is one ISO `when` value
+		// (SQL reserved word, hence double-quoted in every statement).
 		db.exec(`
 			CREATE TABLE IF NOT EXISTS profiles (
-				id             TEXT    PRIMARY KEY,
-				name           TEXT,
-				birthplace     TEXT    NOT NULL,
-				local_year     INTEGER NOT NULL,
-				local_month    INTEGER NOT NULL,
-				local_day      INTEGER NOT NULL,
-				local_hour     INTEGER NOT NULL,
-				local_minute   INTEGER NOT NULL,
-				offset_minutes INTEGER NOT NULL,
-				lat            REAL    NOT NULL,
-				lon            REAL    NOT NULL,
-				jd_ut          REAL    NOT NULL,
-				created_at     TEXT    NOT NULL,
-				updated_at     TEXT    NOT NULL
+				id          TEXT    PRIMARY KEY,
+				name        TEXT,
+				birthplace  TEXT    NOT NULL,
+				"when"      TEXT    NOT NULL,
+				lat         REAL    NOT NULL,
+				lon         REAL    NOT NULL,
+				jd_ut       REAL    NOT NULL,
+				created_at  TEXT    NOT NULL,
+				updated_at  TEXT    NOT NULL
 			)
 		`);
 		db.exec(`
@@ -92,6 +76,31 @@ function createSchema(db: Database): void {
 		// matching the CLI flag. Rename the stored column.
 		db.exec(`ALTER TABLE profiles RENAME COLUMN city TO birthplace`);
 	}
+	if (user_version >= 1 && user_version < SCHEMA_VERSION) {
+		// v2 → v3: the civil-time columns (local_year…local_minute) and
+		// offset_minutes collapse into one ISO `when` value, reconstructed
+		// from the stored split (zero offsets become "+00:00").
+		db.exec(`ALTER TABLE profiles ADD COLUMN "when" TEXT NOT NULL DEFAULT ''`);
+		db.exec(`
+			UPDATE profiles SET "when" = printf(
+				'%04d-%02d-%02dT%02d:%02d%s%02d:%02d',
+				local_year, local_month, local_day, local_hour, local_minute,
+				CASE WHEN offset_minutes < 0 THEN '-' ELSE '+' END,
+				abs(offset_minutes) / 60,
+				abs(offset_minutes) % 60
+			)
+		`);
+		for (const col of [
+			"local_year",
+			"local_month",
+			"local_day",
+			"local_hour",
+			"local_minute",
+			"offset_minutes",
+		]) {
+			db.exec(`ALTER TABLE profiles DROP COLUMN ${col}`);
+		}
+	}
 	if (user_version < SCHEMA_VERSION) {
 		db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
 	}
@@ -99,9 +108,9 @@ function createSchema(db: Database): void {
 
 /**
  * Per-project embedded SQLite store for birth profiles (`./lumen.db`, override
- * with `LUMEN_DB`). Created lazily on first write — `list`/`get`/`rm` against a
- * missing file respond empty without creating it. 0600 permissions, rollback
- * journal (no WAL), migrations via PRAGMA user_version.
+ * with `LUMEN_DB`). Created lazily on first write — `list`/`get`/`delete`
+ * against a missing file respond empty without creating it. 0600 permissions,
+ * rollback journal (no WAL), migrations via PRAGMA user_version.
  */
 export class ProfileStore {
 	private db: Database | null = null;
@@ -121,7 +130,7 @@ export class ProfileStore {
 				chmodSync(this.dbPath, 0o600);
 			}
 			this.db = new Database(this.dbPath);
-			createSchema(this.db);
+			ensureSchema(this.db);
 		} catch (err) {
 			if (err instanceof AxiError) throw err;
 			throw new AxiError(
@@ -170,22 +179,16 @@ export class ProfileStore {
 		const result = db
 			.prepare(
 				`INSERT INTO profiles (
-					id, name, birthplace, local_year, local_month, local_day,
-					local_hour, local_minute, offset_minutes, lat, lon, jd_ut,
+					id, name, birthplace, "when", lat, lon, jd_ut,
 					created_at, updated_at
-				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 				ON CONFLICT(jd_ut, lat, lon) DO NOTHING`,
 			)
 			.run(
 				profile.id,
 				profile.name,
 				profile.birthplace,
-				birth.local.year,
-				birth.local.month,
-				birth.local.day,
-				birth.local.hour,
-				birth.local.minute,
-				birth.offsetMinutes,
+				birth.when,
 				birth.lat,
 				birth.lon,
 				birth.jdUt,

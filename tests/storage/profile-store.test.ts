@@ -13,8 +13,7 @@ function newProfile(overrides: Partial<NewProfile> = {}): NewProfile {
 		name: "erik",
 		birthplace: "Tampa, USA",
 		birth: {
-			local: { year: 1990, month: 6, day: 10, hour: 14, minute: 30 },
-			offsetMinutes: -240,
+			when: "1990-06-10T14:30-04:00",
 			lat: 27.95,
 			lon: -82.46,
 			jdUt: 2444068.0625,
@@ -79,14 +78,7 @@ describe("ProfileStore", () => {
 		const stored = store.get(added.id);
 		expect(stored?.name).toBe("erik");
 		expect(stored?.birthplace).toBe("Tampa, USA");
-		expect(stored?.birth.local).toEqual({
-			year: 1990,
-			month: 6,
-			day: 10,
-			hour: 14,
-			minute: 30,
-		});
-		expect(stored?.birth.offsetMinutes).toBe(-240);
+		expect(stored?.birth.when).toBe("1990-06-10T14:30-04:00");
 		expect(stored?.birth.jdUt).toBe(2444068.0625);
 		expect(store.get("nope")).toBeUndefined();
 	});
@@ -161,8 +153,8 @@ describe("ProfileStore", () => {
 		reopened.close();
 	});
 
-	test("migrates a v1 db: renames the city column to birthplace keeping data", () => {
-		// Simulate a v1 database: `city` column + user_version 1.
+	test("migrates a v1 db: renames city→birthplace and collapses civil columns into `when`", () => {
+		// Simulate a v1 database: `city` column + civil-time split + user_version 1.
 		store.close();
 		rmSync(dir, { recursive: true, force: true });
 		mkdirSync(dir, { recursive: true });
@@ -196,22 +188,82 @@ describe("ProfileStore", () => {
 		const migrated = new ProfileStore(dbPath);
 		const stored = migrated.get("33333333-3333-4333-8333-333333333333");
 		expect(stored?.birthplace).toBe("Old City");
+		expect(stored?.birth.when).toBe("1990-06-10T14:30-04:00");
 		expect(migrated.list()).toHaveLength(1);
 		migrated.close();
 
-		// The schema was migrated: column renamed and version bumped to 2.
+		// The schema was migrated to v3: column renamed, civil columns merged.
 		const check = new Database(dbPath);
 		const columns = check
 			.prepare("PRAGMA table_info(profiles)")
 			.all() as Array<{
 			name: string;
 		}>;
-		expect(columns.map((c) => c.name)).not.toContain("city");
-		expect(columns.map((c) => c.name)).toContain("birthplace");
+		const names = columns.map((c) => c.name);
+		expect(names).toContain("birthplace");
+		expect(names).toContain("when");
+		expect(names).not.toContain("city");
+		expect(names).not.toContain("local_year");
+		expect(names).not.toContain("offset_minutes");
 		expect(
 			(check.prepare("PRAGMA user_version").get() as { user_version: number })
 				.user_version,
-		).toBe(2);
+		).toBe(3);
+		check.close();
+	});
+
+	test("migrates a v2 db: collapses civil columns into `when` without a city column", () => {
+		// Simulate a v2 database: `birthplace` already renamed, civil-time split.
+		store.close();
+		rmSync(dir, { recursive: true, force: true });
+		mkdirSync(dir, { recursive: true });
+		const v2 = new Database(dbPath);
+		v2.exec(`
+			CREATE TABLE profiles (
+				id             TEXT    PRIMARY KEY,
+				name           TEXT,
+				birthplace     TEXT    NOT NULL,
+				local_year     INTEGER NOT NULL,
+				local_month    INTEGER NOT NULL,
+				local_day      INTEGER NOT NULL,
+				local_hour     INTEGER NOT NULL,
+				local_minute   INTEGER NOT NULL,
+				offset_minutes INTEGER NOT NULL,
+				lat            REAL    NOT NULL,
+				lon            REAL    NOT NULL,
+				jd_ut          REAL    NOT NULL,
+				created_at     TEXT    NOT NULL,
+				updated_at     TEXT    NOT NULL
+			);
+			INSERT INTO profiles VALUES (
+				'44444444-4444-4444-8444-444444444444', 'tampa', 'Tampa, USA',
+				1990, 6, 10, 14, 30, 0, 27.95, -82.46, 2444068.0625,
+				'2025-01-01T00:00:00.000Z', '2025-01-01T00:00:00.000Z'
+			);
+		`);
+		v2.exec("PRAGMA user_version = 2");
+		v2.close();
+
+		const migrated = new ProfileStore(dbPath);
+		const stored = migrated.get("44444444-4444-4444-8444-444444444444");
+		expect(stored?.birthplace).toBe("Tampa, USA");
+		// Zero offset is reconstructed as +00:00 (the stored split cannot tell
+		// whether it was written as +00:00 or Z).
+		expect(stored?.birth.when).toBe("1990-06-10T14:30+00:00");
+		migrated.close();
+
+		const check = new Database(dbPath);
+		const names = (
+			check.prepare("PRAGMA table_info(profiles)").all() as Array<{
+				name: string;
+			}>
+		).map((c) => c.name);
+		expect(names).toContain("when");
+		expect(names).not.toContain("local_year");
+		expect(
+			(check.prepare("PRAGMA user_version").get() as { user_version: number })
+				.user_version,
+		).toBe(3);
 		check.close();
 	});
 

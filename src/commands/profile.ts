@@ -16,7 +16,7 @@ export interface CliContext {
  * empty-state reference. Never re-type it: interpolate this constant.
  */
 export const PROFILE_ADD_EXAMPLE =
-	'lumen profile add --when "1981-01-26T00:50" --offset 60 --at "9.15,-74.75" --birthplace "Magangué, Colombia"';
+	'lumen profile add --when "1981-01-26T00:50-05:00" --at "9.15,-74.75" --birthplace "Magangué, Colombia"';
 
 /** The empty-state hint pointing an agent at `add`, shared by `list` and `home`. */
 export const PROFILE_ADD_HINT = `Run \`${PROFILE_ADD_EXAMPLE}\``;
@@ -25,20 +25,20 @@ export const profileUsage = [
 	`${PROFILE_ADD_EXAMPLE} [--name slug]`,
 	"lumen profile list",
 	"lumen profile get <uuid>",
-	"lumen profile rm <uuid>",
+	"lumen profile delete <uuid>",
 	"",
 	"Manage local birth profiles.",
 ].join("\n");
 
 export const profileAddUsage = [
-	'lumen profile add --when "YYYY-MM-DDTHH:MM" --offset ±N --at "lat,lon" --birthplace "City, Country" [--name slug]',
+	'lumen profile add --when "YYYY-MM-DDTHH:MM±HH:MM" --at "lat,lon" --birthplace "City, Country" [--name slug]',
 	"",
-	"Register a birth profile. The agent resolves coordinates and UTC offset",
-	"from the place; lumen validates, computes the Julian Day and stores it.",
+	"Register a birth profile. The agent resolves coordinates and the UTC",
+	"offset, formats it into --when, and calls lumen; lumen validates, computes",
+	"the Julian Day and stores it.",
 	"",
 	"Flags:",
-	"  --when          Local date/time, no seconds (required)",
-	"  --offset        UTC offset in minutes, integer -840..840 (required)",
+	"  --when          ISO 8601 datetime with UTC offset, e.g. 1990-06-10T14:30-04:00 or ...Z (required)",
 	'  --at            "lat,lon" in decimal degrees (required)',
 	'  --birthplace    Human-readable place, e.g. "Madrid, Spain" (required)',
 	"  --name          Optional descriptive slug (no lookup)",
@@ -50,7 +50,7 @@ export const profileAddUsage = [
 export const profileListUsage = [
 	"lumen profile list",
 	"",
-	"Lists saved profiles: id, name, birthplace, local time, offset, coordinates and jdUt.",
+	"Lists saved profiles: id, name, birthplace, when, coordinates and jdUt.",
 ].join("\n");
 
 export const profileGetUsage = [
@@ -59,24 +59,18 @@ export const profileGetUsage = [
 	"Shows one profile by its UUID.",
 ].join("\n");
 
-export const profileRmUsage = [
-	"lumen profile rm <uuid>",
+export const profileDeleteUsage = [
+	"lumen profile delete <uuid>",
 	"",
-	"Removes one profile by its UUID. Removing an unknown profile raises NOT_FOUND.",
+	"Deletes one profile by its UUID. Deleting an unknown profile raises NOT_FOUND.",
 ].join("\n");
 
-const ADD_FLAGS = new Set([
-	"--when",
-	"--offset",
-	"--at",
-	"--birthplace",
-	"--name",
-]);
+const ADD_FLAGS = new Set(["--when", "--at", "--birthplace", "--name"]);
 
 /** `profile add` — flags required, no positionals. */
 const ADD_SPEC: ArgsSpec = {
 	known: ADD_FLAGS,
-	required: new Set(["--when", "--offset", "--at", "--birthplace"]),
+	required: new Set(["--when", "--at", "--birthplace"]),
 	positionals: 0,
 	rules: {
 		"--birthplace": { trim: true, nonEmpty: true },
@@ -87,7 +81,7 @@ const ADD_SPEC: ArgsSpec = {
 /** `profile list` — no flags, no positionals. */
 const LIST_SPEC: ArgsSpec = { known: new Set(), positionals: 0 };
 
-/** `profile get | rm` — no flags, exactly one positional id. */
+/** `profile get | delete` — no flags, exactly one positional id. */
 const ID_SPEC: ArgsSpec = {
 	known: new Set(),
 	positionals: 1,
@@ -120,8 +114,8 @@ function usageFor(sub: string): string {
 			return profileListUsage;
 		case "get":
 			return profileGetUsage;
-		case "rm":
-			return profileRmUsage;
+		case "delete":
+			return profileDeleteUsage;
 		default:
 			return profileUsage;
 	}
@@ -147,23 +141,24 @@ export const profileCommand: AxiCliCommand<CliContext> = async (
 			if (parsed.help) return usageFor(sub);
 
 			const when = parsed.flags.get("--when") as string;
-			const offset = parsed.flags.get("--offset") as string;
 			const at = parsed.flags.get("--at") as string;
 			const birthplace = parsed.flags.get("--birthplace") as string;
 			const name = parsed.flags.get("--name") ?? null;
 
-			const { local, offsetMinutes, lat, lon } = parseBirthInput({
-				when,
-				offset,
-				at,
-			});
-			const jdUt = meeusJdUt(local, offsetMinutes);
+			const {
+				when: canonicalWhen,
+				clock,
+				offsetMinutes,
+				lat,
+				lon,
+			} = parseBirthInput({ when, at });
+			const jdUt = meeusJdUt(clock, offsetMinutes);
 
 			const { profile, created } = requireProfileStore(context).add({
 				id: randomUUID(),
 				name,
 				birthplace,
-				birth: { local, offsetMinutes, lat, lon, jdUt },
+				birth: { when: canonicalWhen, lat, lon, jdUt },
 			});
 			return {
 				status: created ? "added" : "already exists",
@@ -193,8 +188,8 @@ export const profileCommand: AxiCliCommand<CliContext> = async (
 			return toonProfile(profile);
 		}
 
-		case "rm": {
-			const parsed = parseArgs(rest, ID_SPEC, "lumen profile rm");
+		case "delete": {
+			const parsed = parseArgs(rest, ID_SPEC, "lumen profile delete");
 			if (parsed.help) return usageFor(sub);
 			const id = parsed.positionals[0] as string;
 			const removed = requireProfileStore(context).remove(id);
@@ -203,7 +198,7 @@ export const profileCommand: AxiCliCommand<CliContext> = async (
 					"Run `lumen profile list` to see saved profiles",
 				]);
 			}
-			return { profile: id, status: "removed" };
+			return { profile: id, status: "deleted" };
 		}
 
 		default:

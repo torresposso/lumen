@@ -16,20 +16,24 @@ bun install
 ## Usage
 
 ```bash
-# Register a birth profile (local time + UTC offset + coordinates + birthplace)
-bun run bin/lumen.ts profile add --when "1981-01-26T00:50" --offset 60 --at "9.15,-74.75" --birthplace "Magangué, Colombia" --name silvia
+# Register a birth profile (local date/time + UTC offset in one ISO --when, plus coordinates)
+bun run bin/lumen.ts profile add --when "1981-01-26T00:50-05:00" --at "9.15,-74.75" --birthplace "Magangué, Colombia" --name silvia
 
-# List, view and remove
+# List, view and delete
 bun run bin/lumen.ts profile list
 bun run bin/lumen.ts profile get <uuid>
-bun run bin/lumen.ts profile rm <uuid>
+bun run bin/lumen.ts profile delete <uuid>
 ```
 
 - `add` **deduplicates on the birth**: the same jdUt + coordinates returns the
   existing profile.
-- IDs are **auto-generated UUIDs**; `get`/`rm` accept a UUID only.
+- `--when` is an **ISO 8601 datetime with an explicit UTC offset**
+  (`YYYY-MM-DDTHH:MM±HH:MM` or `…Z`) — the agent resolves the offset from the
+  place and formats it into `--when`; there is no separate `--offset` flag.
+- IDs are **auto-generated UUIDs**; `get`/`delete` accept a UUID only.
 - Messages and errors are in English; output is **TOON** (Token-Oriented Object
-  Notation) with the lumen precision policy (jdUt at 6 decimals, lat/lon at 4).
+  Notation) with the lumen precision policy (jdUt at 6 decimals, lat/lon at 4,
+  `when` echoed as stored).
 
 ## Persistence
 

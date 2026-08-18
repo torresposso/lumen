@@ -17,34 +17,36 @@ Profile {
   name?: string       // optional, descriptive, no uniqueness or lookup
   birthplace: string  // required, human-readable (e.g. "Madrid, Spain"); CLI flag --birthplace
   birth: {
-    local: { year, month, day, hour, minute }   // local time, no seconds
-    offsetMinutes: number                       // integer, −840..+840
-    lat: number                                 // −90..90
-    lon: number                                 // −180..180
-    jdUt: number                                // derived: Meeus ch. 7
+    when: string      // ISO 8601 with UTC offset, e.g. "1990-06-10T14:30-04:00" or "…Z" (the --when value)
+    lat: number       // −90..90
+    lon: number       // −180..180
+    jdUt: number      // derived: Meeus ch. 7
   }
 }
 ```
 
-No `status` / `zone` / `dst` (no timezone resolution).
+No `status` / `zone` / `dst` (no timezone resolution). The civil time and the
+UTC offset are not stored separately — they arrive and are stored as the single
+`when` ISO value.
 
 ## 3. CLI contract
 
 ```
-lumen profile add --when "YYYY-MM-DDTHH:MM" --offset ±N --at "lat,lon" --birthplace "<human-readable place>" [--name <slug>]
+lumen profile add --when "YYYY-MM-DDTHH:MM±HH:MM" --at "lat,lon" --birthplace "<human-readable place>" [--name <slug>]
 lumen profile list
 lumen profile get <uuid>
-lumen profile rm  <uuid>
+lumen profile delete <uuid>
 ```
 
 Rules:
 
 - `add` **deduplicates on the birth**: if a profile with the same `jdUt + lat + lon` already exists, it is returned (the `name`/`birthplace` of the second `add` are discarded — the birth is the identity).
-- `get`/`rm` by **UUID only** (no lookup by name or birthplace).
-- Validation (the violated rule is cited in the error): offset −840..+840; year 1800–2100; month 1–12; day valid by pure arithmetic (Gregorian leap rule); hour 0–23; minute 0–59; lat −90..90; lon −180..180.
-- AXI errors: `VALIDATION_ERROR` (input), `NOT_FOUND` (`get`/`rm` of an unknown UUID), `PROFILE_ERROR` (store failure, e.g. unwritable cwd).
+- `--when` is an **ISO 8601 datetime with an explicit UTC offset**: `YYYY-MM-DDTHH:MM±HH:MM` or `…Z` (offset zero). No separate `--offset` flag — the offset rides inside `--when`, resolved by the agent, never by lumen.
+- `get`/`delete` by **UUID only** (no lookup by name or birthplace).
+- Validation (the violated rule is cited in the error): offset −840..+840 minutes (`±HH:MM`); year 1800–2100; month 1–12; day valid by pure arithmetic (Gregorian leap rule); hour 0–23; minute 0–59; lat −90..90; lon −180..180.
+- AXI errors: `VALIDATION_ERROR` (input), `NOT_FOUND` (`get`/`delete` of an unknown UUID), `PROFILE_ERROR` (store failure, e.g. unwritable cwd).
 - Messages in **English**.
-- **TOON-only** output (no `--json`): centralized policy in `toon.ts` — `jdUt` at 6 decimals, `lat`/`lon` at 4, `offset` as an integer; display only (the DB keeps full precision). The agent parses the text.
+- **TOON-only** output (no `--json`): centralized policy in `toon.ts` — `jdUt` at 6 decimals, `lat`/`lon` at 4, `when` echoed as stored; display only (the DB keeps full precision). The agent parses the text.
 
 ## 4. Julian Day computation
 
@@ -53,30 +55,30 @@ Formula **Meeus, *Astronomical Algorithms* ch. 7** in pure arithmetic (no depend
 ## 5. Persistence
 
 - File: `./lumen.db` in the cwd (per-project); `LUMEN_DB` env override (full file path).
-- **Lazy creation**: only `add` creates the file (and its directory); `list`/`get`/`rm` against a missing DB respond empty/not-found without creating files.
-- **0600** permissions, **rollback** journal (no WAL), migrations via **PRAGMA user_version** (starts at 1).
+- **Lazy creation**: only `add` creates the file (and its directory); `list`/`get`/`delete` against a missing DB respond empty/not-found without creating files.
+- **0600** permissions, **rollback** journal (no WAL), migrations via **PRAGMA user_version** (starts at 1; current schema v3).
 
 ```sql
 CREATE TABLE IF NOT EXISTS profiles (
-  id             TEXT    PRIMARY KEY,
-  name           TEXT,
-  birthplace     TEXT    NOT NULL,
-  local_year     INTEGER NOT NULL,
-  local_month    INTEGER NOT NULL,
-  local_day      INTEGER NOT NULL,
-  local_hour     INTEGER NOT NULL,
-  local_minute   INTEGER NOT NULL,
-  offset_minutes INTEGER NOT NULL,
-  lat            REAL    NOT NULL,
-  lon            REAL    NOT NULL,
-  jd_ut          REAL    NOT NULL,
-  created_at     TEXT    NOT NULL,
-  updated_at     TEXT    NOT NULL
+  id          TEXT    PRIMARY KEY,
+  name        TEXT,
+  birthplace  TEXT    NOT NULL,
+  `when`      TEXT    NOT NULL,   -- ISO 8601 with UTC offset
+  lat         REAL    NOT NULL,
+  lon         REAL    NOT NULL,
+  jd_ut       REAL    NOT NULL,
+  created_at  TEXT    NOT NULL,
+  updated_at  TEXT    NOT NULL
 );
 
 -- Birth dedupe: one profile per (jdUt, lat, lon)
 CREATE UNIQUE INDEX idx_profiles_birth ON profiles (jd_ut, lat, lon);
 ```
+
+v2→v3 migration (2026-08-18): the civil-time columns (`local_year`…`local_minute`)
+and `offset_minutes` collapse into the single `when` ISO column, reconstructed
+from the stored values. (`WHEN` is a SQL reserved word — quoted `` `when` `` in
+every statement.)
 
 Notes: unwritable cwd → AxiError `PROFILE_ERROR` with a suggestion; add `lumen.db` to `.gitignore`.
 
@@ -95,20 +97,22 @@ Removed: `caelus`, `caelus-birth`, `zod`, `luxon` (the last one only transitive 
 - `tests/args.test.ts` — the CLI-args contract: flag forms, duplicates, missing
   values, required flags, positional counts, value rules, `--help`, accumulated
   errors.
+- `tests/birth-input.test.ts` — `--when` ISO formats (`±HH:MM`, `Z`, invalid
+  forms, missing offset) + semantic ranges; `--at` coordinates; accumulation.
 - `tests/jd.test.ts` — the 14 reference vectors (research 02); boundary validations (Feb 30, hour 24, offset ±841, year 1799/2101, lat ±90.1, lon ±180.1); offset round-trip.
-- `tests/profile-store.test.ts` — CRUD; dedupe (ON CONFLICT returns the existing profile); lazy creation (`list` does not create the file, `add` does); 0600 permissions; `LUMEN_DB` override; `user_version` migration.
-- `tests/cli.test.ts` — input contract (each flag + combinations); AXI errors; TOON output (rounding applied); `add` prints the UUID; dedupe visible from the CLI.
+- `tests/profile-store.test.ts` — CRUD; dedupe (ON CONFLICT returns the existing profile); lazy creation (`list` does not create the file, `add` does); 0600 permissions; `LUMEN_DB` override; `user_version` migration (v1→v3, v2→v3).
+- `tests/cli.test.ts` — input contract (each flag + combinations); AXI errors; TOON output (rounding applied, `when` echoed); `add` prints the UUID; dedupe visible from the CLI.
 
 ## 8. Suggested source layout
 
 ```
 bin/lumen.ts                     # entry (executable)
 src/cli.ts                       # runAxiCli + command registration
-src/commands/profile.ts          # add / list / get / rm
+src/commands/profile.ts          # add / list / get / delete
 src/core/args.ts                 # CLI-args contract (flag + positional syntax)
-src/core/birth-input.ts          # birth-input contract (parse + validate, one error style)
+src/core/birth-input.ts          # birth-input contract (parse ISO --when + --at, one error style)
 src/core/jd.ts                   # Meeus arithmetic only (no validation)
-src/core/types.ts                # Profile, BirthInput, etc.
+src/core/types.ts                # Profile, BirthInput, BirthClock, etc.
 src/core/toon.ts                 # display policy (shape + precisions)
 src/version.ts                   # package version (fast path)
 src/storage/profile-store.ts     # ProfileStore v2 (bun:sqlite)
