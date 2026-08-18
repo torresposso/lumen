@@ -61,7 +61,15 @@ export const profileRmUsage = [
 
 const ADD_FLAGS = new Set(["--when", "--offset", "--at", "--city", "--name"]);
 
-function store(context: CliContext | undefined): DefaultProfileStore {
+/**
+ * The one seam the command module reaches through to persistence. The command
+ * never creates a store — the CLI wiring provides it through context — so a
+ * store operation without context fails loud instead of default-constructing
+ * (which would silently create `./lumen.db` in the cwd).
+ */
+export function requireProfileStore(
+	context: CliContext | undefined,
+): DefaultProfileStore {
 	if (context === undefined) {
 		throw new AxiError("No profile store in context", "PROFILE_ERROR", [
 			"The CLI always provides one — this is a lumen bug",
@@ -213,7 +221,7 @@ export const profileCommand: AxiCliCommand<CliContext> = async (
 			});
 			const jdUt = meeusJdUt(local, offsetMinutes);
 
-			const { profile, created } = store(context).add({
+			const { profile, created } = requireProfileStore(context).add({
 				id: randomUUID(),
 				name,
 				city,
@@ -227,7 +235,7 @@ export const profileCommand: AxiCliCommand<CliContext> = async (
 
 		case "list": {
 			assertNoFlags(rest, "lumen profile list");
-			const profiles = store(context).list().map(displayProfile);
+			const profiles = requireProfileStore(context).list().map(displayProfile);
 			return profiles.length > 0
 				? { profiles }
 				: { profiles: [], help: [`Run \`${PROFILE_ADD_EXAMPLE}\``] };
@@ -236,7 +244,7 @@ export const profileCommand: AxiCliCommand<CliContext> = async (
 		case "get": {
 			assertNoFlags(rest, "lumen profile get");
 			const id = singleId(rest, "lumen profile get");
-			const profile = store(context).get(id);
+			const profile = requireProfileStore(context).get(id);
 			if (profile === undefined) {
 				throw new AxiError(`Unknown profile: ${id}`, "NOT_FOUND", [
 					"Run `lumen profile list` to see saved profiles",
@@ -248,7 +256,7 @@ export const profileCommand: AxiCliCommand<CliContext> = async (
 		case "rm": {
 			assertNoFlags(rest, "lumen profile rm");
 			const id = singleId(rest, "lumen profile rm");
-			const removed = store(context).remove(id);
+			const removed = requireProfileStore(context).remove(id);
 			if (!removed) {
 				throw new AxiError(`Unknown profile: ${id}`, "NOT_FOUND", [
 					"Run `lumen profile list` to see saved profiles",

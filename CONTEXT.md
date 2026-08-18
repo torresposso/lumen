@@ -16,9 +16,12 @@ gone with the pivot; do not expect it here.
   seconds), UTC **offset** in minutes, coordinates (`lat`/`lon`), and the derived
   **jdUt**. The birth is the profile's identity: `add` deduplicates on
   `jdUt + lat + lon`, discarding the second `add`'s name/city.
-- **BirthInput** — the contract `profile add` receives: `--when` (local time,
-  `YYYY-MM-DDTHH:MM`), `--offset` (integer UTC offset minutes, −840..+840),
-  `--at` (`lat,lon` decimal degrees).
+- **BirthInput** — the parsed, validated birth input: the local wall-clock
+  `BirthClock`, integer `offsetMinutes` (−840..+840) and decimal `lat`/`lon`.
+  Produced by the birth-input contract from `RawBirthInput`.
+- **RawBirthInput** — the raw flag strings `profile add` receives: `--when`
+  (local time, `YYYY-MM-DDTHH:MM`), `--offset` (integer UTC offset minutes),
+  `--at` (`lat,lon` decimal degrees). Parsed and validated into a `BirthInput`.
 - **Birth-input contract** — the module `src/core/birth-input.ts` that owns the
   parsing + semantic validation of those raw flags as one seam: a single
   `VALIDATION_ERROR` citing every checkable violated rule in its suggestions.

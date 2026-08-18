@@ -1,8 +1,9 @@
-import { AxiError, runAxiCli } from "axi-sdk-js";
+import { runAxiCli } from "axi-sdk-js";
 import {
 	type CliContext,
 	PROFILE_ADD_EXAMPLE,
 	profileCommand,
+	requireProfileStore,
 } from "./commands/profile";
 import { ProfileStore } from "./storage/profile-store";
 import { VERSION } from "./version";
@@ -28,12 +29,7 @@ export async function main(): Promise<void> {
 			profile: profileCommand,
 		},
 		home: async (_args, context) => {
-			if (context === undefined) {
-				throw new AxiError("No profile store in context", "PROFILE_ERROR", [
-					"The CLI always provides one — this is a lumen bug",
-				]);
-			}
-			const profiles = context.profiles.list();
+			const profiles = requireProfileStore(context).list();
 			return {
 				profiles: profiles.length,
 				help: [
