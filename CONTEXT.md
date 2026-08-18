@@ -34,7 +34,15 @@ pushed.
 - **Birth-input contract** — the module `src/core/birth-input.ts` that owns the
   parsing + semantic validation of those raw flags as one seam: a single
   `VALIDATION_ERROR` citing every checkable violated rule in its suggestions.
-  Flag *presence* is the command's concern, not the contract's.
+  Flag presence and syntax belong to the **args contract**; value semantics
+  belong here.
+- **Args contract** — the module `src/core/args.ts` that owns the flag and
+  positional syntax of every command's raw arguments as one seam: known and
+  required flags, `--flag=value` / `--flag value` forms, duplicates, missing
+  values, `--help` and positional counts, accumulating every violation into a
+  single `VALIDATION_ERROR` citing each rule. Syntax and presence live here;
+  value semantics live in the contract that consumes the parsed flags (the
+  **birth-input contract**).
 - **Julian Day (jdUt)** — the UT instant of a birth, derived in
   `src/core/jd.ts` by Meeus ch. 7 pure arithmetic. lumen's only derivation;
   it never consults timezone databases or calendars.

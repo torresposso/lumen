@@ -92,6 +92,8 @@ Removed: `caelus`, `caelus-birth`, `zod`, `luxon` (the last one only transitive 
 
 ## 7. Tests (`bun test`)
 
+- `tests/args.test.ts` — the CLI-args contract: flag forms, duplicates, missing
+  values, required flags, positional counts, `--help`, accumulated errors.
 - `tests/jd.test.ts` — the 14 reference vectors (research 02); boundary validations (Feb 30, hour 24, offset ±841, year 1799/2101, lat ±90.1, lon ±180.1); offset round-trip.
 - `tests/profile-store.test.ts` — CRUD; dedupe (ON CONFLICT returns the existing profile); lazy creation (`list` does not create the file, `add` does); 0600 permissions; `LUMEN_DB` override; `user_version` migration.
 - `tests/cli.test.ts` — input contract (each flag + combinations); AXI errors; TOON output (rounding applied); `add` prints the UUID; dedupe visible from the CLI.
@@ -102,12 +104,14 @@ Removed: `caelus`, `caelus-birth`, `zod`, `luxon` (the last one only transitive 
 bin/lumen.ts                     # entry (executable)
 src/cli.ts                       # runAxiCli + command registration
 src/commands/profile.ts          # add / list / get / rm
+src/core/args.ts                 # CLI-args contract (flag + positional syntax)
 src/core/birth-input.ts          # birth-input contract (parse + validate, one error style)
 src/core/jd.ts                   # Meeus arithmetic only (no validation)
 src/core/types.ts                # Profile, BirthInput, etc.
 src/core/toon.ts                 # format policy (precisions)
 src/version.ts                   # package version (fast path)
 src/storage/profile-store.ts     # ProfileStore v2 (bun:sqlite)
+tests/args.test.ts               # CLI-args contract (syntax detail)
 tests/birth-input.test.ts        # contract detail (format + semantic ranges)
 tests/jd.test.ts
 tests/profile-store.test.ts

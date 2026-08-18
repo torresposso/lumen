@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { AxiCliCommand } from "axi-sdk-js";
 import { AxiError } from "axi-sdk-js";
+import { type ArgsSpec, parseArgs } from "../core/args";
 import { parseBirthInput } from "../core/birth-input";
 import { meeusJdUt } from "../core/jd";
 import { formatWhen, roundCoordinate, roundJdUt } from "../core/toon";
@@ -67,6 +68,24 @@ const ADD_FLAGS = new Set([
 	"--name",
 ]);
 
+/** `profile add` — flags required, no positionals. */
+const ADD_SPEC: ArgsSpec = {
+	known: ADD_FLAGS,
+	required: new Set(["--when", "--offset", "--at", "--birthplace"]),
+	positionals: 0,
+};
+
+/** `profile list` — no flags, no positionals. */
+const LIST_SPEC: ArgsSpec = { known: new Set(), positionals: 0 };
+
+/** `profile get | rm` — no flags, exactly one positional id. */
+const ID_SPEC: ArgsSpec = {
+	known: new Set(),
+	positionals: 1,
+	positionalName: "profile id",
+	positionalHint: "Use the UUID printed by `lumen profile add`",
+};
+
 /**
  * The one seam the command module reaches through to persistence. The command
  * never creates a store — the CLI wiring provides it through context — so a
@@ -105,82 +124,6 @@ function validationError(command: string, message: string): AxiError {
 	]);
 }
 
-function parseFlags(
-	args: string[],
-	known: Set<string>,
-	command: string,
-): Map<string, string> {
-	const values = new Map<string, string>();
-	for (let i = 0; i < args.length; i++) {
-		const arg = args[i];
-		if (arg === undefined) continue;
-		if (arg === "--help") {
-			values.set("--help", "");
-			continue;
-		}
-		if (!arg.startsWith("--")) {
-			throw validationError(command, `Unexpected argument: ${arg}`);
-		}
-		const eq = arg.indexOf("=");
-		const flag = eq === -1 ? arg : arg.slice(0, eq);
-		if (!known.has(flag)) {
-			throw validationError(command, `Unknown flag: ${flag}`);
-		}
-		let value: string;
-		if (eq !== -1) {
-			value = arg.slice(eq + 1);
-		} else {
-			const next = args[i + 1];
-			if (next === undefined || next.startsWith("--")) {
-				throw validationError(command, `Flag ${flag} requires a value`);
-			}
-			value = next;
-			i++;
-		}
-		if (values.has(flag)) {
-			throw validationError(command, `Flag ${flag} provided more than once`);
-		}
-		values.set(flag, value);
-	}
-	return values;
-}
-
-function requiredFlag(
-	flags: Map<string, string>,
-	flag: string,
-	command: string,
-): string {
-	const value = flags.get(flag);
-	if (value === undefined) {
-		throw validationError(
-			command,
-			`Missing required flag ${flag} (value) for ${command}`,
-		);
-	}
-	return value;
-}
-
-function assertNoFlags(args: string[], command: string): void {
-	for (const arg of args) {
-		if (arg.startsWith("-")) {
-			throw validationError(command, `${command} takes no flags`);
-		}
-	}
-}
-
-function singleId(args: string[], command: string): string {
-	const [id, ...extra] = args;
-	if (extra.length > 0 && extra[0] !== undefined) {
-		throw validationError(command, `Unexpected argument: ${extra[0]}`);
-	}
-	if (id === undefined || id.startsWith("-")) {
-		throw new AxiError(`${command} requires a profile id`, "VALIDATION_ERROR", [
-			"Use the UUID printed by `lumen profile add`",
-		]);
-	}
-	return id;
-}
-
 /** The TOON-shaped view of a profile: same fields, display-precision numbers. */
 function displayProfile(profile: Profile) {
 	return {
@@ -202,21 +145,16 @@ export const profileCommand: AxiCliCommand<CliContext> = async (
 	const [sub, ...rest] = args;
 
 	if (sub === undefined || sub === "--help") return profileUsage;
-	if (rest.includes("--help")) return usageFor(sub);
 
 	switch (sub) {
 		case "add": {
-			const flags = parseFlags(rest, ADD_FLAGS, "lumen profile add");
-			if (flags.has("--help")) return profileAddUsage;
+			const parsed = parseArgs(rest, ADD_SPEC, "lumen profile add");
+			if (parsed.help) return usageFor(sub);
 
-			const when = requiredFlag(flags, "--when", "lumen profile add");
-			const offset = requiredFlag(flags, "--offset", "lumen profile add");
-			const at = requiredFlag(flags, "--at", "lumen profile add");
-			const birthplace = requiredFlag(
-				flags,
-				"--birthplace",
-				"lumen profile add",
-			).trim();
+			const when = parsed.flags.get("--when") as string;
+			const offset = parsed.flags.get("--offset") as string;
+			const at = parsed.flags.get("--at") as string;
+			const birthplace = (parsed.flags.get("--birthplace") as string).trim();
 			if (birthplace === "") {
 				throw new AxiError(
 					"--birthplace must not be empty",
@@ -224,7 +162,7 @@ export const profileCommand: AxiCliCommand<CliContext> = async (
 					['Example: --birthplace "Madrid, Spain"'],
 				);
 			}
-			const name = flags.get("--name")?.trim() || null;
+			const name = parsed.flags.get("--name")?.trim() || null;
 
 			const { local, offsetMinutes, lat, lon } = parseBirthInput({
 				when,
@@ -246,7 +184,8 @@ export const profileCommand: AxiCliCommand<CliContext> = async (
 		}
 
 		case "list": {
-			assertNoFlags(rest, "lumen profile list");
+			const parsed = parseArgs(rest, LIST_SPEC, "lumen profile list");
+			if (parsed.help) return usageFor(sub);
 			const profiles = requireProfileStore(context).list().map(displayProfile);
 			return profiles.length > 0
 				? { profiles }
@@ -254,8 +193,9 @@ export const profileCommand: AxiCliCommand<CliContext> = async (
 		}
 
 		case "get": {
-			assertNoFlags(rest, "lumen profile get");
-			const id = singleId(rest, "lumen profile get");
+			const parsed = parseArgs(rest, ID_SPEC, "lumen profile get");
+			if (parsed.help) return usageFor(sub);
+			const id = parsed.positionals[0] as string;
 			const profile = requireProfileStore(context).get(id);
 			if (profile === undefined) {
 				throw new AxiError(`Unknown profile: ${id}`, "NOT_FOUND", [
@@ -266,8 +206,9 @@ export const profileCommand: AxiCliCommand<CliContext> = async (
 		}
 
 		case "rm": {
-			assertNoFlags(rest, "lumen profile rm");
-			const id = singleId(rest, "lumen profile rm");
+			const parsed = parseArgs(rest, ID_SPEC, "lumen profile rm");
+			if (parsed.help) return usageFor(sub);
+			const id = parsed.positionals[0] as string;
 			const removed = requireProfileStore(context).remove(id);
 			if (!removed) {
 				throw new AxiError(`Unknown profile: ${id}`, "NOT_FOUND", [
