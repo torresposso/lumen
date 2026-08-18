@@ -20,10 +20,12 @@ function invalidCode(error: unknown): string {
 }
 
 const ADD_ARGS = [
-	"--when",
+	"--birthdatetime",
 	"1990-06-10T14:30-04:00",
-	"--at",
-	"27.95,-82.46",
+	"--birthlat",
+	"27.95",
+	"--birthlon",
+	"-82.46",
 	"--birthplace",
 	"Tampa, USA",
 	"--name",
@@ -41,11 +43,11 @@ type AddResult = {
 	status: string;
 	id: string;
 	name: string | null;
-	birthplace: string;
-	when: string;
-	lat: number;
-	lon: number;
-	jdUt: number;
+	birthPlace: string;
+	birthDateTime: string;
+	birthLat: number;
+	birthLon: number;
+	birthJdUt: number;
 };
 
 async function addSuggestions(args: string[]): Promise<string[]> {
@@ -69,11 +71,11 @@ describe("profileCommand", () => {
 			/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
 		);
 		expect(result.name).toBe("erik");
-		expect(result.birthplace).toBe("Tampa, USA");
-		expect(result.when).toBe("1990-06-10T14:30-04:00");
-		expect(result.lat).toBe(27.95);
-		expect(result.lon).toBe(-82.46);
-		expect(Number.isInteger(result.jdUt * 1e6)).toBe(true);
+		expect(result.birthPlace).toBe("Tampa, USA");
+		expect(result.birthDateTime).toBe("1990-06-10T14:30-04:00");
+		expect(result.birthLat).toBe(27.95);
+		expect(result.birthLon).toBe(-82.46);
+		expect(Number.isInteger(result.birthJdUt * 1e6)).toBe(true);
 	});
 
 	test("add is idempotent on the birth: second add returns the existing profile", async () => {
@@ -96,10 +98,12 @@ describe("profileCommand", () => {
 			profileCommand(
 				[
 					"add",
-					"--when",
+					"--birthdatetime",
 					"1990-06-10T14:30+15:00",
-					"--at",
-					"27.95,-82.46",
+					"--birthlat",
+					"27.95",
+					"--birthlon",
+					"-82.46",
 					"--birthplace",
 					"Tampa, USA",
 				],
@@ -110,10 +114,12 @@ describe("profileCommand", () => {
 			profileCommand(
 				[
 					"add",
-					"--when",
+					"--birthdatetime",
 					"1990-13-01T00:00-05:00",
-					"--at",
-					"0,0",
+					"--birthlat",
+					"0",
+					"--birthlon",
+					"0",
 					"--birthplace",
 					"x",
 				],
@@ -123,35 +129,53 @@ describe("profileCommand", () => {
 	});
 
 	test("add rejects malformed flags with VALIDATION_ERROR citing the rule", async () => {
-		const when = await addSuggestions([
-			"--when",
+		const dateTime = await addSuggestions([
+			"--birthdatetime",
 			"not-a-date",
-			"--at",
-			"0,0",
+			"--birthlat",
+			"0",
+			"--birthlon",
+			"0",
 			"--birthplace",
 			"x",
 		]);
-		expect(when.join(" ")).toContain("--when");
+		expect(dateTime.join(" ")).toContain("--birthdatetime");
 
 		const offset = await addSuggestions([
-			"--when",
+			"--birthdatetime",
 			"1990-06-10T14:30+05:99",
-			"--at",
-			"0,0",
+			"--birthlat",
+			"0",
+			"--birthlon",
+			"0",
 			"--birthplace",
 			"x",
 		]);
-		expect(offset.join(" ")).toContain("--when offset");
+		expect(offset.join(" ")).toContain("--birthdatetime offset");
 
-		const at = await addSuggestions([
-			"--when",
+		const lat = await addSuggestions([
+			"--birthdatetime",
 			"1990-06-10T14:30-05:00",
-			"--at",
+			"--birthlat",
+			"zz",
+			"--birthlon",
+			"0",
+			"--birthplace",
+			"x",
+		]);
+		expect(lat.join(" ")).toContain("--birthlat");
+
+		const lon = await addSuggestions([
+			"--birthdatetime",
+			"1990-06-10T14:30-05:00",
+			"--birthlat",
+			"0",
+			"--birthlon",
 			"zz",
 			"--birthplace",
 			"x",
 		]);
-		expect(at.join(" ")).toContain("--at");
+		expect(lon.join(" ")).toContain("--birthlon");
 
 		await expect(
 			profileCommand(["add", ...ADD_ARGS, "--bogus", "1"], ctx()),
@@ -161,7 +185,15 @@ describe("profileCommand", () => {
 	test("add requires --birthplace", async () => {
 		await expect(
 			profileCommand(
-				["add", "--when", "1990-06-10T14:30-05:00", "--at", "0,0"],
+				[
+					"add",
+					"--birthdatetime",
+					"1990-06-10T14:30-05:00",
+					"--birthlat",
+					"0",
+					"--birthlon",
+					"0",
+				],
 				ctx(),
 			),
 		).rejects.toThrow(/Missing required flag --birthplace/);
@@ -231,9 +263,11 @@ describe("profileCommand", () => {
 			undefined,
 		)) as string;
 		expect(addHelp).toContain("--birthplace");
+		expect(addHelp).toContain("--birthdatetime");
 		expect(addHelp).not.toContain("lumen profile get");
 		expect(listHelp).toContain("lumen profile list");
 		expect(listHelp).not.toContain("--offset");
+		expect(listHelp).not.toContain("--when");
 	});
 
 	test("rejects unknown subcommands", async () => {

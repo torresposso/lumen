@@ -1,5 +1,5 @@
-/** The broken-down wall-clock reading, used transiently to derive the Julian Day. */
-export interface BirthClock {
+/** The broken-down local wall-clock reading, used transiently to derive the Julian Day (never stored). */
+export interface LocalTime {
 	year: number;
 	month: number;
 	day: number;
@@ -9,28 +9,31 @@ export interface BirthClock {
 
 /** What `profile add` receives, parsed by the birth-input contract. */
 export interface BirthInput {
-	/** Canonical ISO 8601 datetime with UTC offset, e.g. `1990-06-10T14:30-04:00`. The stored `when`. */
-	when: string;
-	/** Transient civil wall-clock (not stored) — the Meeus input. */
-	clock: BirthClock;
-	/** Transient UTC offset in minutes (not stored) — the Meeus input. */
+	/** Canonical ISO 8601 datetime with UTC offset, e.g. `1990-06-10T14:30-04:00`. The stored `birthDateTime`. */
+	birthDateTime: string;
+	/** Transient local wall-clock (not stored) — the Julian-Day input. */
+	local: LocalTime;
+	/** Transient UTC offset in minutes (not stored) — the Julian-Day input. */
 	offsetMinutes: number;
-	lat: number;
-	lon: number;
+	birthLat: number;
+	birthLon: number;
 }
 
-/** A stored birth profile. The birth is the identity unit (dedupe on jdUt + lat + lon). */
+/**
+ * A stored birth profile. The birth is the identity unit: `add` deduplicates
+ * on `birthJdUt + birthLat + birthLon`.
+ */
 export interface Profile {
 	id: string;
 	name: string | null;
-	birthplace: string;
-	birth: {
-		/** The birth moment as ISO 8601 with UTC offset — the single stored time value. */
-		when: string;
-		lat: number;
-		lon: number;
-		jdUt: number;
-	};
+	/** Human-readable place (e.g. `Magangué, Colombia`) — display only, never identity. */
+	birthPlace: string;
+	/** The birth moment as ISO 8601 with UTC offset — the single stored time value. */
+	birthDateTime: string;
+	birthLat: number;
+	birthLon: number;
+	/** Derived Julian Day (UT) via `julianDayUt` (Meeus ch. 7, pure arithmetic). */
+	birthJdUt: number;
 	createdAt: string;
 	updatedAt: string;
 }
@@ -39,6 +42,6 @@ export type NewProfile = Omit<Profile, "createdAt" | "updatedAt">;
 
 export interface AddResult {
 	profile: Profile;
-	/** false when a profile with the same birth (jdUt + lat + lon) already existed. */
+	/** false when a profile with the same birth (birthJdUt + birthLat + birthLon) already existed. */
 	created: boolean;
 }

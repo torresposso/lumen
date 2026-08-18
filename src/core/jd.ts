@@ -1,4 +1,4 @@
-import type { BirthClock } from "./types";
+import type { LocalTime } from "./types";
 
 /**
  * Julian Day (UT) from local wall-clock time and a fixed UTC offset — Meeus,
@@ -10,7 +10,7 @@ import type { BirthClock } from "./types";
  * The birth-input contract (parse + validation) lives in `core/birth-input.ts`;
  * this module owns only the arithmetic.
  */
-export function meeusJdUt(local: BirthClock, offsetMinutes: number): number {
+export function julianDayUt(local: LocalTime, offsetMinutes: number): number {
 	const utDay =
 		local.day + (local.hour + local.minute / 60 - offsetMinutes / 60) / 24;
 	const y = local.month <= 2 ? local.year - 1 : local.year;

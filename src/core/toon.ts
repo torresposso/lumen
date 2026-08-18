@@ -9,11 +9,11 @@ import type { Profile } from "./types";
 export type ToonProfile = {
 	id: string;
 	name: string | null;
-	birthplace: string;
-	when: string;
-	lat: number;
-	lon: number;
-	jdUt: number;
+	birthPlace: string;
+	birthDateTime: string;
+	birthLat: number;
+	birthLon: number;
+	birthJdUt: number;
 };
 
 const JDUT_DIGITS = 6;
@@ -23,12 +23,12 @@ function roundTo(value: number, digits: number): number {
 	return Number(value.toFixed(digits));
 }
 
-/** Rounds a published `jdUt` (~0.09 s of time at 6 decimals). */
-function roundJdUt(jdUt: number): number {
-	return roundTo(jdUt, JDUT_DIGITS);
+/** Rounds a published `birthJdUt` (~0.09 s of time at 6 decimals). */
+function roundBirthJdUt(birthJdUt: number): number {
+	return roundTo(birthJdUt, JDUT_DIGITS);
 }
 
-/** Rounds a published `lat`/`lon` (~11 m at 4 decimals). */
+/** Rounds a published `birthLat`/`birthLon` (~11 m at 4 decimals). */
 function roundCoordinate(value: number): number {
 	return roundTo(value, COORD_DIGITS);
 }
@@ -38,10 +38,10 @@ export function toonProfile(profile: Profile): ToonProfile {
 	return {
 		id: profile.id,
 		name: profile.name,
-		birthplace: profile.birthplace,
-		when: profile.birth.when,
-		lat: roundCoordinate(profile.birth.lat),
-		lon: roundCoordinate(profile.birth.lon),
-		jdUt: roundJdUt(profile.birth.jdUt),
+		birthPlace: profile.birthPlace,
+		birthDateTime: profile.birthDateTime,
+		birthLat: roundCoordinate(profile.birthLat),
+		birthLon: roundCoordinate(profile.birthLon),
+		birthJdUt: roundBirthJdUt(profile.birthJdUt),
 	};
 }

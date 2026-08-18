@@ -23,13 +23,13 @@ Already enforced, not reviewable:
    reserved for human↔agent conversation and never lands in the repo
    (`CONTEXT.md` — Language).
 2. **Use the domain vocabulary as-is.** Name things with the exact terms of
-   `CONTEXT.md` (birth, birthplace, birth input, jdUt, TOON…); do not drift to
-   synonyms. A term that needs resolving is a `CONTEXT.md` change in the same
-   commit, not a new word in the code.
+   `CONTEXT.md` (birth, birthplace, birthDateTime, birthLat/birthLon,
+   birthJdUt, TOON…); do not drift to synonyms. A term that needs resolving is
+   a `CONTEXT.md` change in the same commit, not a new word in the code.
 3. **lumen never resolves world facts.** No geocoding, timezone/calendar
    lookups, or world-data dependencies in any layer. If a feature needs a world
-   fact, the agent supplies it as input; lumen only validates, derives (jdUt via
-   Meeus) and persists (`CONTEXT.md`; ADR-0002).
+   fact, the agent supplies it as input; lumen only validates, derives
+   (`birthJdUt` via Meeus) and persists (`CONTEXT.md`; ADR-0002).
 
 ## Architecture & module shape
 
@@ -58,16 +58,17 @@ Already enforced, not reviewable:
 
 ## Data & identity
 
-10. **The birth is the identity.** Dedupe on `jdUt + lat + lon` via a `UNIQUE
-    INDEX` + `ON CONFLICT`; `id` is an opaque auto-generated UUID; `get`/`delete`
-    accept a UUID only. `name`/`birthplace` are display metadata — never
-    identity, never lookup keys (ADR-0003).
+10. **The birth is the identity.** Dedupe on `birthJdUt + birthLat + birthLon`
+    via a `UNIQUE INDEX` + `ON CONFLICT`; `id` is an opaque auto-generated UUID;
+    `get`/`delete` accept a UUID only. `name`/`birthPlace` are display metadata
+    — never identity, never lookup keys (ADR-0003).
 11. **The published output is a policy, not data.** The DB keeps full float64
     precision. The TOON shape an agent parses — which fields, in what order, at
-    what precision (jdUt 6 decimals, lat/lon 4) — lives in the
-    single display-policy module (`src/core/toon.ts`, `toonProfile`). No other
-    module rounds or shapes output. A moment value is one ISO string (`when`),
-    echoed verbatim — never split into civil + offset pieces (ADR-0004).
+    what precision (`birthJdUt` 6 decimals, `birthLat`/`birthLon` 4) — lives in
+    the single display-policy module (`src/core/toon.ts`, `toonProfile`). No
+    other module rounds or shapes output. A moment value is one ISO string
+    (`birthDateTime`), echoed verbatim — never split into civil + offset pieces
+    (ADR-0004; ADR-0005).
 
 ## Errors & output (AXI)
 

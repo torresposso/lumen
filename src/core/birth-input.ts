@@ -1,20 +1,23 @@
 import { AxiError } from "axi-sdk-js";
 import { daysInMonth } from "./jd";
-import type { BirthClock, BirthInput } from "./types";
+import type { BirthInput, LocalTime } from "./types";
 
 export const MIN_YEAR = 1800;
 export const MAX_YEAR = 2100;
 export const MIN_OFFSET_MINUTES = -840;
 export const MAX_OFFSET_MINUTES = 840;
 
-/** The raw `--when` / `--at` strings as received by `profile add`. */
+/** The raw `--birthdatetime` / `--birthlat` / `--birthlon` strings as received by `profile add`. */
 export interface RawBirthInput {
-	when: string;
-	at: string;
+	birthDateTime: string;
+	birthLat: string;
+	birthLon: string;
 }
 
-const WHEN_RE =
+const DATETIME_RE =
 	/^(\d{4})-(\d{1,2})-(\d{1,2})T(\d{1,2}):(\d{1,2})(Z|[+-]\d{2}:\d{2})$/;
+
+const NUMBER_RE = /^[+-]?\d+(?:\.\d+)?$/;
 
 function pad2(value: number): string {
 	return String(value).padStart(2, "0");
@@ -22,47 +25,57 @@ function pad2(value: number): string {
 
 /**
  * The birth-input contract — the single seam lumen applies to the raw strings
- * of `profile add`. `--when` is an ISO 8601 datetime *with* a UTC offset
- * (`YYYY-MM-DDTHH:MM±HH:MM` or `…Z`) — the offset is never a separate flag.
+ * of `profile add`. `--birthdatetime` is an ISO 8601 datetime *with* a UTC
+ * offset (`YYYY-MM-DDTHH:MM±HH:MM` or `…Z`) — the offset is never a separate
+ * flag; `--birthlat`/`--birthlon` are signed decimal degrees.
+ *
  * Parses the formats and validates the semantic ranges in one pass,
  * accumulating every *checkable* violation: a field whose format does not
- * parse cannot be range-checked (e.g. `--when "garbage"`), but the other
- * fields still are. On any violation throws one `AxiError` with all cited
- * rules as suggestions, so an agent caller gets the whole contract verdict in
- * one round-trip. Presence of the flags themselves is the command's concern.
+ * parse cannot be range-checked (e.g. `--birthdatetime "garbage"`), but the
+ * other fields still are. On any violation throws one `AxiError` with all
+ * cited rules as suggestions, so an agent caller gets the whole contract
+ * verdict in one round-trip. Presence of the flags themselves is the
+ * command's concern.
  */
 export function parseBirthInput(raw: RawBirthInput): BirthInput {
 	const issues: string[] = [];
 
-	const when = raw.when.trim();
-	const match = WHEN_RE.exec(when);
-	let canonicalWhen: string | undefined;
-	let clock: BirthClock | undefined;
+	// --birthdatetime
+	const dateTime = raw.birthDateTime.trim();
+	const match = DATETIME_RE.exec(dateTime);
+	let canonicalDateTime: string | undefined;
+	let local: LocalTime | undefined;
 	let offsetMinutes: number | undefined;
 	if (match === null) {
 		issues.push(
-			`--when must look like "YYYY-MM-DDTHH:MM±HH:MM" or "…Z" (got "${when}")`,
+			`--birthdatetime must look like "YYYY-MM-DDTHH:MM±HH:MM" or "…Z" (got "${dateTime}")`,
 		);
 	} else {
 		const offsetSuffix = match[6] as string;
-		clock = {
+		local = {
 			year: Number(match[1]),
 			month: Number(match[2]),
 			day: Number(match[3]),
 			hour: Number(match[4]),
 			minute: Number(match[5]),
 		};
-		checkIntRange(issues, clock.year, MIN_YEAR, MAX_YEAR, "--when year");
-		checkIntRange(issues, clock.month, 1, 12, "--when month");
+		checkIntRange(
+			issues,
+			local.year,
+			MIN_YEAR,
+			MAX_YEAR,
+			"--birthdatetime year",
+		);
+		checkIntRange(issues, local.month, 1, 12, "--birthdatetime month");
 		if (
-			!Number.isInteger(clock.day) ||
-			clock.day < 1 ||
-			clock.day > daysInMonth(clock.year, clock.month)
+			!Number.isInteger(local.day) ||
+			local.day < 1 ||
+			local.day > daysInMonth(local.year, local.month)
 		) {
-			issues.push("--when day is invalid for that month");
+			issues.push("--birthdatetime day is invalid for that month");
 		}
-		checkIntRange(issues, clock.hour, 0, 23, "--when hour");
-		checkIntRange(issues, clock.minute, 0, 59, "--when minute");
+		checkIntRange(issues, local.hour, 0, 23, "--birthdatetime hour");
+		checkIntRange(issues, local.minute, 0, 59, "--birthdatetime minute");
 
 		offsetMinutes =
 			offsetSuffix === "Z" ? 0 : offsetToMinutes(offsetSuffix, issues);
@@ -72,29 +85,34 @@ export function parseBirthInput(raw: RawBirthInput): BirthInput {
 				offsetMinutes,
 				MIN_OFFSET_MINUTES,
 				MAX_OFFSET_MINUTES,
-				"--when offset",
+				"--birthdatetime offset",
 			);
 		}
 
-		canonicalWhen = `${clock.year}-${pad2(clock.month)}-${pad2(clock.day)}T${pad2(clock.hour)}:${pad2(clock.minute)}${offsetSuffix}`;
+		canonicalDateTime = `${local.year}-${pad2(local.month)}-${pad2(local.day)}T${pad2(local.hour)}:${pad2(local.minute)}${offsetSuffix}`;
 	}
 
-	const at = raw.at.trim();
-	const atMatch = /^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/.exec(at);
-	let lat = NaN;
-	let lon = NaN;
-	if (atMatch === null) {
-		issues.push(
-			`--at must look like "lat,lon" in decimal degrees (got "${at}")`,
-		);
+	// --birthlat
+	let birthLat = NaN;
+	const latText = raw.birthLat.trim();
+	if (!NUMBER_RE.test(latText)) {
+		issues.push(`--birthlat must be a decimal number (got "${latText}")`);
 	} else {
-		lat = Number(atMatch[1]);
-		lon = Number(atMatch[2]);
-		if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
-			issues.push("--at latitude must be between -90 and 90");
+		birthLat = Number(latText);
+		if (!Number.isFinite(birthLat) || birthLat < -90 || birthLat > 90) {
+			issues.push("--birthlat must be a latitude between -90 and 90");
 		}
-		if (!Number.isFinite(lon) || lon < -180 || lon > 180) {
-			issues.push("--at longitude must be between -180 and 180");
+	}
+
+	// --birthlon
+	let birthLon = NaN;
+	const lonText = raw.birthLon.trim();
+	if (!NUMBER_RE.test(lonText)) {
+		issues.push(`--birthlon must be a decimal number (got "${lonText}")`);
+	} else {
+		birthLon = Number(lonText);
+		if (!Number.isFinite(birthLon) || birthLon < -180 || birthLon > 180) {
+			issues.push("--birthlon must be a longitude between -180 and 180");
 		}
 	}
 
@@ -102,11 +120,11 @@ export function parseBirthInput(raw: RawBirthInput): BirthInput {
 		throw new AxiError("Invalid birth input", "VALIDATION_ERROR", issues);
 	}
 	return {
-		when: canonicalWhen as string,
-		clock: clock as BirthClock,
+		birthDateTime: canonicalDateTime as string,
+		local: local as LocalTime,
 		offsetMinutes: offsetMinutes as number,
-		lat,
-		lon,
+		birthLat,
+		birthLon,
 	};
 }
 
@@ -125,7 +143,7 @@ function offsetToMinutes(suffix: string, issues: string[]): number {
 		mm < 0 ||
 		mm > 59
 	) {
-		issues.push(`--when offset must be ±HH:MM, e.g. "-05:00" or "Z"`);
+		issues.push(`--birthdatetime offset must be ±HH:MM, e.g. "-05:00" or "Z"`);
 		return NaN;
 	}
 	return sign * (hh * 60 + mm);

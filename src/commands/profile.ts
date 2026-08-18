@@ -3,7 +3,7 @@ import type { AxiCliCommand } from "axi-sdk-js";
 import { AxiError } from "axi-sdk-js";
 import { type ArgsSpec, parseArgs } from "../core/args";
 import { parseBirthInput } from "../core/birth-input";
-import { meeusJdUt } from "../core/jd";
+import { julianDayUt } from "../core/jd";
 import { toonProfile } from "../core/toon";
 import type { ProfileStore as DefaultProfileStore } from "../storage/profile-store";
 
@@ -16,7 +16,7 @@ export interface CliContext {
  * empty-state reference. Never re-type it: interpolate this constant.
  */
 export const PROFILE_ADD_EXAMPLE =
-	'lumen profile add --when "1981-01-26T00:50-05:00" --at "9.15,-74.75" --birthplace "Magangué, Colombia"';
+	'lumen profile add --birthdatetime "1981-01-26T00:50-05:00" --birthlat 9.15 --birthlon -74.75 --birthplace "Magangué, Colombia"';
 
 /** The empty-state hint pointing an agent at `add`, shared by `list` and `home`. */
 export const PROFILE_ADD_HINT = `Run \`${PROFILE_ADD_EXAMPLE}\``;
@@ -31,26 +31,27 @@ export const profileUsage = [
 ].join("\n");
 
 export const profileAddUsage = [
-	'lumen profile add --when "YYYY-MM-DDTHH:MM±HH:MM" --at "lat,lon" --birthplace "City, Country" [--name slug]',
+	'lumen profile add --birthdatetime "YYYY-MM-DDTHH:MM±HH:MM" --birthlat <lat> --birthlon <lon> --birthplace "City, Country" [--name slug]',
 	"",
 	"Register a birth profile. The agent resolves coordinates and the UTC",
-	"offset, formats it into --when, and calls lumen; lumen validates, computes",
-	"the Julian Day and stores it.",
+	"offset, formats them into --birthdatetime, and calls lumen; lumen",
+	"validates, computes the Julian Day and stores it.",
 	"",
 	"Flags:",
-	"  --when          ISO 8601 datetime with UTC offset, e.g. 1990-06-10T14:30-04:00 or ...Z (required)",
-	'  --at            "lat,lon" in decimal degrees (required)',
-	'  --birthplace    Human-readable place, e.g. "Madrid, Spain" (required)',
-	"  --name          Optional descriptive slug (no lookup)",
+	"  --birthdatetime  ISO 8601 datetime with UTC offset, e.g. 1990-06-10T14:30-04:00 or ...Z (required)",
+	"  --birthlat       Latitude in decimal degrees, -90..90 (required)",
+	"  --birthlon       Longitude in decimal degrees, -180..180 (required)",
+	'  --birthplace     Human-readable place, e.g. "Madrid, Spain" (required)',
+	"  --name           Optional descriptive slug (no lookup)",
 	"",
-	"Adding the same birth twice (same jdUt + coordinates) returns the existing",
+	"Adding the same birth twice (same birthJdUt + coordinates) returns the existing",
 	"profile unchanged.",
 ].join("\n");
 
 export const profileListUsage = [
 	"lumen profile list",
 	"",
-	"Lists saved profiles: id, name, birthplace, when, coordinates and jdUt.",
+	"Lists saved profiles: id, name, birthplace, birthDateTime, coordinates and birthJdUt.",
 ].join("\n");
 
 export const profileGetUsage = [
@@ -65,12 +66,23 @@ export const profileDeleteUsage = [
 	"Deletes one profile by its UUID. Deleting an unknown profile raises NOT_FOUND.",
 ].join("\n");
 
-const ADD_FLAGS = new Set(["--when", "--at", "--birthplace", "--name"]);
+const ADD_FLAGS = new Set([
+	"--birthdatetime",
+	"--birthlat",
+	"--birthlon",
+	"--birthplace",
+	"--name",
+]);
 
 /** `profile add` — flags required, no positionals. */
 const ADD_SPEC: ArgsSpec = {
 	known: ADD_FLAGS,
-	required: new Set(["--when", "--at", "--birthplace"]),
+	required: new Set([
+		"--birthdatetime",
+		"--birthlat",
+		"--birthlon",
+		"--birthplace",
+	]),
 	positionals: 0,
 	rules: {
 		"--birthplace": { trim: true, nonEmpty: true },
@@ -140,25 +152,29 @@ export const profileCommand: AxiCliCommand<CliContext> = async (
 			const parsed = parseArgs(rest, ADD_SPEC, "lumen profile add");
 			if (parsed.help) return usageFor(sub);
 
-			const when = parsed.flags.get("--when") as string;
-			const at = parsed.flags.get("--at") as string;
-			const birthplace = parsed.flags.get("--birthplace") as string;
+			const birthDateTime = parsed.flags.get("--birthdatetime") as string;
+			const birthLat = parsed.flags.get("--birthlat") as string;
+			const birthLon = parsed.flags.get("--birthlon") as string;
+			const birthPlace = parsed.flags.get("--birthplace") as string;
 			const name = parsed.flags.get("--name") ?? null;
 
 			const {
-				when: canonicalWhen,
-				clock,
+				birthDateTime: canonicalDateTime,
+				local,
 				offsetMinutes,
-				lat,
-				lon,
-			} = parseBirthInput({ when, at });
-			const jdUt = meeusJdUt(clock, offsetMinutes);
+				birthLat: lat,
+				birthLon: lon,
+			} = parseBirthInput({ birthDateTime, birthLat, birthLon });
+			const birthJdUt = julianDayUt(local, offsetMinutes);
 
 			const { profile, created } = requireProfileStore(context).add({
 				id: randomUUID(),
 				name,
-				birthplace,
-				birth: { when: canonicalWhen, lat, lon, jdUt },
+				birthPlace,
+				birthDateTime: canonicalDateTime,
+				birthLat: lat,
+				birthLon: lon,
+				birthJdUt,
 			});
 			return {
 				status: created ? "added" : "already exists",

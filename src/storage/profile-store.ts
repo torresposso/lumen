@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { AxiError } from "axi-sdk-js";
 import type { AddResult, NewProfile, Profile } from "../core/types";
 
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 /** `./lumen.db` in the cwd (per-project), overridable with `LUMEN_DB`. */
 export function defaultDbFile(): string {
@@ -14,11 +14,11 @@ export function defaultDbFile(): string {
 interface ProfileRow {
 	id: string;
 	name: string | null;
-	birthplace: string;
-	when: string;
-	lat: number;
-	lon: number;
-	jd_ut: number;
+	birth_place: string;
+	birth_date_time: string;
+	birth_lat: number;
+	birth_lon: number;
+	birth_jd_ut: number;
 	created_at: string;
 	updated_at: string;
 }
@@ -27,13 +27,11 @@ function toProfile(row: ProfileRow): Profile {
 	return {
 		id: row.id,
 		name: row.name,
-		birthplace: row.birthplace,
-		birth: {
-			when: row.when,
-			lat: row.lat,
-			lon: row.lon,
-			jdUt: row.jd_ut,
-		},
+		birthPlace: row.birth_place,
+		birthDateTime: row.birth_date_time,
+		birthLat: row.birth_lat,
+		birthLon: row.birth_lon,
+		birthJdUt: row.birth_jd_ut,
 		createdAt: row.created_at,
 		updatedAt: row.updated_at,
 	};
@@ -51,24 +49,24 @@ function ensureSchema(db: Database): void {
 		);
 	}
 	if (user_version < 1) {
-		// Fresh install: v3 schema — the moment is one ISO `when` value
-		// (SQL reserved word, hence double-quoted in every statement).
+		// Fresh install: v4 schema — the flat `birth*` vocabulary. Each birth
+		// field carries its identity in the `birth_` prefix.
 		db.exec(`
 			CREATE TABLE IF NOT EXISTS profiles (
-				id          TEXT    PRIMARY KEY,
-				name        TEXT,
-				birthplace  TEXT    NOT NULL,
-				"when"      TEXT    NOT NULL,
-				lat         REAL    NOT NULL,
-				lon         REAL    NOT NULL,
-				jd_ut       REAL    NOT NULL,
-				created_at  TEXT    NOT NULL,
-				updated_at  TEXT    NOT NULL
+				id               TEXT    PRIMARY KEY,
+				name             TEXT,
+				birth_place      TEXT    NOT NULL,
+				birth_date_time  TEXT    NOT NULL,
+				birth_lat        REAL    NOT NULL,
+				birth_lon        REAL    NOT NULL,
+				birth_jd_ut      REAL    NOT NULL,
+				created_at       TEXT    NOT NULL,
+				updated_at       TEXT    NOT NULL
 			)
 		`);
 		db.exec(`
 			CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_birth
-			ON profiles (jd_ut, lat, lon)
+			ON profiles (birth_jd_ut, birth_lat, birth_lon)
 		`);
 	}
 	if (user_version === 1) {
@@ -76,8 +74,8 @@ function ensureSchema(db: Database): void {
 		// matching the CLI flag. Rename the stored column.
 		db.exec(`ALTER TABLE profiles RENAME COLUMN city TO birthplace`);
 	}
-	if (user_version >= 1 && user_version < SCHEMA_VERSION) {
-		// v2 → v3: the civil-time columns (local_year…local_minute) and
+	if (user_version >= 1 && user_version < 3) {
+		// v1/v2 → v3: the civil-time columns (local_year…local_minute) and
 		// offset_minutes collapse into one ISO `when` value, reconstructed
 		// from the stored split (zero offsets become "+00:00").
 		db.exec(`ALTER TABLE profiles ADD COLUMN "when" TEXT NOT NULL DEFAULT ''`);
@@ -100,6 +98,15 @@ function ensureSchema(db: Database): void {
 		]) {
 			db.exec(`ALTER TABLE profiles DROP COLUMN ${col}`);
 		}
+	}
+	if (user_version >= 1 && user_version < SCHEMA_VERSION) {
+		// Any pre-v4 db (v1/v2 converge to the v3 column set above) → v4: the
+		// flat `birth_*` names. The unique birth index follows the renames.
+		db.exec(`ALTER TABLE profiles RENAME COLUMN birthplace TO birth_place`);
+		db.exec(`ALTER TABLE profiles RENAME COLUMN "when" TO birth_date_time`);
+		db.exec(`ALTER TABLE profiles RENAME COLUMN lat TO birth_lat`);
+		db.exec(`ALTER TABLE profiles RENAME COLUMN lon TO birth_lon`);
+		db.exec(`ALTER TABLE profiles RENAME COLUMN jd_ut TO birth_jd_ut`);
 	}
 	if (user_version < SCHEMA_VERSION) {
 		db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
@@ -169,29 +176,29 @@ export class ProfileStore {
 
 	/**
 	 * Inserts a profile, deduplicating on the birth: a profile with the same
-	 * `jdUt + lat + lon` already stored wins and is returned unchanged (the new
-	 * name/birthplace are discarded — the birth is the identity).
+	 * `birthJdUt + birthLat + birthLon` already stored wins and is returned
+	 * unchanged (the new name/birthPlace are discarded — the birth is the
+	 * identity).
 	 */
 	add(profile: NewProfile): AddResult {
 		const db = this.open();
 		const nowIso = this.now().toISOString();
-		const { birth } = profile;
 		const result = db
 			.prepare(
 				`INSERT INTO profiles (
-					id, name, birthplace, "when", lat, lon, jd_ut,
+					id, name, birth_place, birth_date_time, birth_lat, birth_lon, birth_jd_ut,
 					created_at, updated_at
 				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-				ON CONFLICT(jd_ut, lat, lon) DO NOTHING`,
+				ON CONFLICT(birth_jd_ut, birth_lat, birth_lon) DO NOTHING`,
 			)
 			.run(
 				profile.id,
 				profile.name,
-				profile.birthplace,
-				birth.when,
-				birth.lat,
-				birth.lon,
-				birth.jdUt,
+				profile.birthPlace,
+				profile.birthDateTime,
+				profile.birthLat,
+				profile.birthLon,
+				profile.birthJdUt,
 				nowIso,
 				nowIso,
 			);
@@ -202,8 +209,14 @@ export class ProfileStore {
 
 		// Duplicate birth — return the existing profile, unchanged.
 		const row = db
-			.prepare("SELECT * FROM profiles WHERE jd_ut = ? AND lat = ? AND lon = ?")
-			.get(birth.jdUt, birth.lat, birth.lon) as ProfileRow | null;
+			.prepare(
+				"SELECT * FROM profiles WHERE birth_jd_ut = ? AND birth_lat = ? AND birth_lon = ?",
+			)
+			.get(
+				profile.birthJdUt,
+				profile.birthLat,
+				profile.birthLon,
+			) as ProfileRow | null;
 		return { profile: toProfile(row as ProfileRow), created: false };
 	}
 
