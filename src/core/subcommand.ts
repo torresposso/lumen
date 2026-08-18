@@ -1,6 +1,6 @@
 import type { AxiCliCommand } from "axi-sdk-js";
 import { AxiError } from "axi-sdk-js";
-import { type ArgsSpec, type ParsedArgs, parseArgs } from "./args";
+import { type ArgsSpec, type ParsedArgs, parseArgs, wantsHelp } from "./args";
 
 /** What the runner may return: the same shapes an AXI command may render (string or structured output). */
 export type Renderable = string | Record<string, unknown>;
@@ -54,7 +54,13 @@ export async function runSubcommand<TContext>(
 
 /**
  * Creates an AxiCliCommand from a declarative table of subcommands.
- * Owns the routing, top-level `--help`, and unknown-subcommand validation error.
+ * Owns the routing: the first token picks the arm; an absent arm or a group
+ * requested via `--help` returns the group usage; an unknown arm raises a
+ * `VALIDATION_ERROR`. The help *rule* is never re-implemented here — the
+ * dispatcher consults the args contract's `wantsHelp` over the full arg list
+ * before rejecting an unknown arm, so `--help` wins at the group seam exactly
+ * as it does inside an arm (ADR-0007: the surface token is the single home of
+ * the vocabulary the messages interpolate).
  */
 export function createSubcommandGroup<TContext>(
 	group: SubcommandGroupSpec<TContext>,
@@ -62,20 +68,27 @@ export function createSubcommandGroup<TContext>(
 	return async (args, context) => {
 		const [subName, ...rest] = args;
 
-		if (subName === undefined || subName === "--help") {
+		if (subName === undefined) {
 			return group.usage;
 		}
 
 		const arm = group.subcommands[subName];
-		if (arm === undefined) {
-			const commandWord = group.name.replace(/^lumen\s+/, "");
-			throw new AxiError(
-				`Unknown ${commandWord} command: ${subName}`,
-				"VALIDATION_ERROR",
-				[`Run \`${group.name} --help\` for usage`],
-			);
+		if (arm !== undefined) {
+			return runSubcommand(context, rest, `${group.name} ${subName}`, arm);
 		}
 
-		return runSubcommand(context, rest, `${group.name} ${subName}`, arm);
+		// Unknown subcommand — unless help was requested. The help-wins rule
+		// belongs to the args contract: an agent that guesses the arm name
+		// wrong and appends `--help` lands on usage, not on a dead-end error.
+		if (wantsHelp(args)) {
+			return group.usage;
+		}
+
+		const commandWord = group.name.split(" ").at(-1) ?? group.name;
+		throw new AxiError(
+			`Unknown ${commandWord} command: ${subName}`,
+			"VALIDATION_ERROR",
+			[`Run \`${group.name} --help\` for usage`],
+		);
 	};
 }

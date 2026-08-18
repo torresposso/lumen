@@ -6,6 +6,7 @@ import {
 	ADD_FLAGS,
 	PROFILE_ADD_HINT,
 	PROFILE_ARMS,
+	PROFILE_COMMAND,
 } from "../src/core/cli-surface";
 import type { CliContext } from "../src/core/types";
 import { ProfileStore } from "../src/storage/profile-store";
@@ -223,6 +224,12 @@ describe("profileCommand", () => {
 		await expect(profileCommand(["bogus"], ctx())).rejects.toThrow(
 			/Unknown profile command/,
 		);
+	});
+
+	test("an unknown subcommand plus --help returns the group usage, not an error", async () => {
+		const help = (await profileCommand(["bogus", "--help"], ctx())) as string;
+		expect(help).toContain(PROFILE_COMMAND);
+		expect(help).toContain(PROFILE_ARMS.add);
 	});
 });
 

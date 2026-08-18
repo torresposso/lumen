@@ -154,7 +154,7 @@ src/core/args.ts                 # CLI-args contract (flag + positional syntax)
 src/core/birth-input.ts          # birth-input contract (parse ISO --when + --where "lat, lon, Place", one error style)
 src/core/cli-surface.ts           # the command surface (vocabulary tokens + canonical example + hints)
 src/core/jd.ts                   # Meeus arithmetic only (julianDayUt, no validation)
-src/core/subcommand.ts           # subcommand runner (parse + help + dispatch for a command's subcommand arms)
+src/core/subcommand.ts           # subcommand runner (parse + dispatch; help detection delegates to the args contract)
 src/core/types.ts                # Profile, BirthInput, LocalTime, etc.
 src/core/toon.ts                 # display policy (shape + precisions)
 src/version.ts                   # package version (fast path)

@@ -77,10 +77,11 @@ describe("parseArgs", () => {
 		);
 	});
 
-	test("rejects --help=value", () => {
-		expect(() => parseArgs(["--help=1"], ADD_SPEC, "x")).toThrow(
-			/does not take a value/,
-		);
+	test("--help wins in every spelling, including --help=value", () => {
+		const parsed = parseArgs(["--help=1"], ADD_SPEC, "x");
+		expect(parsed.help).toBe(true);
+		expect(parsed.flags.size).toBe(0);
+		expect(parsed.positionals).toEqual([]);
 	});
 
 	test("--help anywhere wins and skips all other validation", () => {
@@ -88,6 +89,15 @@ describe("parseArgs", () => {
 		expect(parsed.help).toBe(true);
 		expect(parsed.flags.size).toBe(0);
 		expect(parsed.positionals).toEqual([]);
+	});
+
+	test("a flag merely starting with '--help' is not help (--helpful)", () => {
+		try {
+			parseArgs(["--helpful"], ADD_SPEC, "x");
+			expect.unreachable();
+		} catch (error) {
+			expect((error as Error).message).toContain("Unknown flag: --helpful");
+		}
 	});
 
 	test("reports missing required flags", () => {

@@ -68,8 +68,11 @@ pushed.
 - **Args contract** — the module `src/core/args.ts` that owns the flag and
   positional syntax of every command's raw arguments as one seam: known and
   required flags, `--flag=value` / `--flag value` forms, duplicates, missing
-  values, `--help`, positional counts and per-flag **value normalization**
-  (trim, empty-means-null, non-empty), accumulating every violation into a
+  values, `--help` (one rule, one home: a bare `--help` in any spelling wins
+  over every other check anywhere in the arg list — the subcommand runner
+  consults it before routing too, so the promise holds at the group seam),
+  positional counts and per-flag **value normalization** (trim,
+  empty-means-null, non-empty), accumulating every violation into a
   single `VALIDATION_ERROR` citing each rule. Syntax, presence and value
   normalization live here; value *semantics* (format + ranges) live in the
   contract that consumes the parsed flags (the **birth-input contract**).

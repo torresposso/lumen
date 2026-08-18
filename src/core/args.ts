@@ -34,22 +34,37 @@ export interface ParsedArgs {
 }
 
 /**
+ * The help rule, in one place: a bare `--help` flag anywhere in the raw args —
+ * any spelling, `--help` or `--help=…` — requests usage and wins over every
+ * other check. The subcommand runner consults this over the whole arg list
+ * before routing, so "help wins" holds at the group seam too (an unknown
+ * subcommand plus `--help` lands on usage, never on a validation error).
+ */
+export function wantsHelp(args: readonly string[]): boolean {
+	return args.some((arg) => {
+		const eq = arg.indexOf("=");
+		return (eq === -1 ? arg : arg.slice(0, eq)) === "--help";
+	});
+}
+
+/**
  * The CLI-args contract — the single seam lumen applies to a command's raw
  * argument strings before any value semantics. Owns the flag syntax (known
  * flags, `--flag=value` / `--flag value` forms, duplicates, missing values),
- * `--help` (anywhere, winning over all other checks), positional counts and
- * per-flag **value normalization** (trim, non-empty, empty-means-null),
- * accumulating every checkable violation into one `VALIDATION_ERROR` with each
- * cited rule as a suggestion — one verdict per round-trip for an agent caller.
- * Presence, syntax and value normalization live here; value *semantics* live in
- * the contract that consumes the parsed flags (e.g. the birth-input contract).
+ * `--help` (`wantsHelp`, winning over all other checks in every spelling),
+ * positional counts and per-flag **value normalization** (trim, non-empty,
+ * empty-means-null), accumulating every checkable violation into one
+ * `VALIDATION_ERROR` with each cited rule as a suggestion — one verdict per
+ * round-trip for an agent caller. Presence, syntax and value normalization
+ * live here; value *semantics* live in the contract that consumes the parsed
+ * flags (e.g. the birth-input contract).
  */
 export function parseArgs(
 	args: string[],
 	spec: ArgsSpec,
 	command: string,
 ): ParsedArgs {
-	if (args.includes("--help")) {
+	if (wantsHelp(args)) {
 		return { flags: new Map(), positionals: [], help: true };
 	}
 
@@ -67,10 +82,6 @@ export function parseArgs(
 		}
 		const eq = arg.indexOf("=");
 		const flag = eq === -1 ? arg : arg.slice(0, eq);
-		if (flag === "--help") {
-			issues.push("--help does not take a value");
-			continue;
-		}
 		if (!spec.known.has(flag)) {
 			issues.push(`Unknown flag: ${flag}`);
 			continue;

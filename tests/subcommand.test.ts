@@ -123,6 +123,21 @@ describe("createSubcommandGroup", () => {
 		expect(await group(["--help"], undefined)).toBe("lumen profile usage");
 	});
 
+	test("the help-wins rule holds at the group seam: an unknown arm plus --help returns group usage, never an error", async () => {
+		expect(await group(["bogus", "--help"], undefined)).toBe(
+			"lumen profile usage",
+		);
+		expect(await group(["--help", "bogus"], undefined)).toBe(
+			"lumen profile usage",
+		);
+	});
+
+	test("--help before a known arm falls back to group usage", async () => {
+		expect(await group(["--help", "list"], undefined)).toBe(
+			"lumen profile usage",
+		);
+	});
+
 	test("dispatches to the named subcommand", async () => {
 		expect(await group(["list"], undefined)).toEqual({ profiles: [] });
 		expect(await group(["get", "abc-123"], undefined)).toEqual({
