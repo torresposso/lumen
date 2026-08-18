@@ -468,7 +468,7 @@ export function describeEvoCriteria(): string {
 	return `orbs PLUTO_ASPECTS: ${plutoOrbs}; ppp: major aspects only (orb ${firstPppAspect.orb}°); skipped: squares to the nodal axis (orb ${SKIPPED_STEPS_ORB}°); ppp inactive when pluto conjunct the north node (orb ${PPP_DEACTIVATION_ORB}°)`;
 }
 
-/** Generates deterministic factual atoms for the evolutionary mechanics block (`--evo`). */
+/** Generates deterministic factual atoms for the evolutionary mechanics block (`evo`). */
 export function generateEvoAtoms(input: EvoAtomsInput): string[] {
 	const atoms: string[] = [];
 

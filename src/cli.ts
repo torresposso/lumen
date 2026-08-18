@@ -13,7 +13,7 @@ const topLevelHelp = [
 	"  journey    Progresiones secundarias y giros estacionales",
 	"  karma      Sinastría evolutiva y acuerdos entre Almas",
 	"  profile    Los seres de la práctica: perfiles locales de nacimiento",
-	"  chart      Carta: natal (insumo base; --evo agrega mecánica) y draconic (experimento)",
+	"  chart      Carta: natal (mecánica siempre) y draconic (canónico, recalculado en su zodíaco)",
 	"  setup      Instala/actualiza la integración de sesión",
 ].join("\n");
 
@@ -47,7 +47,7 @@ export async function main(): Promise<void> {
 				profiles: profiles.length > 0 ? profiles : "0 profiles found",
 				help: [
 					'Run `lumen profile add <id> --when "1981-01-26T00:50" --place "Magangué, Colombia"`',
-					"Run `lumen chart natal <profile> --evo` for an evolutionary reading",
+					"Run `lumen chart natal <profile>` for your chart with its evolutionary mechanics",
 					"Run `lumen journey progressed <profile> --at <YYYY-MM-DD>` for progressions",
 					"Run `lumen karma pair --a <id> --b <id>` to compare two charts",
 				],

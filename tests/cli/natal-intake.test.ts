@@ -405,7 +405,13 @@ describe("resolveNatalRequest", () => {
 				"America/Bogota",
 			];
 
-			for (const flag of ["--draconic", "--evolutionary", "--draconic=true"]) {
+			for (const flag of [
+				"--draconic",
+				"--evolutionary",
+				"--evo",
+				"--draconic=true",
+				"--evo=true",
+			]) {
 				await expect(
 					resolveNatalRequestFromArgs([...baseArgs, flag]),
 				).rejects.toThrow(/Unknown flag/);

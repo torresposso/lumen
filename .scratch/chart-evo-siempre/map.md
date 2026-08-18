@@ -32,7 +32,10 @@ canon (ADR-0014). Decidido por grill del capitán (2026-08-17).
 - [x] `02-core-reading-no-opcional` — `Blocked by: 01` — **resolved**:
       `computeReading(request, ephemeris)` no-opcional, invariante pluto+true
       node con assert en `chartAt`, evo total. Suite verde (188/668).
-- [ ] `03-command-chart-sin-flag` — `Blocked by: 01` (desbloqueado).
+- [x] `03-command-chart-sin-flag` — `Blocked by: 01` — **resolved**:
+      `--evo` fuera de raíz (parseEvoFlag, rechazo draconic, usages, help de
+      home/profile, flag spec de intake); tests de flags rechazados. Verde.
+- [ ] `04-draconic-evo` — `Blocked by: 01` (desbloqueado).
 - [ ] `03-command-chart-sin-flag` — `Blocked by: 01`.
 - [ ] `04-draconic-evo` — `Blocked by: 01`.
 - [ ] `05-cierre` — `Blocked by: 02, 03, 04`; check:docs verde + SPEC §6.1 final.

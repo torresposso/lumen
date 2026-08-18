@@ -1,7 +1,7 @@
 ---
 id: 03-command-chart-sin-flag
 type: task
-status: ready-for-agent
+status: resolved
 blockers: [01]
 ---
 
@@ -47,3 +47,20 @@ draconic y todas las menciones del flag en usages/help (src/) y docs vivos
 ## Comments
 
 - 2026-08-17: abierto por pi; desbloqueado al resolver 01.
+- 2026-08-17: resuelto por pi. `--evo` fuera de raíz.
+
+## Answer
+
+- `src/commands/chart.ts`: borrados `parseEvoFlag` y el rechazo draconic; usages
+  al target (natal siempre con mecánica; draconic en el canon).
+- `src/commands/intake.ts`: `"evo"` fuera de `chartFlagSpec.boolean` y de
+  `chartUsage`; `--evo`/`--evo=true` → `Unknown flag` (VALIDATION_ERROR).
+- `src/cli.ts` (topLevelHelp + home) y `src/commands/profile.ts` (hint): sin
+  `--evo`, draconic canónico.
+- `src/core/classical.ts`: comentario de `generateEvoAtoms` sin `(--evo)`.
+- Tests: el bloque evolutivo natal se cubre sin flag; `--evo` y `--evo=true`
+  entran a los flags rechazados (chart + intake); quitados los tests del flag
+  (`--evo=true` redundante, rechazo draconic); profile.test sin `--evo`.
+
+Estado: `--evo` fuera de src/ y de la gramática viva de docs; `bun test`
+187/667, typecheck y check verdes. Desbloqueado el ticket 04.

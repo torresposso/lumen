@@ -152,6 +152,7 @@ describe("chartCommand", () => {
 		"--eclipses",
 		"--draconic",
 		"--evolutionary",
+		"--evo",
 	])("rejects removed flag %s as unknown", async (flag) => {
 		try {
 			await chartCommand(["natal", ...TAMPA_ARGS, flag], undefined);
@@ -162,9 +163,9 @@ describe("chartCommand", () => {
 		}
 	});
 
-	test("computes natal chart with --evo including the full evolutionary block", async () => {
+	test("computes the full natal evolutionary block without any flag", async () => {
 		const result = (await chartCommand(
-			["natal", ...TAMPA_ARGS, "--evo"],
+			["natal", ...TAMPA_ARGS],
 			undefined,
 		)) as {
 			evo: {
@@ -255,31 +256,13 @@ describe("chartCommand", () => {
 		// method: factual disclosure of orbs/criteria.
 		expect(result.evo.method).toContain("PLUTO_ASPECTS");
 
-		// Atoms cover the evolutionary mechanics with --evo.
+		// Atoms always cover the evolutionary mechanics (ADR-0014).
 		const atoms = result.interpretationContext.atoms;
 		expect(atoms.some((a) => a.startsWith("ppp_sign_"))).toBe(true);
 		expect(atoms.some((a) => a.startsWith("pluto_aspects_"))).toBe(true);
 		expect(atoms.some((a) => a.startsWith("skipped_"))).toBe(true);
 		expect(atoms.some((a) => a.startsWith("sol_luna_phase_"))).toBe(true);
 	}, 20_000);
-
-	test("--evo=true is accepted as redundant while the flag still parses (removed in ticket 03)", async () => {
-		const result = (await chartCommand(
-			["natal", ...TAMPA_ARGS, "--evo=true"],
-			undefined,
-		)) as { evo?: unknown };
-		expect(result.evo).toBeDefined();
-	});
-
-	test("draconic rejects --evo with a structured error", async () => {
-		try {
-			await chartCommand(["draconic", ...TAMPA_ARGS, "--evo"], undefined);
-			expect.unreachable();
-		} catch (error) {
-			expect(error).toBeInstanceOf(AxiError);
-			expect((error as AxiError).code).toBe("VALIDATION_ERROR");
-		}
-	});
 
 	test("usage text and flag spec name the same flags", async () => {
 		const help = (await chartCommand(["natal", "--help"], undefined)) as string;

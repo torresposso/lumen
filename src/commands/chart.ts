@@ -6,8 +6,9 @@ export const chartUsage = [
 	"lumen chart natal <profile> | lumen chart draconic <profile>",
 	'lumen chart natal --when 1981-01-26T00:50 --place "Magangué, Colombia"',
 	"",
-	"Carta natal (insumo base) y proyección draconic (experimento etiquetado).",
-	"Con --evo: agrega la mecánica evolutiva (Plutón/PPP + eje nodal) a la natal.",
+	"Carta natal y carta draconic (en el canon, ADR-0014): ambas publican",
+	"siempre la geometría de la carta y la mecánica evolutiva (Plutón/PPP +",
+	"eje nodal), cada una recalculada sobre su zodíaco.",
 ].join("\n");
 
 // ============================================================================
@@ -33,17 +34,18 @@ const FLAG_REFERENCE = NatalIntake.usage.split("\n").slice(2).join("\n");
 export const chartNatalUsage = [
 	'lumen chart natal --when 1981-01-26T00:50 --place "Magangué, Colombia"',
 	"",
-	"Calcula la carta natal base (efemérides caelus).",
-	"Con --evo agrega la mecánica evolutiva completa (Plutón/PPP, eje nodal, fase,",
-	"cadenas y eclipses prenatales).",
+	"Calcula la carta natal y, siempre, la mecánica evolutiva (efemérides caelus):",
+	"Plutón/PPP, eje nodal, fase Sol-Luna, cadenas de dispositores y eclipses",
+	"prenatales, con counts y method (ADR-0014).",
 	"Usa orbes PLUTO_ASPECTS; puede diferir de chart.aspects.",
 ].join("\n");
 
 export const chartDraconicUsage = [
 	'lumen chart draconic --when 1981-01-26T00:50 --place "Magangué, Colombia"',
 	"",
-	"Calcula la carta natal y su proyección draconic (experimento etiquetado,",
-	"fuera del canon; puramente geométrico, rechaza --evo).",
+	"Proyección draconic en el canon: la carta draconic y su bloque evolutivo",
+	"recalculado sobre el zodíaco draconic (eje nodal fijo por construcción;",
+	"el marco y sus constantes se declaran en method).",
 ].join("\n");
 
 type ChartMode = "natal" | "draconic";
@@ -105,32 +107,6 @@ async function resolveRequest(
 	return result.request;
 }
 
-function parseEvoFlag(args: string[]): { evo: boolean; rest: string[] } {
-	let evo = false;
-	const rest: string[] = [];
-	for (const arg of args) {
-		if (arg === "--evo") {
-			evo = true;
-			continue;
-		}
-		if (arg.startsWith("--evo=")) {
-			const raw = arg.slice("--evo=".length).trim().toLowerCase();
-			if (raw === "true") evo = true;
-			else if (raw === "false") evo = false;
-			else {
-				throw new AxiError(
-					"Flag --evo expects true or false",
-					"VALIDATION_ERROR",
-					["Example: --evo=true"],
-				);
-			}
-			continue;
-		}
-		rest.push(arg);
-	}
-	return { evo, rest };
-}
-
 export const chartCommand: AxiCliCommand<CliContext> = async (
 	args,
 	context,
@@ -164,14 +140,7 @@ export const chartCommand: AxiCliCommand<CliContext> = async (
 	}
 
 	const mode = first as ChartMode;
-	const { evo, rest } = parseEvoFlag(args.slice(1));
-	if (mode === "draconic" && evo) {
-		throw new AxiError(
-			"Chart draconic does not support --evo",
-			"VALIDATION_ERROR",
-			["Use `lumen chart natal --evo` for evolutionary mechanics"],
-		);
-	}
+	const rest = args.slice(1);
 	const request = applyMode(await resolveRequest(rest, context), mode);
 	return computeReading(request, new CaelusEphemeris());
 };

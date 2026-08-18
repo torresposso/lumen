@@ -130,7 +130,7 @@ export const profileCommand: AxiCliCommand<CliContext> = async (
 				profile: id,
 				status: "saved",
 				help: [
-					`Run \`lumen chart natal ${id} --evo\` for baseline evolutionary reading`,
+					`Run \`lumen chart natal ${id}\` for your chart with its evolutionary mechanics`,
 				],
 			};
 		}

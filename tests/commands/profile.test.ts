@@ -131,7 +131,7 @@ describe("profileCommand", () => {
 		expect(reading.chart.birth.zone).toBe("America/New_York");
 	});
 
-	test("chart natal --evo uses the config house system when no flag is passed", async () => {
+	test("chart natal uses the config house system when no flag is passed", async () => {
 		const ctx = context();
 		ctx.config = new ConfigStore(CONFIG_FILE);
 		await profileCommand(
@@ -157,18 +157,12 @@ describe("profileCommand", () => {
 		);
 
 		writeFileSync(CONFIG_FILE, JSON.stringify({ houseSystem: "whole_sign" }));
-		const fromConfig = (await chartCommand(
-			["natal", "silvia", "--evo"],
-			ctx,
-		)) as {
+		const fromConfig = (await chartCommand(["natal", "silvia"], ctx)) as {
 			evo: { nodalAxis: { south: { sign: string; house: number } } };
 		};
 
 		rmSync(CONFIG_FILE, { force: true });
-		const fromDefaults = (await chartCommand(
-			["natal", "silvia", "--evo"],
-			ctx,
-		)) as {
+		const fromDefaults = (await chartCommand(["natal", "silvia"], ctx)) as {
 			evo: { nodalAxis: { south: { sign: string; house: number } } };
 		};
 

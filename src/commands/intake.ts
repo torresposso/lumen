@@ -345,7 +345,7 @@ export const chartFlagSpec: FlagSpec = deriveFlagSpec(
 	[birthSchema, optionsSchema],
 	{
 		value: ["when", "place"],
-		boolean: ["topocentric", "evo"],
+		boolean: ["topocentric"],
 	},
 	// Schema fields with no CLI flag: the subcommand owns projection mode.
 	["draconic"],
@@ -365,7 +365,6 @@ export const chartUsage = [
 	"  --zodiac                                   tropical (default, Western astrology)",
 	"  --bodies                                   Extra bodies, comma-separated: mean_lilith,true_lilith",
 	"  --topocentric                              Enable topocentric parallax",
-	"  --evo                                      Add evolutionary mechanics (Pluto/PPP + nodal axis) to the natal chart",
 ].join("\n");
 
 interface ParsedArgs {
