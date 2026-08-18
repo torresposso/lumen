@@ -1,11 +1,6 @@
 import { runAxiCli } from "axi-sdk-js";
 import { profileCommand } from "./commands/profile";
-import {
-	ADD_FLAGS,
-	PROFILE_ADD_HINT,
-	PROFILE_ARMS,
-	PROFILE_LIST_HINT,
-} from "./core/cli-surface";
+import { ADD_FLAGS, emptyStateHint, PROFILE_ARMS } from "./core/cli-surface";
 import type { CliContext } from "./core/types";
 import { SqliteProfileStore } from "./storage/profile-store";
 import { VERSION } from "./version";
@@ -34,7 +29,7 @@ export async function main(): Promise<void> {
 			const profiles = context!.profiles.list();
 			return {
 				profiles: profiles.length,
-				help: [profiles.length === 0 ? PROFILE_ADD_HINT : PROFILE_LIST_HINT],
+				help: [emptyStateHint(profiles.length > 0)],
 			};
 		},
 	});

@@ -34,3 +34,12 @@ export const PROFILE_ADD_HINT = `Run \`${PROFILE_ADD_EXAMPLE}\``;
 
 /** The not-found hint pointing an agent at `list` (get/delete arms, top-level home). */
 export const PROFILE_LIST_HINT = `Run \`${PROFILE_ARMS.list}\` to see saved profiles`;
+
+/**
+ * The shared empty-state rule: an empty store points the agent at `add`, a
+ * non-empty one at `list`. `true` for a non-empty store. The hint tokens and
+ * the rule that selects between them live here, in the surface module.
+ */
+export function emptyStateHint(hasProfiles: boolean): string {
+	return hasProfiles ? PROFILE_LIST_HINT : PROFILE_ADD_HINT;
+}

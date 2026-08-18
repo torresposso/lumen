@@ -85,7 +85,10 @@ pushed.
   birth-input contract's messages interpolate the tokens — none re-types a
   literal, so a command, arm or flag rename is one edit in this module
   (ADR-0006; ADR-0007). It holds the *names*; the birth-input contract holds
-  the *meanings*.
+  the *meanings*. It also owns the shared empty-state rule — the hint tokens
+  and the selection between them (`emptyStateHint`: empty store → add-hint,
+  non-empty → list-hint) live beside each other, so `home` and the `list` arm
+  never re-implement the decision.
 - **Profile store** — the persistence port `ProfileStore` (`src/core/types.ts`:
   `list` / `get` / `add` / `remove` — no file policy, no lifecycle) and the
   SQLite adapter `SqliteProfileStore` (`src/storage/profile-store.ts`) that

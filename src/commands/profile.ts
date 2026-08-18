@@ -3,8 +3,8 @@ import type { ArgsSpec } from "../core/args";
 import { parseBirthInput } from "../core/birth-input";
 import {
 	ADD_FLAGS,
+	emptyStateHint,
 	PROFILE_ADD_EXAMPLE,
-	PROFILE_ADD_HINT,
 	PROFILE_ARMS,
 	PROFILE_COMMAND,
 	PROFILE_LIST_HINT,
@@ -125,9 +125,10 @@ export const profileCommand = createSubcommandGroup<CliContext>({
 			usage: profileListUsage,
 			run: (_parsed, context) => {
 				const profiles = requireProfileStore(context).list().map(toonProfile);
-				return profiles.length > 0
+				const hasProfiles = profiles.length > 0;
+				return hasProfiles
 					? { profiles }
-					: { profiles: [], help: [PROFILE_ADD_HINT] };
+					: { profiles: [], help: [emptyStateHint(hasProfiles)] };
 			},
 		},
 

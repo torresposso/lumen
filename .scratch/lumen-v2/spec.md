@@ -70,7 +70,9 @@ Rules:
   canonical add example and the shared empty-state / NOT_FOUND hints live in the
   **command surface** (`src/core/cli-surface.ts`, ADR-0007). The args spec, the
   usage text, the top-level help and the birth-input contract's messages
-  interpolate the tokens — a command, arm or flag rename is one edit.
+  interpolate the tokens — a command, arm or flag rename is one edit. The
+  shared empty-state *rule* (empty store → add-hint, non-empty → list-hint)
+  lives there too, next to the hint tokens it selects between.
 
 ## 4. Julian Day computation
 

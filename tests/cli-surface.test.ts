@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
 	ADD_FLAGS,
+	emptyStateHint,
 	PROFILE_ADD_EXAMPLE,
 	PROFILE_ADD_HINT,
 	PROFILE_ARMS,
@@ -47,5 +48,10 @@ describe("command surface", () => {
 		expect(PROFILE_ADD_EXAMPLE).toContain(ADD_FLAGS.where);
 		expect(PROFILE_ADD_HINT).toContain(PROFILE_ADD_EXAMPLE);
 		expect(PROFILE_LIST_HINT).toContain(PROFILE_ARMS.list);
+	});
+
+	test("the empty-state rule picks the add hint for an empty store and the list hint otherwise", () => {
+		expect(emptyStateHint(false)).toBe(PROFILE_ADD_HINT);
+		expect(emptyStateHint(true)).toBe(PROFILE_LIST_HINT);
 	});
 });
