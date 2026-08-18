@@ -25,35 +25,40 @@ pushed.
   by the human and stored as-is (e.g. `"Magangué, Colombia"`; model field
   `birthPlace`). The domain term is *birthplace*, not *city*: a birth can happen
   anywhere, and the agent (not lumen) resolves coordinates and offset from it.
+  The CLI supplies it as the tail of `--where` (ADR-0006).
 - **BirthDateTime** — the birth moment as an **ISO 8601 datetime with explicit
-  UTC offset** (e.g. `1990-06-10T14:30-04:00` or `…Z`): the CLI flag
-  `--birthdatetime`, the model field `birthDateTime` and the stored column
-  `birth_date_time`. The offset rides inside it — there is no separate offset
-  value. lumen never touches a timezone database.
-- **BirthLat / BirthLon** — the decimal coordinates of the birth: CLI flags
-  `--birthlat` / `--birthlon`, model `birthLat` / `birthLon`, columns
-  `birth_lat` / `birth_lon`. Together with `birthJdUt` they are the birth's
-  identity for dedupe.
+  UTC offset** (e.g. `1990-06-10T14:30-04:00` or `…Z`): the model field
+  `birthDateTime` and the stored column `birth_date_time`. The CLI flag is
+  `--when` (a different, ergonomic name — ADR-0006). The offset rides inside it —
+  there is no separate offset value. lumen never touches a timezone database.
+- **BirthLat / BirthLon** — the decimal coordinates of the birth: model
+  `birthLat` / `birthLon`, columns `birth_lat` / `birth_lon`. The CLI supplies
+  them as the two leading parts of `--where "lat, lon, Place"`. Together with
+  `birthJdUt` they are the birth's identity for dedupe.
 - **BirthJdUt** — the derived UT instant of a birth (Meeus ch. 7, pure
   arithmetic in `src/core/jd.ts`). lumen's only derivation; it never consults
   timezone databases or calendars.
 - **BirthInput** — the parsed, validated birth input produced by the birth-input
   contract: the canonical `birthDateTime` (ISO with offset), the transient
-  `local`/`offsetMinutes` the Julian-Day computation needs, and `birthLat`/
-  `birthLon`. Produced from `RawBirthInput`.
+  `local`/`offsetMinutes` the Julian-Day computation needs, `birthLat`/
+  `birthLon` and `birthPlace`. Produced from `RawBirthInput`.
 - **LocalTime** — the transient broken-down local wall-clock (year…minute) the
-  birth-input contract yields from `--birthdatetime`; fed to `julianDayUt` and
-  never stored. (Formerly `BirthClock`.)
-- **RawBirthInput** — the raw flag strings `profile add` receives:
-  `--birthdatetime` (ISO 8601 datetime with UTC offset: `YYYY-MM-DDTHH:MM±HH:MM`
-  or `…Z`), `--birthlat` and `--birthlon` (signed decimal degrees). Parsed and
-  validated into a `BirthInput`.
+  birth-input contract yields from `--when`; fed to `julianDayUt` and never
+  stored. (Formerly `BirthClock`.)
+- **RawBirthInput** — the raw flag strings `profile add` receives, in their
+  ergonomic CLI names (ADR-0006): `--when` (ISO 8601 datetime with UTC offset:
+  `YYYY-MM-DDTHH:MM±HH:MM` or `…Z`) and `--where "lat, lon, Place"` (coordinates
+  then place; the first two comma-separated parts are lat/lon, the rest is the
+  place). Parsed and validated into a `BirthInput` whose fields use the model's
+  `birth*` names.
 - **Birth-input contract** — the module `src/core/birth-input.ts` that owns the
   parsing + semantic validation of those raw flags as one seam: a single
   `VALIDATION_ERROR` citing every checkable violated rule in its suggestions.
-  The UTC offset arrives *inside* `--birthdatetime`, never as a separate flag.
-  Flag presence, syntax and value normalization belong to the **args contract**;
-  value semantics belong here.
+  It is also the one seam where the ergonomic CLI names (`--when`/`--where`) meet
+  the model vocabulary (`birth*`) — neither the command nor the store knows the
+  CLI flag names (ADR-0006). The UTC offset arrives *inside* `--when`, never as a
+  separate flag. Flag presence, syntax and value normalization belong to the
+  **args contract**; value semantics belong here.
 - **Args contract** — the module `src/core/args.ts` that owns the flag and
   positional syntax of every command's raw arguments as one seam: known and
   required flags, `--flag=value` / `--flag value` forms, duplicates, missing

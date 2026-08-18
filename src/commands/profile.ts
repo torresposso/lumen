@@ -16,7 +16,7 @@ export interface CliContext {
  * empty-state reference. Never re-type it: interpolate this constant.
  */
 export const PROFILE_ADD_EXAMPLE =
-	'lumen profile add --birthdatetime "1981-01-26T00:50-05:00" --birthlat 9.15 --birthlon -74.75 --birthplace "Magangué, Colombia"';
+	'lumen profile add --when "1981-01-26T00:50-05:00" --where "9.15, -74.75, Magangué, Colombia"';
 
 /** The empty-state hint pointing an agent at `add`, shared by `list` and `home`. */
 export const PROFILE_ADD_HINT = `Run \`${PROFILE_ADD_EXAMPLE}\``;
@@ -31,18 +31,16 @@ export const profileUsage = [
 ].join("\n");
 
 export const profileAddUsage = [
-	'lumen profile add --birthdatetime "YYYY-MM-DDTHH:MM±HH:MM" --birthlat <lat> --birthlon <lon> --birthplace "City, Country" [--name slug]',
+	'lumen profile add --when "YYYY-MM-DDTHH:MM±HH:MM" --where "lat, lon, Place, Country" [--name slug]',
 	"",
 	"Register a birth profile. The agent resolves coordinates and the UTC",
-	"offset, formats them into --birthdatetime, and calls lumen; lumen",
+	"offset, formats them into --when and --where, and calls lumen; lumen",
 	"validates, computes the Julian Day and stores it.",
 	"",
 	"Flags:",
-	"  --birthdatetime  ISO 8601 datetime with UTC offset, e.g. 1990-06-10T14:30-04:00 or ...Z (required)",
-	"  --birthlat       Latitude in decimal degrees, -90..90 (required)",
-	"  --birthlon       Longitude in decimal degrees, -180..180 (required)",
-	'  --birthplace     Human-readable place, e.g. "Madrid, Spain" (required)',
-	"  --name           Optional descriptive slug (no lookup)",
+	"  --when    ISO 8601 datetime with UTC offset, e.g. 1990-06-10T14:30-04:00 or ...Z (required)",
+	'  --where   Coordinates then the place: "lat, lon, Place" (required); the place may contain commas',
+	"  --name    Optional descriptive slug (no lookup)",
 	"",
 	"Adding the same birth twice (same birthJdUt + coordinates) returns the existing",
 	"profile unchanged.",
@@ -66,26 +64,14 @@ export const profileDeleteUsage = [
 	"Deletes one profile by its UUID. Deleting an unknown profile raises NOT_FOUND.",
 ].join("\n");
 
-const ADD_FLAGS = new Set([
-	"--birthdatetime",
-	"--birthlat",
-	"--birthlon",
-	"--birthplace",
-	"--name",
-]);
+const ADD_FLAGS = new Set(["--when", "--where", "--name"]);
 
 /** `profile add` — flags required, no positionals. */
 const ADD_SPEC: ArgsSpec = {
 	known: ADD_FLAGS,
-	required: new Set([
-		"--birthdatetime",
-		"--birthlat",
-		"--birthlon",
-		"--birthplace",
-	]),
+	required: new Set(["--when", "--where"]),
 	positionals: 0,
 	rules: {
-		"--birthplace": { trim: true, nonEmpty: true },
 		"--name": { trim: true, emptyAsNull: true },
 	},
 };
@@ -152,10 +138,8 @@ export const profileCommand: AxiCliCommand<CliContext> = async (
 			const parsed = parseArgs(rest, ADD_SPEC, "lumen profile add");
 			if (parsed.help) return usageFor(sub);
 
-			const birthDateTime = parsed.flags.get("--birthdatetime") as string;
-			const birthLat = parsed.flags.get("--birthlat") as string;
-			const birthLon = parsed.flags.get("--birthlon") as string;
-			const birthPlace = parsed.flags.get("--birthplace") as string;
+			const when = parsed.flags.get("--when") as string;
+			const where = parsed.flags.get("--where") as string;
 			const name = parsed.flags.get("--name") ?? null;
 
 			const {
@@ -164,7 +148,8 @@ export const profileCommand: AxiCliCommand<CliContext> = async (
 				offsetMinutes,
 				birthLat: lat,
 				birthLon: lon,
-			} = parseBirthInput({ birthDateTime, birthLat, birthLon });
+				birthPlace,
+			} = parseBirthInput({ when, where });
 			const birthJdUt = julianDayUt(local, offsetMinutes);
 
 			const { profile, created } = requireProfileStore(context).add({

@@ -3,19 +3,8 @@ import type { AxiError } from "axi-sdk-js";
 import { type ArgsSpec, parseArgs } from "../src/core/args";
 
 const ADD_SPEC: ArgsSpec = {
-	known: new Set([
-		"--birthdatetime",
-		"--birthlat",
-		"--birthlon",
-		"--birthplace",
-		"--name",
-	]),
-	required: new Set([
-		"--birthdatetime",
-		"--birthlat",
-		"--birthlon",
-		"--birthplace",
-	]),
+	known: new Set(["--when", "--where", "--name"]),
+	required: new Set(["--when", "--where"]),
 	positionals: 0,
 };
 
@@ -38,32 +27,29 @@ describe("parseArgs", () => {
 	test("parses --flag value and --flag=value forms", () => {
 		const parsed = parseArgs(
 			[
-				"--birthdatetime",
+				"--when",
 				"1990-06-10T14:30-05:00",
-				"--birthlat=-15.5",
-				"--birthlon",
-				"74.7",
-				"--birthplace",
-				"Tampa, USA",
+				"--where=27.95,-82.46,Tampa, USA",
+				"--name",
+				"silvia",
 			],
 			ADD_SPEC,
 			"lumen profile add",
 		);
 		expect(parsed.help).toBe(false);
-		expect(parsed.flags.get("--birthdatetime")).toBe("1990-06-10T14:30-05:00");
-		expect(parsed.flags.get("--birthlat")).toBe("-15.5");
-		expect(parsed.flags.get("--birthlon")).toBe("74.7");
-		expect(parsed.flags.get("--birthplace")).toBe("Tampa, USA");
+		expect(parsed.flags.get("--when")).toBe("1990-06-10T14:30-05:00");
+		expect(parsed.flags.get("--where")).toBe("27.95,-82.46,Tampa, USA");
+		expect(parsed.flags.get("--name")).toBe("silvia");
 		expect(parsed.positionals).toEqual([]);
 	});
 
-	test("accepts a value starting with a single dash (--birthlon -74.75)", () => {
+	test("accepts a value starting with a single dash (--where -9.15,-74.75,…)", () => {
 		const parsed = parseArgs(
-			["--birthlon", "-74.75"],
-			{ known: new Set(["--birthlon"]), positionals: 0 },
+			["--where", "-9.15,-74.75,Magangué, Colombia"],
+			{ known: new Set(["--where"]), positionals: 0 },
 			"lumen profile add",
 		);
-		expect(parsed.flags.get("--birthlon")).toBe("-74.75");
+		expect(parsed.flags.get("--where")).toBe("-9.15,-74.75,Magangué, Colombia");
 	});
 
 	test("rejects an unknown flag with VALIDATION_ERROR", () => {
@@ -78,21 +64,17 @@ describe("parseArgs", () => {
 
 	test("rejects a flag provided more than once", () => {
 		expect(() =>
-			parseArgs(
-				["--birthdatetime", "a", "--birthdatetime", "b"],
-				ADD_SPEC,
-				"x",
-			),
+			parseArgs(["--when", "a", "--when", "b"], ADD_SPEC, "x"),
 		).toThrow(/provided more than once/);
 	});
 
 	test("rejects a flag without a value", () => {
-		expect(() => parseArgs(["--birthdatetime"], ADD_SPEC, "x")).toThrow(
+		expect(() => parseArgs(["--when"], ADD_SPEC, "x")).toThrow(
 			/requires a value/,
 		);
-		expect(() =>
-			parseArgs(["--birthdatetime", "--birthlat", "1"], ADD_SPEC, "x"),
-		).toThrow(/requires a value/);
+		expect(() => parseArgs(["--when", "--where", "1"], ADD_SPEC, "x")).toThrow(
+			/requires a value/,
+		);
 	});
 
 	test("rejects --help=value", () => {
@@ -110,7 +92,7 @@ describe("parseArgs", () => {
 
 	test("reports missing required flags", () => {
 		expect(() =>
-			parseArgs(["--birthdatetime", "a"], ADD_SPEC, "lumen profile add"),
+			parseArgs(["--when", "a"], ADD_SPEC, "lumen profile add"),
 		).toThrow(/Missing required flag/);
 	});
 
@@ -160,7 +142,8 @@ describe("parseArgs", () => {
 			const all = suggestions(error).join(" ");
 			expect(all).toContain("Unknown flag: --bogus");
 			expect(all).toContain("Unexpected argument: x");
-			expect(all).toContain("Missing required flag --birthdatetime");
+			expect(all).toContain("Missing required flag --when");
+			expect(all).toContain("Missing required flag --where");
 			expect((error as Error).message).toContain("Unknown flag: --bogus");
 		}
 	});
@@ -168,31 +151,31 @@ describe("parseArgs", () => {
 
 describe("parseArgs value rules", () => {
 	const SPEC: ArgsSpec = {
-		known: new Set(["--birthplace", "--name"]),
-		required: new Set(["--birthplace"]),
+		known: new Set(["--label", "--name"]),
+		required: new Set(["--label"]),
 		positionals: 0,
 		rules: {
-			"--birthplace": { trim: true, nonEmpty: true },
+			"--label": { trim: true, nonEmpty: true },
 			"--name": { trim: true, emptyAsNull: true },
 		},
 	};
 
 	test("trims values", () => {
 		const parsed = parseArgs(
-			["--birthplace", "  Madrid, Spain  "],
+			["--label", "  Madrid, Spain  "],
 			SPEC,
 			"lumen profile add",
 		);
-		expect(parsed.flags.get("--birthplace")).toBe("Madrid, Spain");
+		expect(parsed.flags.get("--label")).toBe("Madrid, Spain");
 	});
 
 	test("nonEmpty: an empty value is a violation", () => {
 		try {
-			parseArgs(["--birthplace", "   "], SPEC, "lumen profile add");
+			parseArgs(["--label", "   "], SPEC, "lumen profile add");
 			expect.unreachable();
 		} catch (error) {
 			expect((error as Error).message).toContain(
-				"Flag --birthplace must not be empty",
+				"Flag --label must not be empty",
 			);
 			expect(code(error)).toBe("VALIDATION_ERROR");
 		}
@@ -200,7 +183,7 @@ describe("parseArgs value rules", () => {
 
 	test("emptyAsNull: an empty value becomes null", () => {
 		const parsed = parseArgs(
-			["--birthplace", "Madrid, Spain", "--name", "  "],
+			["--label", "Madrid, Spain", "--name", "  "],
 			SPEC,
 			"lumen profile add",
 		);
@@ -209,7 +192,7 @@ describe("parseArgs value rules", () => {
 
 	test("an absent optional flag stays undefined", () => {
 		const parsed = parseArgs(
-			["--birthplace", "Madrid, Spain"],
+			["--label", "Madrid, Spain"],
 			SPEC,
 			"lumen profile add",
 		);

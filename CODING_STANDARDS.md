@@ -44,7 +44,10 @@ Already enforced, not reviewable:
    place with one error style (`src/core/args.ts` and `src/core/birth-input.ts`
    are the models: each accumulates every *checkable* violation and throws one
    error citing all of them). Validation must not be re-implemented at call
-   sites — the command owns presence and orchestration, never value checks.
+   sites — the command owns presence and orchestration, never value checks. The
+   birth-input seam is the single place where the ergonomic CLI names
+   (`--when`/`--where`) map onto the model's `birth*` fields — no other module
+   knows the CLI flag names (ADR-0006).
 7. **Pure kernels don't validate or do I/O.** `src/core/jd.ts` is arithmetic
    only — no range checks, no imports beyond plain math. Validation belongs to
    the calling contract; I/O belongs to the storage layer.

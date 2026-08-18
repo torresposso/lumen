@@ -4,21 +4,15 @@ import { parseBirthInput } from "../src/core/birth-input";
 import type { BirthInput } from "../src/core/types";
 
 const VALID = {
-	birthDateTime: "1990-06-10T14:30-04:00",
-	birthLat: "27.95",
-	birthLon: "-82.46",
+	when: "1990-06-10T14:30-04:00",
+	where: "27.95, -82.46, Tampa, USA",
 };
 
-function issuesFor(raw: {
-	birthDateTime?: string;
-	birthLat?: string;
-	birthLon?: string;
-}): string[] {
+function issuesFor(raw: { when?: string; where?: string }): string[] {
 	try {
 		parseBirthInput({
-			birthDateTime: raw.birthDateTime ?? VALID.birthDateTime,
-			birthLat: raw.birthLat ?? VALID.birthLat,
-			birthLon: raw.birthLon ?? VALID.birthLon,
+			when: raw.when ?? VALID.when,
+			where: raw.where ?? VALID.where,
 		});
 		return [];
 	} catch (error) {
@@ -36,14 +30,14 @@ describe("parseBirthInput — contract", () => {
 			offsetMinutes: -240,
 			birthLat: 27.95,
 			birthLon: -82.46,
+			birthPlace: "Tampa, USA",
 		});
 	});
 
-	test("accepts Z, explicit +, and single-digit fields, canonicalizing the local time", () => {
+	test("accepts Z, explicit +, single-digit fields and a place with commas, canonicalizing the local time", () => {
 		const input = parseBirthInput({
-			birthDateTime: "1990-6-10T14:5Z",
-			birthLat: "9.15",
-			birthLon: "-74.75",
+			when: "1990-6-10T14:5Z",
+			where: "9.15, -74.75, Magangué, Colombia",
 		});
 		expect(input.birthDateTime).toBe("1990-06-10T14:05Z");
 		expect(input.offsetMinutes).toBe(0);
@@ -56,66 +50,80 @@ describe("parseBirthInput — contract", () => {
 		});
 		expect(input.birthLat).toBe(9.15);
 		expect(input.birthLon).toBe(-74.75);
+		expect(input.birthPlace).toBe("Magangué, Colombia");
 	});
 
-	test("rejects a malformed --birthdatetime with a cited rule", () => {
-		expect(issuesFor({ birthDateTime: "not-a-date" })).toEqual([
-			expect.stringContaining("--birthdatetime"),
+	test("rejects a malformed --when with a cited rule", () => {
+		expect(issuesFor({ when: "not-a-date" })).toEqual([
+			expect.stringContaining("--when"),
 		]);
 	});
 
-	test("rejects a malformed --birthlat with a cited rule", () => {
-		expect(issuesFor({ birthLat: "zz" })).toEqual([
-			expect.stringContaining("--birthlat"),
+	test("rejects a --where without at least three parts (coords + place)", () => {
+		expect(issuesFor({ where: "zz" })).toEqual([
+			expect.stringContaining("--where"),
+		]);
+		expect(issuesFor({ where: "9.15, -74.75" })).toEqual([
+			expect.stringContaining("--where"),
 		]);
 	});
 
-	test("rejects a malformed --birthlon with a cited rule", () => {
-		expect(issuesFor({ birthLon: "zz" })).toEqual([
-			expect.stringContaining("--birthlon"),
+	test("rejects a malformed latitude with a cited rule", () => {
+		expect(issuesFor({ where: "zz, -74.75, Magangué" })).toEqual([
+			expect.stringContaining("--where latitude"),
 		]);
 	});
 
-	test("rejects a malformed offset inside --birthdatetime with a cited rule", () => {
-		expect(
-			issuesFor({ birthDateTime: "1990-06-10T14:30+05:99" }).join(" "),
-		).toContain("--birthdatetime offset");
+	test("rejects a malformed longitude with a cited rule", () => {
+		expect(issuesFor({ where: "9.15, zz, Magangué" })).toEqual([
+			expect.stringContaining("--where longitude"),
+		]);
+	});
+
+	test("rejects an empty place with a cited rule", () => {
+		expect(issuesFor({ where: "9.15, -74.75,   " })).toEqual([
+			expect.stringContaining("--where place"),
+		]);
+	});
+
+	test("rejects a malformed offset inside --when with a cited rule", () => {
+		expect(issuesFor({ when: "1990-06-10T14:30+05:99" }).join(" ")).toContain(
+			"--when offset",
+		);
 	});
 
 	test("accumulates every checkable violation in one error", () => {
 		const issues = issuesFor({
-			birthDateTime: "1799-02-30T24:60-04:00",
-			birthLat: "90.1",
-			birthLon: "180.1",
+			when: "1799-02-30T24:60-04:00",
+			where: "90.1, 180.1, Place",
 		});
 		expect(issues).toEqual([
 			expect.stringContaining("year"),
 			expect.stringContaining("day"),
 			expect.stringContaining("hour"),
 			expect.stringContaining("minute"),
-			expect.stringContaining("--birthlat"),
-			expect.stringContaining("--birthlon"),
+			expect.stringContaining("--where latitude"),
+			expect.stringContaining("--where longitude"),
 		]);
 	});
 
-	test("a malformed --birthdatetime does not block checking lat/lon", () => {
+	test("a malformed --when does not block checking --where", () => {
 		const issues = issuesFor({
-			birthDateTime: "not-a-date",
-			birthLat: "zz",
-			birthLon: "zz",
+			when: "not-a-date",
+			where: "zz, zz, Place",
 		});
 		expect(issues).toEqual([
-			expect.stringContaining("--birthdatetime"),
-			expect.stringContaining("--birthlat"),
-			expect.stringContaining("--birthlon"),
+			expect.stringContaining("--when"),
+			expect.stringContaining("--where latitude"),
+			expect.stringContaining("--where longitude"),
 		]);
 	});
 
 	test("error carries the VALIDATION_ERROR code", () => {
 		try {
 			parseBirthInput({
-				...VALID,
-				birthDateTime: "1990-06-10T14:30+16:00",
+				when: "1990-06-10T14:30+16:00",
+				where: VALID.where,
 			});
 			expect.unreachable();
 		} catch (error) {
@@ -126,17 +134,17 @@ describe("parseBirthInput — contract", () => {
 
 describe("parseBirthInput — semantic ranges", () => {
 	test("feb 29 only in leap years", () => {
-		expect(issuesFor({ birthDateTime: "2000-02-29T12:00-05:00" })).toEqual([]);
-		expect(issuesFor({ birthDateTime: "1900-02-29T12:00-05:00" })).toEqual([
+		expect(issuesFor({ when: "2000-02-29T12:00-05:00" })).toEqual([]);
+		expect(issuesFor({ when: "1900-02-29T12:00-05:00" })).toEqual([
 			expect.stringContaining("day"),
 		]);
 	});
 
 	test("rejects nonexistent dates", () => {
-		expect(issuesFor({ birthDateTime: "2000-02-30T12:00-05:00" })).toEqual([
+		expect(issuesFor({ when: "2000-02-30T12:00-05:00" })).toEqual([
 			expect.stringContaining("day"),
 		]);
-		expect(issuesFor({ birthDateTime: "2026-04-31T12:00-05:00" })).toEqual([
+		expect(issuesFor({ when: "2026-04-31T12:00-05:00" })).toEqual([
 			expect.stringContaining("day"),
 		]);
 	});
@@ -150,35 +158,35 @@ describe("parseBirthInput — semantic ranges", () => {
 	] as Array<[string, string]>)(
 		"rejects out-of-range clock fields (%j)",
 		(dateTime, field) => {
-			expect(issuesFor({ birthDateTime: dateTime })).toEqual([
+			expect(issuesFor({ when: dateTime })).toEqual([
 				expect.stringContaining(field),
 			]);
 		},
 	);
 
 	test("rejects offsets out of range or non-integer", () => {
-		expect(issuesFor({ birthDateTime: "1990-06-10T14:30+15:00" })[0]).toContain(
-			"--birthdatetime offset",
+		expect(issuesFor({ when: "1990-06-10T14:30+15:00" })[0]).toContain(
+			"--when offset",
 		);
-		expect(issuesFor({ birthDateTime: "1990-06-10T14:30-15:00" })[0]).toContain(
-			"--birthdatetime offset",
+		expect(issuesFor({ when: "1990-06-10T14:30-15:00" })[0]).toContain(
+			"--when offset",
 		);
-		expect(issuesFor({ birthDateTime: "1990-06-10T14:30+05:99" })[0]).toContain(
-			"--birthdatetime offset",
+		expect(issuesFor({ when: "1990-06-10T14:30+05:99" })[0]).toContain(
+			"--when offset",
 		);
 	});
 
 	test("rejects years outside 1800-2100", () => {
-		expect(issuesFor({ birthDateTime: "1799-01-01T12:00-05:00" })[0]).toContain(
-			"year",
-		);
-		expect(issuesFor({ birthDateTime: "2101-01-01T12:00-05:00" })[0]).toContain(
-			"year",
-		);
+		expect(issuesFor({ when: "1799-01-01T12:00-05:00" })[0]).toContain("year");
+		expect(issuesFor({ when: "2101-01-01T12:00-05:00" })[0]).toContain("year");
 	});
 
 	test("rejects coordinates out of range", () => {
-		expect(issuesFor({ birthLat: "90.1" })[0]).toContain("--birthlat");
-		expect(issuesFor({ birthLon: "180.1" })[0]).toContain("--birthlon");
+		expect(issuesFor({ where: "90.1, -74.75, X" })[0]).toContain(
+			"--where latitude",
+		);
+		expect(issuesFor({ where: "9.15, 180.1, X" })[0]).toContain(
+			"--where longitude",
+		);
 	});
 });

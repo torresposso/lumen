@@ -7,11 +7,10 @@ export const MAX_YEAR = 2100;
 export const MIN_OFFSET_MINUTES = -840;
 export const MAX_OFFSET_MINUTES = 840;
 
-/** The raw `--birthdatetime` / `--birthlat` / `--birthlon` strings as received by `profile add`. */
+/** The raw `--when` / `--where` strings as received by `profile add`. */
 export interface RawBirthInput {
-	birthDateTime: string;
-	birthLat: string;
-	birthLon: string;
+	when: string;
+	where: string;
 }
 
 const DATETIME_RE =
@@ -25,30 +24,32 @@ function pad2(value: number): string {
 
 /**
  * The birth-input contract — the single seam lumen applies to the raw strings
- * of `profile add`. `--birthdatetime` is an ISO 8601 datetime *with* a UTC
- * offset (`YYYY-MM-DDTHH:MM±HH:MM` or `…Z`) — the offset is never a separate
- * flag; `--birthlat`/`--birthlon` are signed decimal degrees.
+ * of `profile add`. `--when` is an ISO 8601 datetime *with* a UTC offset
+ * (`YYYY-MM-DDTHH:MM±HH:MM` or `…Z`) — the offset is never a separate flag.
+ * `--where` bundles the coordinates and the human-readable place:
+ * `"lat, lon, Place"` (the place itself may contain commas, e.g.
+ * `"9.15, -74.75, Magangué, Colombia"`), which yields `birthLat`/`birthLon`/
+ * `birthPlace`.
  *
  * Parses the formats and validates the semantic ranges in one pass,
  * accumulating every *checkable* violation: a field whose format does not
- * parse cannot be range-checked (e.g. `--birthdatetime "garbage"`), but the
- * other fields still are. On any violation throws one `AxiError` with all
- * cited rules as suggestions, so an agent caller gets the whole contract
- * verdict in one round-trip. Presence of the flags themselves is the
- * command's concern.
+ * parse cannot be range-checked (e.g. `--when "garbage"`), but the other
+ * fields still are. On any violation throws one `AxiError` with all cited
+ * rules as suggestions, so an agent caller gets the whole contract verdict in
+ * one round-trip. Presence of the flags themselves is the command's concern.
  */
 export function parseBirthInput(raw: RawBirthInput): BirthInput {
 	const issues: string[] = [];
 
-	// --birthdatetime
-	const dateTime = raw.birthDateTime.trim();
-	const match = DATETIME_RE.exec(dateTime);
+	// --when
+	const when = raw.when.trim();
+	const match = DATETIME_RE.exec(when);
 	let canonicalDateTime: string | undefined;
 	let local: LocalTime | undefined;
 	let offsetMinutes: number | undefined;
 	if (match === null) {
 		issues.push(
-			`--birthdatetime must look like "YYYY-MM-DDTHH:MM±HH:MM" or "…Z" (got "${dateTime}")`,
+			`--when must look like "YYYY-MM-DDTHH:MM±HH:MM" or "…Z" (got "${when}")`,
 		);
 	} else {
 		const offsetSuffix = match[6] as string;
@@ -59,23 +60,17 @@ export function parseBirthInput(raw: RawBirthInput): BirthInput {
 			hour: Number(match[4]),
 			minute: Number(match[5]),
 		};
-		checkIntRange(
-			issues,
-			local.year,
-			MIN_YEAR,
-			MAX_YEAR,
-			"--birthdatetime year",
-		);
-		checkIntRange(issues, local.month, 1, 12, "--birthdatetime month");
+		checkIntRange(issues, local.year, MIN_YEAR, MAX_YEAR, "--when year");
+		checkIntRange(issues, local.month, 1, 12, "--when month");
 		if (
 			!Number.isInteger(local.day) ||
 			local.day < 1 ||
 			local.day > daysInMonth(local.year, local.month)
 		) {
-			issues.push("--birthdatetime day is invalid for that month");
+			issues.push("--when day is invalid for that month");
 		}
-		checkIntRange(issues, local.hour, 0, 23, "--birthdatetime hour");
-		checkIntRange(issues, local.minute, 0, 59, "--birthdatetime minute");
+		checkIntRange(issues, local.hour, 0, 23, "--when hour");
+		checkIntRange(issues, local.minute, 0, 59, "--when minute");
 
 		offsetMinutes =
 			offsetSuffix === "Z" ? 0 : offsetToMinutes(offsetSuffix, issues);
@@ -85,34 +80,56 @@ export function parseBirthInput(raw: RawBirthInput): BirthInput {
 				offsetMinutes,
 				MIN_OFFSET_MINUTES,
 				MAX_OFFSET_MINUTES,
-				"--birthdatetime offset",
+				"--when offset",
 			);
 		}
 
 		canonicalDateTime = `${local.year}-${pad2(local.month)}-${pad2(local.day)}T${pad2(local.hour)}:${pad2(local.minute)}${offsetSuffix}`;
 	}
 
-	// --birthlat
-	let birthLat = NaN;
-	const latText = raw.birthLat.trim();
-	if (!NUMBER_RE.test(latText)) {
-		issues.push(`--birthlat must be a decimal number (got "${latText}")`);
+	// --where "lat, lon, Place"
+	const where = raw.where.trim();
+	const whereParts = where.split(",");
+	let birthLat: number | undefined;
+	let birthLon: number | undefined;
+	let birthPlace: string | undefined;
+	if (whereParts.length < 3) {
+		issues.push(
+			`--where must list coordinates then a place: "lat, lon, Place" (got "${where}")`,
+		);
 	} else {
-		birthLat = Number(latText);
-		if (!Number.isFinite(birthLat) || birthLat < -90 || birthLat > 90) {
-			issues.push("--birthlat must be a latitude between -90 and 90");
+		const latText = whereParts[0]?.trim() ?? "";
+		const lonText = whereParts[1]?.trim() ?? "";
+		if (!NUMBER_RE.test(latText)) {
+			issues.push(
+				`--where latitude must be a decimal number (got "${latText}")`,
+			);
+		} else {
+			birthLat = Number(latText);
+			if (!Number.isFinite(birthLat) || birthLat < -90 || birthLat > 90) {
+				issues.push("--where latitude must be between -90 and 90");
+			}
 		}
-	}
+		if (!NUMBER_RE.test(lonText)) {
+			issues.push(
+				`--where longitude must be a decimal number (got "${lonText}")`,
+			);
+		} else {
+			birthLon = Number(lonText);
+			if (!Number.isFinite(birthLon) || birthLon < -180 || birthLon > 180) {
+				issues.push("--where longitude must be between -180 and 180");
+			}
+		}
 
-	// --birthlon
-	let birthLon = NaN;
-	const lonText = raw.birthLon.trim();
-	if (!NUMBER_RE.test(lonText)) {
-		issues.push(`--birthlon must be a decimal number (got "${lonText}")`);
-	} else {
-		birthLon = Number(lonText);
-		if (!Number.isFinite(birthLon) || birthLon < -180 || birthLon > 180) {
-			issues.push("--birthlon must be a longitude between -180 and 180");
+		const place = whereParts
+			.slice(2)
+			.map((p) => p.trim())
+			.join(", ")
+			.trim();
+		if (place === "") {
+			issues.push("--where place must not be empty");
+		} else {
+			birthPlace = place;
 		}
 	}
 
@@ -123,8 +140,9 @@ export function parseBirthInput(raw: RawBirthInput): BirthInput {
 		birthDateTime: canonicalDateTime as string,
 		local: local as LocalTime,
 		offsetMinutes: offsetMinutes as number,
-		birthLat,
-		birthLon,
+		birthLat: birthLat as number,
+		birthLon: birthLon as number,
+		birthPlace: birthPlace as string,
 	};
 }
 
@@ -143,7 +161,7 @@ function offsetToMinutes(suffix: string, issues: string[]): number {
 		mm < 0 ||
 		mm > 59
 	) {
-		issues.push(`--birthdatetime offset must be ±HH:MM, e.g. "-05:00" or "Z"`);
+		issues.push(`--when offset must be ±HH:MM, e.g. "-05:00" or "Z"`);
 		return NaN;
 	}
 	return sign * (hh * 60 + mm);

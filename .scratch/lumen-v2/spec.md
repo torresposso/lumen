@@ -32,7 +32,7 @@ UTC offset are not stored separately — they arrive and are stored as the singl
 ## 3. CLI contract
 
 ```
-lumen profile add --birthdatetime "YYYY-MM-DDTHH:MM±HH:MM" --birthlat <lat> --birthlon <lon> --birthplace "<human-readable place>" [--name <slug>]
+lumen profile add --when "YYYY-MM-DDTHH:MM±HH:MM" --where "lat, lon, Place" [--name <slug>]
 lumen profile list
 lumen profile get <uuid>
 lumen profile delete <uuid>
@@ -44,16 +44,19 @@ Rules:
   `birthJdUt + birthLat + birthLon` already exists, it is returned (the
   `name`/`birthPlace` of the second `add` are discarded — the birth is the
   identity).
-- `--birthdatetime` is an **ISO 8601 datetime with an explicit UTC offset**:
-  `YYYY-MM-DDTHH:MM±HH:MM` or `…Z` (offset zero). No separate `--offset` flag —
-  the offset rides inside `--birthdatetime`, resolved by the agent, never by
-  lumen. Coordinates are two flags, `--birthlat` / `--birthlon` (signed decimal
-  degrees).
+- The CLI is ergonomic and decoupled from the model's `birth*` vocabulary
+  (ADR-0006): `--when` is an **ISO 8601 datetime with an explicit UTC offset**
+  (`YYYY-MM-DDTHH:MM±HH:MM` or `…Z`); `--where "lat, lon, Place"` bundles the
+  coordinates and the human-readable place — the first two comma-separated parts
+  are lat/lon, the remainder (which may contain commas) is the place. Both map
+  onto the flat `birth*` model fields at the single birth-input seam.
+- No separate `--offset` flag — the offset rides inside `--when`, resolved by the
+  agent, never by lumen.
 - `get`/`delete` by **UUID only** (no lookup by name or birthPlace).
 - Validation (the violated rule is cited in the error): offset −840..+840 minutes
   (`±HH:MM`); year 1800–2100; month 1–12; day valid by pure arithmetic
-  (Gregorian leap rule); hour 0–23; minute 0–59; birthlat −90..90;
-  birthlon −180..180.
+  (Gregorian leap rule); hour 0–23; minute 0–59; the `--where` latitude −90..90
+  and longitude −180..180; the `--where` place non-empty.
 - AXI errors: `VALIDATION_ERROR` (input), `NOT_FOUND` (`get`/`delete` of an
   unknown UUID), `PROFILE_ERROR` (store failure, e.g. unwritable cwd).
 - Messages in **English**.
@@ -113,9 +116,9 @@ Removed: `caelus`, `caelus-birth`, `zod`, `luxon` (the last one only transitive 
 - `tests/args.test.ts` — the CLI-args contract: flag forms, duplicates, missing
   values, required flags, positional counts, value rules, `--help`, accumulated
   errors.
-- `tests/birth-input.test.ts` — `--birthdatetime` ISO formats (`±HH:MM`, `Z`,
-  invalid forms, missing offset) + semantic ranges; `--birthlat`/`--birthlon`;
-  accumulation.
+- `tests/birth-input.test.ts` — `--when` ISO formats (`±HH:MM`, `Z`, invalid
+  forms, missing offset) + semantic ranges; `--where "lat, lon, Place"`
+  (coordinates + place with commas); accumulation.
 - `tests/jd.test.ts` — the 14 reference vectors (research 02); boundary validations (Feb 30, hour 24, offset ±841, year 1799/2101, lat ±90.1, lon ±180.1); offset round-trip.
 - `tests/profile-store.test.ts` — CRUD; dedupe (ON CONFLICT returns the existing profile); lazy creation (`list` does not create the file, `add` does); 0600 permissions; `LUMEN_DB` override; `user_version` migration (v1→v4, v2→v4, v3→v4).
 - `tests/cli.test.ts` — input contract (each flag + combinations); AXI errors; TOON output (rounding applied, `birthDateTime` echoed); `add` prints the UUID; dedupe visible from the CLI.
@@ -127,7 +130,7 @@ bin/lumen.ts                     # entry (executable)
 src/cli.ts                       # runAxiCli + command registration
 src/commands/profile.ts          # add / list / get / delete
 src/core/args.ts                 # CLI-args contract (flag + positional syntax)
-src/core/birth-input.ts          # birth-input contract (parse ISO --birthdatetime + --birthlat/--birthlon, one error style)
+src/core/birth-input.ts          # birth-input contract (parse ISO --when + --where "lat, lon, Place", one error style)
 src/core/jd.ts                   # Meeus arithmetic only (julianDayUt, no validation)
 src/core/types.ts                # Profile, BirthInput, LocalTime, etc.
 src/core/toon.ts                 # display policy (shape + precisions)

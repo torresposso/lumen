@@ -20,14 +20,10 @@ function invalidCode(error: unknown): string {
 }
 
 const ADD_ARGS = [
-	"--birthdatetime",
+	"--when",
 	"1990-06-10T14:30-04:00",
-	"--birthlat",
-	"27.95",
-	"--birthlon",
-	"-82.46",
-	"--birthplace",
-	"Tampa, USA",
+	"--where",
+	"27.95, -82.46, Tampa, USA",
 	"--name",
 	"erik",
 ];
@@ -98,105 +94,56 @@ describe("profileCommand", () => {
 			profileCommand(
 				[
 					"add",
-					"--birthdatetime",
+					"--when",
 					"1990-06-10T14:30+15:00",
-					"--birthlat",
-					"27.95",
-					"--birthlon",
-					"-82.46",
-					"--birthplace",
-					"Tampa, USA",
+					"--where",
+					"27.95, -82.46, Tampa, USA",
 				],
 				ctx(),
 			),
 		).rejects.toThrow(/Invalid birth input/);
 		await expect(
 			profileCommand(
-				[
-					"add",
-					"--birthdatetime",
-					"1990-13-01T00:00-05:00",
-					"--birthlat",
-					"0",
-					"--birthlon",
-					"0",
-					"--birthplace",
-					"x",
-				],
+				["add", "--when", "1990-13-01T00:00-05:00", "--where", "0, 0, x"],
 				ctx(),
 			),
 		).rejects.toThrow(/Invalid birth input/);
 	});
 
 	test("add rejects malformed flags with VALIDATION_ERROR citing the rule", async () => {
-		const dateTime = await addSuggestions([
-			"--birthdatetime",
+		const when = await addSuggestions([
+			"--when",
 			"not-a-date",
-			"--birthlat",
-			"0",
-			"--birthlon",
-			"0",
-			"--birthplace",
-			"x",
+			"--where",
+			"0, 0, x",
 		]);
-		expect(dateTime.join(" ")).toContain("--birthdatetime");
+		expect(when.join(" ")).toContain("--when");
 
 		const offset = await addSuggestions([
-			"--birthdatetime",
+			"--when",
 			"1990-06-10T14:30+05:99",
-			"--birthlat",
-			"0",
-			"--birthlon",
-			"0",
-			"--birthplace",
-			"x",
+			"--where",
+			"0, 0, x",
 		]);
-		expect(offset.join(" ")).toContain("--birthdatetime offset");
+		expect(offset.join(" ")).toContain("--when offset");
 
-		const lat = await addSuggestions([
-			"--birthdatetime",
+		const where = await addSuggestions([
+			"--when",
 			"1990-06-10T14:30-05:00",
-			"--birthlat",
+			"--where",
 			"zz",
-			"--birthlon",
-			"0",
-			"--birthplace",
-			"x",
 		]);
-		expect(lat.join(" ")).toContain("--birthlat");
-
-		const lon = await addSuggestions([
-			"--birthdatetime",
-			"1990-06-10T14:30-05:00",
-			"--birthlat",
-			"0",
-			"--birthlon",
-			"zz",
-			"--birthplace",
-			"x",
-		]);
-		expect(lon.join(" ")).toContain("--birthlon");
+		expect(where.join(" ")).toContain("--where");
 
 		await expect(
 			profileCommand(["add", ...ADD_ARGS, "--bogus", "1"], ctx()),
 		).rejects.toThrow(/Unknown flag: --bogus/);
 	});
 
-	test("add requires --birthplace", async () => {
+	test("add requires --where", async () => {
 		await expect(
-			profileCommand(
-				[
-					"add",
-					"--birthdatetime",
-					"1990-06-10T14:30-05:00",
-					"--birthlat",
-					"0",
-					"--birthlon",
-					"0",
-				],
-				ctx(),
-			),
-		).rejects.toThrow(/Missing required flag --birthplace/);
+			profileCommand(["add", "--when", "1990-06-10T14:30-05:00"], ctx()),
+		).rejects.toThrow(/Missing required flag --where/);
 	});
 
 	test("list returns profiles; empty list includes a hint", async () => {
@@ -262,12 +209,12 @@ describe("profileCommand", () => {
 			["list", "--help"],
 			undefined,
 		)) as string;
-		expect(addHelp).toContain("--birthplace");
-		expect(addHelp).toContain("--birthdatetime");
+		expect(addHelp).toContain("--when");
+		expect(addHelp).toContain("--where");
 		expect(addHelp).not.toContain("lumen profile get");
 		expect(listHelp).toContain("lumen profile list");
 		expect(listHelp).not.toContain("--offset");
-		expect(listHelp).not.toContain("--when");
+		expect(listHelp).not.toContain("--where");
 	});
 
 	test("rejects unknown subcommands", async () => {

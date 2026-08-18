@@ -17,6 +17,8 @@ export interface BirthInput {
 	offsetMinutes: number;
 	birthLat: number;
 	birthLon: number;
+	/** Human-readable place — the stored `birthPlace`. */
+	birthPlace: string;
 }
 
 /**
