@@ -1,4 +1,4 @@
-# 05 — Estrategia de tests v2
+# 05 — v2 test strategy
 
 Type: grilling
 Status: resolved
@@ -6,20 +6,20 @@ Blocked by: 03, 04
 
 ## Question
 
-¿Qué cubren los tests de lumen v2?
+What do the lumen v2 tests cover?
 
-- Suites: cálculo JD (vectores y casos límite), profile-store (CRUD, migración, permisos), CLI (contrato de entrada, errores, salida TOON).
-- Qué tests v1 se reescriben (profile-store.test.ts, natal-intake, birth-resolver…) y cuáles se descartan.
+- Suites: JD calculation (vectors and boundary cases), profile-store (CRUD, migration, permissions), CLI (input contract, errors, TOON output).
+- Which v1 tests are rewritten (profile-store.test.ts, natal-intake, birth-resolver…) and which are discarded.
 
 ## Answer
 
-Resuelto (2026-08-18).
+Resolved (2026-08-18).
 
-**Framework**: `bun test` (mismo que v1).
+**Framework**: `bun test` (same as v1).
 
-**Tres suites**:
-- `tests/jd.test.ts` — cálculo puro: 14 vectores de referencia del research 02; casos límite de validación (Feb 30, hora 24, offset ±841, año 1799/2101, lat ±90.1, lon ±180.1); round-trip offset.
-- `tests/profile-store.test.ts` — CRUD (add/list/get/rm); dedupe por nacimiento (ON CONFLICT devuelve el existente); creación lazy (`list` no crea archivo, `add` sí); permisos 0600; override `LUMEN_DB`; migración `user_version`.
-- `tests/cli.test.ts` — contrato de entrada (cada flag + combinaciones); errores AXI (VALIDATION_ERROR citando la regla, NOT_FOUND, PROFILE_ERROR); salida TOON (redondeos aplicados); `add` imprime el UUID; dedupe visible desde CLI.
+**Three suites**:
+- `tests/jd.test.ts` — pure calculation: 14 reference vectors from research 02; validation boundary cases (Feb 30, hour 24, offset ±841, year 1799/2101, lat ±90.1, lon ±180.1); offset round-trip.
+- `tests/profile-store.test.ts` — CRUD (add/list/get/rm); birth dedupe (ON CONFLICT returns the existing profile); lazy creation (`list` does not create the file, `add` does); 0600 permissions; `LUMEN_DB` override; `user_version` migration.
+- `tests/cli.test.ts` — input contract (each flag + combinations); AXI errors (VALIDATION_ERROR citing the rule, NOT_FOUND, PROFILE_ERROR); TOON output (rounding applied); `add` prints the UUID; dedupe visible from the CLI.
 
-**Mapeo v1**: se reescriben por patrón `profile-store.test.ts` y `cli.test.ts`; se descartan `natal-intake`, `birth-resolver`, `geocode`, `config` y todo el árbol astrológico.
+**v1 mapping**: rewritten by pattern: `profile-store.test.ts` and `cli.test.ts`; discarded: `natal-intake`, `birth-resolver`, `geocode`, `config` and the whole astrology tree.

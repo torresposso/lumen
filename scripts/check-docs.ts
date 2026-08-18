@@ -1,14 +1,14 @@
 /**
- * check-docs — paridad docs ↔ código.
+ * check-docs — docs ↔ code parity.
  *
- * Regla "doc-first": ninguna feature se implementa contra docs viejos. Este
- * check falla si la spec del esfuerzo lumen-v2 driftan del código real:
- *   1. SPEC §3 (superficie) ↔ registro de comandos en src/cli.ts
- *   2. SPEC §8 (árbol src/ sugerido) ↔ archivos reales de src/
+ * "Doc-first" rule: no feature is implemented against stale docs. This check
+ * fails when the lumen-v2 effort spec drifts from the real code:
+ *   1. SPEC §3 (surface) ↔ command registration in src/cli.ts
+ *   2. SPEC §8 (suggested src/ tree) ↔ actual files under src/
  *
- * Durante la implementación puede estar ROJO a propósito (la spec describe el
- * target antes de que el código llegue) y vuelve a verde al terminar.
- * Exit != 0 con la lista de divergencias.
+ * During implementation it may be RED on purpose (the spec describes the
+ * target before the code lands) and turns green when the feature is done.
+ * Exit != 0 with the list of divergences.
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -33,13 +33,13 @@ function specSection(heading: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// 1. Superficie: SPEC §3 ↔ cli.ts
+// 1. Surface: SPEC §3 ↔ cli.ts
 // ---------------------------------------------------------------------------
 
 function specCommands(): string[] {
 	const block = firstFence(specSection("## 3."));
 	if (!block) {
-		fail("spec.md §3: no hay bloque fenced de comandos");
+		fail("spec.md §3: no fenced command block");
 		return [];
 	}
 	const commands = [...block.matchAll(/^lumen\s+([a-z][\w-]*)\b/gm)]
@@ -63,17 +63,17 @@ function checkSurface() {
 	for (const c of code)
 		if (!docs.includes(c))
 			fail(
-				`spec.md §3 no lista el comando '${c}' (registrado en cli.ts). Actualiza spec.md §3.`,
+				`spec.md §3 does not list command '${c}' (registered in cli.ts). Update spec.md §3.`,
 			);
 	for (const d of docs)
 		if (!code.includes(d))
 			fail(
-				`cli.ts no registra '${d}' (listado en spec.md §3). Actualiza src/cli.ts.`,
+				`cli.ts does not register '${d}' (listed in spec.md §3). Update src/cli.ts.`,
 			);
 }
 
 // ---------------------------------------------------------------------------
-// 2. Árbol src/ (SPEC §8) ↔ archivos reales
+// 2. src/ tree (SPEC §8) ↔ real files
 // ---------------------------------------------------------------------------
 
 function specSrcFiles(): string[] {
@@ -105,12 +105,12 @@ function checkTree() {
 	for (const f of expected) {
 		if (!actual.has(f))
 			fail(
-				`spec.md §8 lista 'src/${f}' pero no existe. Actualiza spec.md o crea el archivo.`,
+				`spec.md §8 lists 'src/${f}' but it does not exist. Update spec.md or create the file.`,
 			);
 	}
 	for (const f of actual) {
 		if (!expected.includes(f))
-			fail(`spec.md §8 no lista 'src/${f}'. Actualiza spec.md §8.`);
+			fail(`spec.md §8 does not list 'src/${f}'. Update spec.md §8.`);
 	}
 }
 
@@ -120,11 +120,11 @@ checkSurface();
 checkTree();
 
 if (problems.length > 0) {
-	console.error("check:docs — divergencia docs ↔ código:");
+	console.error("check:docs — docs ↔ code divergence:");
 	for (const p of problems) console.error(`  - ${p}`);
 	console.error(
-		"\nRegla doc-first: los docs se actualizan ANTES de implementar (mira docs/agents/issue-tracker.md).",
+		"\nDoc-first rule: docs are updated BEFORE implementing (see docs/agents/issue-tracker.md).",
 	);
 	process.exit(1);
 }
-console.log("check:docs — paridad docs ↔ código OK");
+console.log("check:docs — docs ↔ code parity OK");
