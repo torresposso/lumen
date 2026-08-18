@@ -1,3 +1,5 @@
+import type { AxiCliCommand } from "axi-sdk-js";
+import { AxiError } from "axi-sdk-js";
 import { type ArgsSpec, type ParsedArgs, parseArgs } from "./args";
 
 /** What the runner may return: the same shapes an AXI command may render (string or structured output). */
@@ -21,6 +23,16 @@ export interface Subcommand<TContext> {
 	) => Renderable | Promise<Renderable>;
 }
 
+/** Configuration for a group of subcommands under a command prefix. */
+export interface SubcommandGroupSpec<TContext> {
+	/** Full command prefix, e.g. "lumen profile". */
+	name: string;
+	/** The usage text returned when the group is called without subcommands or with `--help`. */
+	usage: string;
+	/** The registered subcommand arms. */
+	subcommands: Readonly<Record<string, Subcommand<TContext>>>;
+}
+
 /**
  * The subcommand runner — the single seam a command applies to a subcommand's
  * raw arguments. Parses them against the arm's spec via the args contract;
@@ -38,4 +50,32 @@ export async function runSubcommand<TContext>(
 	const parsed = parseArgs(args, sub.spec, command);
 	if (parsed.help) return sub.usage;
 	return await sub.run(parsed, context);
+}
+
+/**
+ * Creates an AxiCliCommand from a declarative table of subcommands.
+ * Owns the routing, top-level `--help`, and unknown-subcommand validation error.
+ */
+export function createSubcommandGroup<TContext>(
+	group: SubcommandGroupSpec<TContext>,
+): AxiCliCommand<TContext> {
+	return async (args, context) => {
+		const [subName, ...rest] = args;
+
+		if (subName === undefined || subName === "--help") {
+			return group.usage;
+		}
+
+		const arm = group.subcommands[subName];
+		if (arm === undefined) {
+			const commandWord = group.name.replace(/^lumen\s+/, "");
+			throw new AxiError(
+				`Unknown ${commandWord} command: ${subName}`,
+				"VALIDATION_ERROR",
+				[`Run \`${group.name} --help\` for usage`],
+			);
+		}
+
+		return runSubcommand(context, rest, `${group.name} ${subName}`, arm);
+	};
 }

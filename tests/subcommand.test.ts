@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { AxiError } from "axi-sdk-js";
 import type { ArgsSpec } from "../src/core/args";
-import { runSubcommand } from "../src/core/subcommand";
+import { createSubcommandGroup, runSubcommand } from "../src/core/subcommand";
 
 const SPEC: ArgsSpec = {
 	known: new Set(["--when", "--where"]),
@@ -97,5 +97,53 @@ describe("runSubcommand", () => {
 			run: async () => ({ async: true }),
 		});
 		expect(result).toEqual({ async: true });
+	});
+});
+
+describe("createSubcommandGroup", () => {
+	const group = createSubcommandGroup({
+		name: "lumen profile",
+		usage: "lumen profile usage",
+		subcommands: {
+			list: {
+				spec: { known: new Set(), positionals: 0 },
+				usage: "usage for list",
+				run: () => ({ profiles: [] }),
+			},
+			get: {
+				spec: { known: new Set(), positionals: 1 },
+				usage: "usage for get",
+				run: (parsed) => ({ id: parsed.positionals[0] }),
+			},
+		},
+	});
+
+	test("returns group usage when called without args or with --help", async () => {
+		expect(await group([], undefined)).toBe("lumen profile usage");
+		expect(await group(["--help"], undefined)).toBe("lumen profile usage");
+	});
+
+	test("dispatches to the named subcommand", async () => {
+		expect(await group(["list"], undefined)).toEqual({ profiles: [] });
+		expect(await group(["get", "abc-123"], undefined)).toEqual({
+			id: "abc-123",
+		});
+	});
+
+	test("subcommand --help returns subcommand usage", async () => {
+		expect(await group(["list", "--help"], undefined)).toBe("usage for list");
+	});
+
+	test("rejects unknown subcommands with VALIDATION_ERROR", async () => {
+		try {
+			await group(["bogus"], undefined);
+			expect.unreachable();
+		} catch (error) {
+			expect(code(error)).toBe("VALIDATION_ERROR");
+			expect((error as Error).message).toBe("Unknown profile command: bogus");
+			expect(suggestions(error)).toEqual([
+				"Run `lumen profile --help` for usage",
+			]);
+		}
 	});
 });

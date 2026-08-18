@@ -1,9 +1,8 @@
-import type { AxiCliCommand } from "axi-sdk-js";
 import { AxiError } from "axi-sdk-js";
 import type { ArgsSpec } from "../core/args";
 import { parseBirthInput } from "../core/birth-input";
 import { ADD_FLAGS, PROFILE_ADD_EXAMPLE } from "../core/cli-surface";
-import { runSubcommand } from "../core/subcommand";
+import { createSubcommandGroup } from "../core/subcommand";
 import { toonProfile } from "../core/toon";
 import type { ProfileStore as DefaultProfileStore } from "../storage/profile-store";
 
@@ -97,89 +96,71 @@ export function requireProfileStore(
 	return context.profiles;
 }
 
-function validationError(command: string, message: string): AxiError {
-	return new AxiError(message, "VALIDATION_ERROR", [
-		`Run \`${command} --help\` for usage`,
-	]);
-}
+export const profileCommand = createSubcommandGroup<CliContext>({
+	name: "lumen profile",
+	usage: profileUsage,
+	subcommands: {
+		add: {
+			spec: ADD_SPEC,
+			usage: profileAddUsage,
+			run: (parsed, context) => {
+				const when = parsed.flags.get(ADD_FLAGS.when) as string;
+				const where = parsed.flags.get(ADD_FLAGS.where) as string;
+				const name = parsed.flags.get(ADD_FLAGS.name) ?? null;
 
-export const profileCommand: AxiCliCommand<CliContext> = async (
-	args,
-	context,
-) => {
-	const [sub, ...rest] = args;
+				// One seam: the raw flags in, the complete birth (birthJdUt derived)
+				// out — the store generates the profile's UUID.
+				const birth = parseBirthInput({ when, where });
+				const { profile, created } = requireProfileStore(context).add({
+					...birth,
+					name,
+				});
+				return {
+					status: created ? "added" : "already exists",
+					...toonProfile(profile),
+				};
+			},
+		},
 
-	if (sub === undefined || sub === "--help") return profileUsage;
+		list: {
+			spec: LIST_SPEC,
+			usage: profileListUsage,
+			run: (_parsed, context) => {
+				const profiles = requireProfileStore(context).list().map(toonProfile);
+				return profiles.length > 0
+					? { profiles }
+					: { profiles: [], help: [PROFILE_ADD_HINT] };
+			},
+		},
 
-	switch (sub) {
-		case "add":
-			return runSubcommand(context, rest, "lumen profile add", {
-				spec: ADD_SPEC,
-				usage: profileAddUsage,
-				run: (parsed) => {
-					const when = parsed.flags.get(ADD_FLAGS.when) as string;
-					const where = parsed.flags.get(ADD_FLAGS.where) as string;
-					const name = parsed.flags.get(ADD_FLAGS.name) ?? null;
+		get: {
+			spec: ID_SPEC,
+			usage: profileGetUsage,
+			run: (parsed, context) => {
+				const id = parsed.positionals[0] as string;
+				const profile = requireProfileStore(context).get(id);
+				if (profile === undefined) {
+					throw new AxiError(`Unknown profile: ${id}`, "NOT_FOUND", [
+						"Run `lumen profile list` to see saved profiles",
+					]);
+				}
+				return toonProfile(profile);
+			},
+		},
 
-					// One seam: the raw flags in, the complete birth (birthJdUt derived)
-					// out — the store generates the profile's UUID.
-					const birth = parseBirthInput({ when, where });
-					const { profile, created } = requireProfileStore(context).add({
-						...birth,
-						name,
-					});
-					return {
-						status: created ? "added" : "already exists",
-						...toonProfile(profile),
-					};
-				},
-			});
-
-		case "list":
-			return runSubcommand(context, rest, "lumen profile list", {
-				spec: LIST_SPEC,
-				usage: profileListUsage,
-				run: () => {
-					const profiles = requireProfileStore(context).list().map(toonProfile);
-					return profiles.length > 0
-						? { profiles }
-						: { profiles: [], help: [PROFILE_ADD_HINT] };
-				},
-			});
-
-		case "get":
-			return runSubcommand(context, rest, "lumen profile get", {
-				spec: ID_SPEC,
-				usage: profileGetUsage,
-				run: (parsed) => {
-					const id = parsed.positionals[0] as string;
-					const profile = requireProfileStore(context).get(id);
-					if (profile === undefined) {
-						throw new AxiError(`Unknown profile: ${id}`, "NOT_FOUND", [
-							"Run `lumen profile list` to see saved profiles",
-						]);
-					}
-					return toonProfile(profile);
-				},
-			});
-
-		case "delete":
-			return runSubcommand(context, rest, "lumen profile delete", {
-				spec: ID_SPEC,
-				usage: profileDeleteUsage,
-				run: (parsed) => {
-					const id = parsed.positionals[0] as string;
-					const removed = requireProfileStore(context).remove(id);
-					if (!removed) {
-						throw new AxiError(`Unknown profile: ${id}`, "NOT_FOUND", [
-							"Run `lumen profile list` to see saved profiles",
-						]);
-					}
-					return { profile: id, status: "deleted" };
-				},
-			});
-
-		default:
-			throw validationError("lumen profile", `Unknown profile command: ${sub}`);
-	}
-};
+		delete: {
+			spec: ID_SPEC,
+			usage: profileDeleteUsage,
+			run: (parsed, context) => {
+				const id = parsed.positionals[0] as string;
+				const removed = requireProfileStore(context).remove(id);
+				if (!removed) {
+					throw new AxiError(`Unknown profile: ${id}`, "NOT_FOUND", [
+						"Run `lumen profile list` to see saved profiles",
+					]);
+				}
+				return { profile: id, status: "deleted" };
+			},
+		},
+	},
+});
