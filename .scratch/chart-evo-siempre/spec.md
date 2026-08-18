@@ -37,13 +37,14 @@ Publica **siempre**
 
 ### Reglas del bloque evo draconic
 
-- **Secciones constantes**: por construcción, el eje nodal draconic está fijo
-  (NN en 0° Aries, SN en 0° Libra; cuadraturas en 0° Cáncer/Capricornio).
-  Regentes del eje, skipped steps y separación PPP son constantes para todas
-  las cartas.
+- **Marco fijo por construcción**: el eje nodal draconic está fijo (NN en
+  0° Aries, SN en 0° Libra; cuadraturas en 0° Cáncer/Capricornio) y sus
+  regentes son constantes (Marte/Venus): esos valores no llevan información
+  por carta. El resto de la mecánica (Plutón/PPP, separación, skipped steps,
+  fase, eclipses) sigue los cuerpos de cada carta.
 - **Disclosure**: `method` (derivado de `describeEvoCriteria`) declara
-  explícitamente el marco draconic y sus constantes, para que el agente no
-  lea valía-constante como información variable.
+  explícitamente el marco draconic y cuáles de sus valores son fijos, para que
+  el agente no lea valía-constante como información variable.
 - **Nada de interpretación**: el bloque sigue siendo puramente geométrico
   (regla inamovible).
 
@@ -88,4 +89,4 @@ Publica **siempre**
 - `lumen chart natal erik` y `lumen chart draconic erik` entregan el contrato
   de arriba sin flags.
 - Gramática sin `--evo` en ningún usage ni doc vivo; `grep --evo` solo
-  encuentra el registro histórico (ADR-0007, ADR-0014).
+  encuentra el registro histórico (ADR-0007, ADR-0008, ADR-0014).

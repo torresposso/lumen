@@ -50,11 +50,16 @@ instrumento a la pregunta real del practicante: «¿qué dice mi carta?».
   fase Sol-Luna y eclipses proyectados por la misma resta del Nodo Norte) +
   átomos evolutivos en el marco draconic.
 * **Eje nodal draconic fijo**: por construcción de la proyección, el Nodo
-  Norte está en 0° Aries en toda carta draconic. Las secciones del bloque que
-  dependen del eje (regentes, skipped steps, separación PPP) son constantes
-  para todas las cartas; el `method` (disclosure de `describeEvoCriteria`)
-  lo declara explícitamente para que el agente no lea varia-constante como
-  información variable.
+  Norte está en 0° Aries en toda carta draconic (Sur en 180° Libra,
+  cuadraturas en 0° Cáncer/Capricornio). El marco del eje y sus regentes
+  (Marte/Venus) son constantes para todas las cartas — no llevan información
+  por carta; el `method` (disclosure de `describeEvoCriteria`) lo declara
+  explícitamente para que el agente no lea valía-constante como información
+  variable. El resto de la mecánica (Plutón/PPP, separación, skipped steps,
+  fase, eclipses) sigue los cuerpos de cada carta. *(revisado 2026-08-17:
+  la redacción anterior afirmaba que "skipped steps y separación PPP" eran
+  constantes — astronómicamente falso; solo el marco del eje y sus regentes
+  lo son.)*
 * **Core**: `computeReading(request, ephemeris)` devuelve
   `AstrologicalReading` (no-opcional). Se eliminan el parámetro `selection`,
   la rama `undefined` y su traducción en el comando; la invariante «natal

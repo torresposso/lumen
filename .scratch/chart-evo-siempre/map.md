@@ -7,7 +7,8 @@ canon (ADR-0014). Decidido por grill del capitán (2026-08-17).
 
 - Natal siempre publica `evo`; `--evo` se elimina de raíz (sin `--no-evo`).
 - Draconic entra al canon; su `evo` se recalcula sobre el zodíaco draconic
-  (NN = 0 por construcción; secciones constantes declaradas en `method`).
+  (NN = 0 por construcción; el marco fijo del eje y sus regentes se declaran
+  en `method`).
 - `computeReading(request, ephemeris): AstrologicalReading` — no-opcional, sin
   rama de error (la natal siempre lleva Plutón y Nodo Verdadero).
 - `interpretationContext` siempre incluye átomos evolutivos, en el marco de

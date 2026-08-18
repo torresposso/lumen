@@ -118,13 +118,14 @@ otro marco; sigue siendo puramente geométrico.
   todas las posiciones coloca al Nodo en 0° Aries).
 - Eclipses: los prenatales natales proyectados por la misma resta (longitud del
   eclipse − longitud del Nodo Norte).
-- **Secciones constantes**: por construcción, el eje nodal draconic está fijo
-  (NN en 0° Aries, SN en 0° Libra; cuadraturas en 0° Cáncer/Capricornio).
-  Regentes del eje, skipped steps y separación PPP son constantes para todas
-  las cartas.
+- **Marco fijo por construcción**: el eje nodal draconic está fijo (NN en
+  0° Aries, SN en 0° Libra; cuadraturas en 0° Cáncer/Capricornio) y sus
+  regentes son constantes (Marte para el NN, Venus para el SN): esos valores
+  no llevan información por carta. El resto de la mecánica (Plutón/PPP,
+  separación, skipped steps, fase, eclipses) sigue los cuerpos de cada carta.
 - **Disclosure**: `method` (derivado de `describeEvoCriteria`) declara
-  explícitamente el marco draconic y sus constantes, para que el agente no lea
-  valía-constante como información variable.
+  explícitamente el marco draconic y cuáles de sus valores son fijos, para que
+  el agente no lea valía-constante como información variable.
 - **Nada de interpretación**: el bloque sigue siendo puramente geométrico
   (regla inamovible).
 
@@ -138,12 +139,12 @@ evo:
   nodalAxis:
     north: { lon: 0, sign: Aries, signDeg: 0, ... }     # fijo por construcción
     south: { lon: 180, sign: Libra, signDeg: 0, ... }   # fijo por construcción
-    motion: direct                                       # constante
+    motion: direct                                       # sigue al Nodo natal (no fijo)
   phase: Disseminating
   dispositorChains: { pluto, southNodeRuler, northNodeRuler }
   prenatalEclipses: { solar, lunar }   # proyectados por la resta del Nodo
   counts: { ... }
-  method: "orbs PLUTO_ASPECTS: ...; ppp: ...; skipped: ...; ppp inactive when pluto conjunct the north node (orb 10°); draconic frame: nodal axis fixed at 0° Aries/0° Libra by projection, nodal-axis-dependent sections are constant across charts"   # disclosure factual, derivado de core, nunca a mano
+  method: "orbs PLUTO_ASPECTS: ...; ppp: ...; skipped: ...; ppp inactive when pluto conjunct the north node (orb 10°); draconic frame: nodal axis fixed by projection at 0° Aries/0° Libra, axis rulers mars/venus constant (no per-chart info); other mechanics follow each chart's bodies"   # disclosure factual, derivado de core, nunca a mano
 ```
 
 ---

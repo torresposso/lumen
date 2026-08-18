@@ -59,9 +59,10 @@ por la misma puerta (ADR-0011) — la carta base, el bloque `evo` y
 `chart draconic` entra al canon (ADR-0014): publica la carta draconic y su
 bloque `evo` recalculado sobre el zodíaco draconic — cuerpos y casas draconic,
 Nodo Norte fijo en 0° Aries por la proyección, y eclipses prenatales proyectados
-por la misma resta del Nodo. Por construcción, las secciones del bloque que
-dependen del eje nodal (regentes, skipped steps, separación PPP) son constantes
-para todas las cartas; `method` lo declara en su disclosure. Fuera de la
+por la misma resta del Nodo. Por construcción, el eje nodal draconic está fijo
+(NN 0° Aries, SN 0° Libra, cuadraturas 0° Cáncer/Capricornio) y sus regentes
+son constantes (Marte/Venus) — valía-constante que `method` declara en su
+disclosure; el resto de la mecánica sigue los cuerpos de cada carta. Fuera de la
 superficie (helenístico/técnico, fuera del canon evolutivo — ver ADR-0004 y
 `~/knowledge/research/2026-08-12--tradicion-astrologia-evolutiva.md`):
 sinastría clásica (la evolutiva vive en `karma pair`), lotes herméticos y

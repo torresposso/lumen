@@ -20,6 +20,7 @@ import {
 	type ProjectedEclipticPoint,
 	projectPoint,
 	roundPrecision,
+	shiftLongitude,
 } from "./types";
 
 export type { NodalRulerPlacement, NodeMotionStatus, SkippedStep };
@@ -283,7 +284,7 @@ export function computePrenatalEclipses(
 		const frameLon =
 			eclipseShiftLon === undefined
 				? rawLon
-				: normalizeLongitude(rawLon - eclipseShiftLon);
+				: shiftLongitude(rawLon, eclipseShiftLon);
 		const point = projectPoint(frameLon, cusps);
 		return {
 			tMax: roundPrecision(tMax),

@@ -12,6 +12,7 @@ import {
 import { type Projection, project } from "./projection";
 import type {
 	BirthStatus,
+	ChartBodiesLite,
 	ChartRequestOptions,
 	Ephemeris,
 	NatalRequest,
@@ -19,7 +20,7 @@ import type {
 } from "./types";
 
 // ============================================================================
-// Natal reading assembly
+// Reading assembly
 //
 // Single source of the published `AstrologicalReading` (ADR-0012). Assembles
 // the complete astrological reading: asks the shared chart computation
@@ -106,6 +107,8 @@ export function computeReading(
 		draconic,
 	});
 
+	const aspects = projected.aspects;
+
 	const help: string[] = [];
 	if (rawChart.houseSystem !== rawChart.houseSystemRequested) {
 		help.push(
@@ -121,24 +124,39 @@ export function computeReading(
 		help.push(`Timezone resolution provenance status: ${request.birth.status}`);
 	}
 
-	const interpretationContext = generateFactAtoms(projected);
 	// Evo frame (ADR-0014): the natal window by default; over the draconic
 	// zodiac when the request is draconic — bodies and cusps draconic (true
 	// node at 0° Aries by construction), eclipses shifted by the same
 	// North-Node subtraction, and the frame declared in `method`.
+	let evoBodies: ChartBodiesLite = natalBodies;
+	let evoCusps: number[] = rawChart.cusps;
+	let eclipseShiftLon: number | undefined;
+	let frameDisclosure: string | undefined;
+	if (draconic) {
+		const natalNodeLon = rawChart.bodies.true_node?.lon;
+		if (natalNodeLon === undefined) {
+			throw new Error(
+				"draconic frame invariant violated: missing natal true node",
+			);
+		}
+		evoBodies = draconic.bodies;
+		evoCusps = draconic.cusps;
+		eclipseShiftLon = natalNodeLon;
+		frameDisclosure = DRACONIC_FRAME_DISCLOSURE;
+	}
+
+	const interpretationContext = generateFactAtoms(projected);
 	const evo = computeEvolutionaryReading({
-		bodies: draconic ? draconic.bodies : natalBodies,
-		cusps: draconic ? draconic.cusps : rawChart.cusps,
+		bodies: evoBodies,
+		cusps: evoCusps,
 		ephemeris,
 		birth: request.birth,
 		houseSystem: request.options.houseSystem,
 		topocentric: request.options.topocentric,
-		eclipseShiftLon: draconic ? rawChart.bodies.true_node?.lon : undefined,
-		frameDisclosure: draconic ? DRACONIC_FRAME_DISCLOSURE : undefined,
+		eclipseShiftLon,
+		frameDisclosure,
 	});
 	interpretationContext.atoms.push(...evo.atoms);
-
-	const aspects = projected.aspects;
 
 	return {
 		chart: { ...projected, birth: echoBirth(request.birth, request.options) },

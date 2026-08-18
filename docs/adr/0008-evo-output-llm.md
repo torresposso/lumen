@@ -1,5 +1,12 @@
 # 8. Bloque `evo` navegable para el LLM: atoms, counts, method y precisión
 
+> **Status: historical** — las cláusulas opt-in de este ADR («el bloque `evo`
+> se agrega con `--evo`», «sin flag el bloque no existe», «`interpretationContext`
+> crece solo con `--evo`») quedan **superadas por ADR-0014** (la superficie de
+> `chart` entrega la mecánica siempre, sin flag). El registro permanece como
+> decisión vigente solo en lo que no choca con ADR-0014: la publicación
+> navegable del bloque (atoms, counts, method, precisión).
+
 * Status: accepted
 * Deciders: Erick
 * Date: 2026-08-17
