@@ -36,15 +36,18 @@ pushed.
   them as the two leading parts of `--where "lat, lon, Place"`. Together with
   `birthJdUt` they are the birth's identity for dedupe.
 - **BirthJdUt** — the derived UT instant of a birth (Meeus ch. 7, pure
-  arithmetic in `src/core/jd.ts`). lumen's only derivation; it never consults
-  timezone databases or calendars.
-- **BirthInput** — the parsed, validated birth input produced by the birth-input
-  contract: the canonical `birthDateTime` (ISO with offset), the transient
-  `local`/`offsetMinutes` the Julian-Day computation needs, `birthLat`/
-  `birthLon` and `birthPlace`. Produced from `RawBirthInput`.
+  arithmetic in `src/core/jd.ts`), produced by the birth-input contract from the
+  parsed `--when`. lumen's only derivation; it never consults timezone databases
+  or calendars.
+- **BirthInput** — the parsed, validated birth produced by the birth-input
+  contract: `birthDateTime` (canonical ISO with offset), `birthLat`, `birthLon`,
+  `birthPlace` and the derived `birthJdUt`. Produced from `RawBirthInput`. The
+  transient `local`/`offsetMinutes` the derivation needs never cross the
+  contract's interface — they are implementation, not interface (ADR-0005).
 - **LocalTime** — the transient broken-down local wall-clock (year…minute) the
-  birth-input contract yields from `--when`; fed to `julianDayUt` and never
-  stored. (Formerly `BirthClock`.)
+  birth-input contract yields *internally* from `--when` and feeds to
+  `julianDayUt`; never stored and never part of a published interface.
+  (Formerly `BirthClock`.)
 - **RawBirthInput** — the raw flag strings `profile add` receives, in their
   ergonomic CLI names (ADR-0006): `--when` (ISO 8601 datetime with UTC offset:
   `YYYY-MM-DDTHH:MM±HH:MM` or `…Z`) and `--where "lat, lon, Place"` (coordinates
@@ -58,7 +61,10 @@ pushed.
   the model vocabulary (`birth*`) — neither the command nor the store knows the
   CLI flag names (ADR-0006). The UTC offset arrives *inside* `--when`, never as a
   separate flag. Flag presence, syntax and value normalization belong to the
-  **args contract**; value semantics belong here.
+  **args contract**; value semantics belong here. The contract also derives
+  `birthJdUt` (Meeus, via `src/core/jd.ts`) — raw flags enter, the complete
+  `birth*` set leaves, and neither the command nor the store performs the
+  derivation.
 - **Args contract** — the module `src/core/args.ts` that owns the flag and
   positional syntax of every command's raw arguments as one seam: known and
   required flags, `--flag=value` / `--flag value` forms, duplicates, missing
@@ -72,6 +78,8 @@ pushed.
   lazily only on `add`, dedupe via `UNIQUE INDEX (birth_jd_ut, birth_lat,
   birth_lon)`, migrations via `PRAGMA user_version` (current schema v4). The
   command never creates a store — the CLI wiring provides it through context.
+  It also owns profile identity: `add` generates the profile's UUID — the
+  command never supplies one.
 - **TOON** — the AXI structured-output encoding lumen publishes: display
   precision only (`birthJdUt` 6 decimals, `birthLat`/`birthLon` 4),
   `birthDateTime` echoed as stored (ISO 8601), rounded at output; the DB keeps

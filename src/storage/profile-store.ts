@@ -1,4 +1,5 @@
 import { Database } from "bun:sqlite";
+import { randomUUID } from "node:crypto";
 import { chmodSync, existsSync, mkdirSync, openSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { AxiError } from "axi-sdk-js";
@@ -175,14 +176,15 @@ export class ProfileStore {
 	}
 
 	/**
-	 * Inserts a profile, deduplicating on the birth: a profile with the same
-	 * `birthJdUt + birthLat + birthLon` already stored wins and is returned
-	 * unchanged (the new name/birthPlace are discarded — the birth is the
-	 * identity).
+	 * Inserts a profile, generating its UUID, and deduplicating on the birth: a
+	 * profile with the same `birthJdUt + birthLat + birthLon` already stored
+	 * wins and is returned unchanged (the new name/birthPlace are discarded —
+	 * the birth is the identity).
 	 */
 	add(profile: NewProfile): AddResult {
 		const db = this.open();
 		const nowIso = this.now().toISOString();
+		const id = randomUUID();
 		const result = db
 			.prepare(
 				`INSERT INTO profiles (
@@ -192,7 +194,7 @@ export class ProfileStore {
 				ON CONFLICT(birth_jd_ut, birth_lat, birth_lon) DO NOTHING`,
 			)
 			.run(
-				profile.id,
+				id,
 				profile.name,
 				profile.birthPlace,
 				profile.birthDateTime,
@@ -204,7 +206,7 @@ export class ProfileStore {
 			);
 
 		if (result.changes > 0) {
-			return { profile: this.get(profile.id) as Profile, created: true };
+			return { profile: this.get(id) as Profile, created: true };
 		}
 
 		// Duplicate birth — return the existing profile, unchanged.

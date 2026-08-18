@@ -1,5 +1,5 @@
 import { AxiError } from "axi-sdk-js";
-import { daysInMonth } from "./jd";
+import { daysInMonth, julianDayUt } from "./jd";
 import type { BirthInput, LocalTime } from "./types";
 
 export const MIN_YEAR = 1800;
@@ -31,12 +31,15 @@ function pad2(value: number): string {
  * `"9.15, -74.75, Magangué, Colombia"`), which yields `birthLat`/`birthLon`/
  * `birthPlace`.
  *
- * Parses the formats and validates the semantic ranges in one pass,
- * accumulating every *checkable* violation: a field whose format does not
- * parse cannot be range-checked (e.g. `--when "garbage"`), but the other
- * fields still are. On any violation throws one `AxiError` with all cited
- * rules as suggestions, so an agent caller gets the whole contract verdict in
- * one round-trip. Presence of the flags themselves is the command's concern.
+ * Parses the formats, validates the semantic ranges and derives `birthJdUt`
+ * (Meeus ch. 7, via `julianDayUt`) in one pass, accumulating every *checkable*
+ * violation: a field whose format does not parse cannot be range-checked (e.g.
+ * `--when "garbage"`), but the other fields still are. On any violation throws
+ * one `AxiError` with all cited rules as suggestions, so an agent caller gets
+ * the whole contract verdict in one round-trip. Presence of the flags
+ * themselves is the command's concern. The transient `local`/`offsetMinutes`
+ * the derivation needs never appear in the result — the complete `birth*` set
+ * leaves the seam.
  */
 export function parseBirthInput(raw: RawBirthInput): BirthInput {
 	const issues: string[] = [];
@@ -138,8 +141,9 @@ export function parseBirthInput(raw: RawBirthInput): BirthInput {
 	}
 	return {
 		birthDateTime: canonicalDateTime as string,
-		local: local as LocalTime,
-		offsetMinutes: offsetMinutes as number,
+		// Derivation is the contract's: the caller receives the birth, not the
+		// transient local/offsetMinutes the arithmetic consumed.
+		birthJdUt: julianDayUt(local as LocalTime, offsetMinutes as number),
 		birthLat: birthLat as number,
 		birthLon: birthLon as number,
 		birthPlace: birthPlace as string,

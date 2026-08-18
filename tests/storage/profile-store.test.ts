@@ -9,7 +9,6 @@ import { defaultDbFile, ProfileStore } from "../../src/storage/profile-store";
 
 function newProfile(overrides: Partial<NewProfile> = {}): NewProfile {
 	const base: NewProfile = {
-		id: "11111111-1111-4111-8111-111111111111",
 		name: "erik",
 		birthPlace: "Tampa, USA",
 		birthDateTime: "1990-06-10T14:30-04:00",
@@ -67,13 +66,14 @@ describe("ProfileStore", () => {
 		expect(created).toBe(true);
 		expect(existsSync(dbPath)).toBe(true);
 		expect(statSync(dbPath).mode & 0o777).toBe(0o600);
-		expect(profile.id).toBe(newProfile().id);
+		expect(profile.id).toMatch(
+			/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+		);
 	});
 
 	test("add and get round-trip the profile", () => {
-		const added = newProfile();
-		store.add(added);
-		const stored = store.get(added.id);
+		const { profile } = store.add(newProfile());
+		const stored = store.get(profile.id);
 		expect(stored?.name).toBe("erik");
 		expect(stored?.birthPlace).toBe("Tampa, USA");
 		expect(stored?.birthDateTime).toBe("1990-06-10T14:30-04:00");
@@ -87,7 +87,6 @@ describe("ProfileStore", () => {
 		const first = store.add(newProfile());
 		const second = store.add(
 			newProfile({
-				id: "22222222-2222-4222-8222-222222222222",
 				name: "other",
 				birthPlace: "Somewhere else",
 			}),
@@ -118,7 +117,6 @@ describe("ProfileStore", () => {
 	test("list sorts by id and returns full profiles", () => {
 		store.add(
 			newProfile({
-				id: "b",
 				name: null,
 				birthLat: 10,
 				birthLon: 10,
@@ -127,25 +125,28 @@ describe("ProfileStore", () => {
 		);
 		store.add(
 			newProfile({
-				id: "a",
 				name: null,
 				birthLat: 20,
 				birthLon: 20,
 				birthJdUt: 2500000.0,
 			}),
 		);
-		expect(store.list().map((p) => p.id)).toEqual(["a", "b"]);
-		expect(store.list()[0]?.name).toBeNull();
+		// The store owns the ids now, so the sort order is not predictable —
+		// the contract to test is that the list IS sorted by id.
+		const ids = store.list().map((p) => p.id);
+		expect(ids).toHaveLength(2);
+		expect(ids).toEqual([...ids].sort());
+		expect(store.list().every((p) => p.name === null)).toBe(true);
 	});
 
 	test("remove deletes and persists", () => {
-		store.add(newProfile());
-		expect(store.remove(newProfile().id)).toBe(true);
-		expect(store.remove(newProfile().id)).toBe(false);
+		const { profile } = store.add(newProfile());
+		expect(store.remove(profile.id)).toBe(true);
+		expect(store.remove(profile.id)).toBe(false);
 		store.close();
 
 		const reloaded = new ProfileStore(dbPath);
-		expect(reloaded.get(newProfile().id)).toBeUndefined();
+		expect(reloaded.get(profile.id)).toBeUndefined();
 		reloaded.close();
 	});
 

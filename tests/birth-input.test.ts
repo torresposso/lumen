@@ -26,31 +26,32 @@ describe("parseBirthInput — contract", () => {
 		const input = parseBirthInput(VALID);
 		expect(input).toEqual<BirthInput>({
 			birthDateTime: "1990-06-10T14:30-04:00",
-			local: { year: 1990, month: 6, day: 10, hour: 14, minute: 30 },
-			offsetMinutes: -240,
 			birthLat: 27.95,
 			birthLon: -82.46,
 			birthPlace: "Tampa, USA",
+			// Derived by the contract — Meeus ch. 7 via julianDayUt.
+			birthJdUt: 2448053.2708333335,
 		});
 	});
 
-	test("accepts Z, explicit +, single-digit fields and a place with commas, canonicalizing the local time", () => {
+	test("accepts Z, explicit +, single-digit fields and a place with commas, canonicalizing the datetime", () => {
 		const input = parseBirthInput({
 			when: "1990-6-10T14:5Z",
 			where: "9.15, -74.75, Magangué, Colombia",
 		});
 		expect(input.birthDateTime).toBe("1990-06-10T14:05Z");
-		expect(input.offsetMinutes).toBe(0);
-		expect(input.local).toEqual({
-			year: 1990,
-			month: 6,
-			day: 10,
-			hour: 14,
-			minute: 5,
-		});
+		expect(input.birthJdUt).toBe(2448053.0868055555);
 		expect(input.birthLat).toBe(9.15);
 		expect(input.birthLon).toBe(-74.75);
 		expect(input.birthPlace).toBe("Magangué, Colombia");
+	});
+
+	test("derives the canonical example's birthJdUt (1981 Magangué)", () => {
+		const input = parseBirthInput({
+			when: "1981-01-26T00:50-05:00",
+			where: "9.15, -74.75, Magangué, Colombia",
+		});
+		expect(input.birthJdUt).toBe(2444630.7430555555);
 	});
 
 	test("rejects a malformed --when with a cited rule", () => {

@@ -1,9 +1,7 @@
-import { randomUUID } from "node:crypto";
 import type { AxiCliCommand } from "axi-sdk-js";
 import { AxiError } from "axi-sdk-js";
 import { type ArgsSpec, parseArgs } from "../core/args";
 import { parseBirthInput } from "../core/birth-input";
-import { julianDayUt } from "../core/jd";
 import { toonProfile } from "../core/toon";
 import type { ProfileStore as DefaultProfileStore } from "../storage/profile-store";
 
@@ -142,24 +140,12 @@ export const profileCommand: AxiCliCommand<CliContext> = async (
 			const where = parsed.flags.get("--where") as string;
 			const name = parsed.flags.get("--name") ?? null;
 
-			const {
-				birthDateTime: canonicalDateTime,
-				local,
-				offsetMinutes,
-				birthLat: lat,
-				birthLon: lon,
-				birthPlace,
-			} = parseBirthInput({ when, where });
-			const birthJdUt = julianDayUt(local, offsetMinutes);
-
+			// One seam: the raw flags in, the complete birth (birthJdUt derived)
+			// out — the store generates the profile's UUID.
+			const birth = parseBirthInput({ when, where });
 			const { profile, created } = requireProfileStore(context).add({
-				id: randomUUID(),
+				...birth,
 				name,
-				birthPlace,
-				birthDateTime: canonicalDateTime,
-				birthLat: lat,
-				birthLon: lon,
-				birthJdUt,
 			});
 			return {
 				status: created ? "added" : "already exists",

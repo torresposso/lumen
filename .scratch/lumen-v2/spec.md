@@ -19,7 +19,7 @@ Profile {
   birthDateTime: string // required, ISO 8601 with UTC offset (the --birthdatetime value)
   birthLat: number    // required, −90..90 (--birthlat)
   birthLon: number    // required, −180..180 (--birthlon)
-  birthJdUt: number   // derived: Meeus ch. 7 (via julianDayUt)
+  birthJdUt: number   // derived by the birth-input contract: Meeus ch. 7 (via julianDayUt)
 }
 ```
 
@@ -49,7 +49,8 @@ Rules:
   (`YYYY-MM-DDTHH:MM±HH:MM` or `…Z`); `--where "lat, lon, Place"` bundles the
   coordinates and the human-readable place — the first two comma-separated parts
   are lat/lon, the remainder (which may contain commas) is the place. Both map
-  onto the flat `birth*` model fields at the single birth-input seam.
+  onto the flat `birth*` model fields at the single birth-input seam, which also
+  derives `birthJdUt` (Meeus) — raw flags in, the complete `birth*` set out.
 - No separate `--offset` flag — the offset rides inside `--when`, resolved by the
   agent, never by lumen.
 - `get`/`delete` by **UUID only** (no lookup by name or birthPlace).
@@ -118,9 +119,13 @@ Removed: `caelus`, `caelus-birth`, `zod`, `luxon` (the last one only transitive 
   errors.
 - `tests/birth-input.test.ts` — `--when` ISO formats (`±HH:MM`, `Z`, invalid
   forms, missing offset) + semantic ranges; `--where "lat, lon, Place"`
-  (coordinates + place with commas); accumulation.
+  (coordinates + place with commas); accumulation; the derived `birthJdUt`
+  (contract-level vectors).
 - `tests/jd.test.ts` — the 14 reference vectors (research 02); boundary validations (Feb 30, hour 24, offset ±841, year 1799/2101, lat ±90.1, lon ±180.1); offset round-trip.
-- `tests/profile-store.test.ts` — CRUD; dedupe (ON CONFLICT returns the existing profile); lazy creation (`list` does not create the file, `add` does); 0600 permissions; `LUMEN_DB` override; `user_version` migration (v1→v4, v2→v4, v3→v4).
+- `tests/profile-store.test.ts` — CRUD; `add` generates the UUID; dedupe (ON
+  CONFLICT returns the existing profile); lazy creation (`list` does not create
+  the file, `add` does); 0600 permissions; `LUMEN_DB` override; `user_version`
+  migration (v1→v4, v2→v4, v3→v4).
 - `tests/cli.test.ts` — input contract (each flag + combinations); AXI errors; TOON output (rounding applied, `birthDateTime` echoed); `add` prints the UUID; dedupe visible from the CLI.
 
 ## 8. Suggested source layout

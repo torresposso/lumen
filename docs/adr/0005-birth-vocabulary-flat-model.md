@@ -22,11 +22,14 @@ its owner. We decided: **the model is flat, and every birth field shares the
   family*: flag `--birthdatetime` (lowercase, connected), model field
   `birthDateTime` (camelCase), TOON output `birthDateTime`, DB column
   `birth_date_time` (snake_case). The `birth` morpheme is the invariant.
-- **The transient breakdown stays internal.** Parsing
-  `--birthdatetime` yields a `local` wall-clock (`LocalTime`) and an
-  `offsetMinutes` that feed `julianDayUt` (Meeus ch. 7) and are **never
-  stored** — only the canonical `birthDateTime` string is persisted. This also
-  retires the `BirthClock`/`meeusJdUt` names (`LocalTime`/`julianDayUt`).
+- **The transient breakdown stays internal.** The birth-input contract parses
+  the moment into a `local` wall-clock (`LocalTime`) and an `offsetMinutes`,
+  derives `birthJdUt` (Meeus ch. 7) behind its interface and **never stores the
+  breakdown** — only the canonical `birthDateTime` string is persisted, and
+  neither `local` nor `offsetMinutes` cross the contract's interface: the
+  command and the store call one function and receive the complete `birth*`
+  set. This also retired the `BirthClock`/`meeusJdUt` names
+  (`LocalTime`/`julianDayUt`).
 
 ## Considered Options
 
