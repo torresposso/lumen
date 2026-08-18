@@ -27,11 +27,11 @@ A **lumen v2** spec ready to implement without further decisions: an AXI CLI for
 
 ---
 
-**🏁 Destination reached (2026-08-18):** all 5 decisions are closed and the way is clear — the hand-off spec is at [`spec.md`](spec.md). No tickets or fog remain.
+**🏁 Effort closed (2026-08-18):** destination reached — all 5 decisions closed, the way clear, hand-off spec at [`spec.md`](spec.md) — **and the rebuild executed and shipped**. The implementation is live on `main` (commits `c491ae3` feat, `a81f964` code-review fixes, `006f5d4` i18n), pushed to `origin/main`. `bun test` 51 pass / 0 fail; `bun run check` green. No tickets or fog remain.
 
 ## Not yet specified
 
-*(Empty — all fog graduated into closed tickets; destination reached 2026-08-18.)*
+*(Empty — all fog graduated into closed tickets; effort closed 2026-08-18.)*
 
 ## Out of scope
 
@@ -39,4 +39,4 @@ A **lumen v2** spec ready to implement without further decisions: an AXI CLI for
 - Geocoding (Open-Meteo) and timezone resolution — the agent resolves them.
 - v1 data migration (`~/.config/lumen/lumen.db`) — start clean.
 - v1 config store (chart options) and non-profile commands (`setup`, `chart`, `journey`, `karma`, `intake`).
-- The implementation of the rebuild — the map decides; a separate effort executes (the `spec.md` is the hand-off).
+- ~~The implementation of the rebuild~~ — the map decides; a separate effort executes (the `spec.md` is the hand-off). **Executed 2026-08-18** (`c491ae3`, `a81f964`, `006f5d4`) — closed, see the effort-close note above.
