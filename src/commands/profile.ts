@@ -44,7 +44,7 @@ export const PROFILE_ADD_EXAMPLE =
 export const profileListUsage = [
 	"lumen profile list",
 	"",
-	"Lists saved profiles: id, name, city, local time, offset, coordinates and jdUt.",
+	"Lists saved profiles: id, name, birthplace, local time, offset, coordinates and jdUt.",
 ].join("\n");
 
 export const profileGetUsage = [
@@ -180,7 +180,7 @@ function displayProfile(profile: Profile) {
 	return {
 		id: profile.id,
 		name: profile.name,
-		city: profile.city,
+		birthplace: profile.birthplace,
 		when: formatWhen(profile.birth.local),
 		offset: profile.birth.offsetMinutes,
 		lat: roundCoordinate(profile.birth.lat),
@@ -206,8 +206,13 @@ export const profileCommand: AxiCliCommand<CliContext> = async (
 			const when = requiredFlag(flags, "--when", "lumen profile add");
 			const offset = requiredFlag(flags, "--offset", "lumen profile add");
 			const at = requiredFlag(flags, "--at", "lumen profile add");
-			const city = requiredFlag(flags, "--city", "lumen profile add").trim();
-			if (city === "") {
+			// The `--city` flag is the CLI surface; the model field is *(birthplace)*.
+			const birthplace = requiredFlag(
+				flags,
+				"--city",
+				"lumen profile add",
+			).trim();
+			if (birthplace === "") {
 				throw new AxiError("--city must not be empty", "VALIDATION_ERROR", [
 					'Example: --city "Madrid, Spain"',
 				]);
@@ -224,7 +229,7 @@ export const profileCommand: AxiCliCommand<CliContext> = async (
 			const { profile, created } = requireProfileStore(context).add({
 				id: randomUUID(),
 				name,
-				city,
+				birthplace,
 				birth: { local, offsetMinutes, lat, lon, jdUt },
 			});
 			return {

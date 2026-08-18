@@ -8,7 +8,10 @@ resolve and no reason to carry date libraries. We decided: **jdUt is computed
 by lumen with the Meeus *Astronomical Algorithms* ch. 7 formula in pure
 arithmetic** — the exact arithmetic caelus already used (`julianDay`), so v2
 produces bit-identical values to v1 for the same UT instant (verified:
-14/14 reference vectors, 0 mismatches vs caelus over 1800–2100).
+14/14 reference vectors, 0 mismatches vs caelus over 1800–2100). The ported
+test suite covers the **13 expressible vectors** — research vector #12 carries
+seconds, which the minute-granular v2 contract cannot express (see the note in
+`tests/jd.test.ts`).
 
 ## Considered Options
 

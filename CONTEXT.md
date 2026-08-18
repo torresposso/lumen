@@ -24,7 +24,7 @@ pushed.
 - **Birth** — the resolved instant of a profile: local wall-clock time (no
   seconds), UTC **offset** in minutes, coordinates (`lat`/`lon`), and the derived
   **jdUt**. The birth is the profile's identity: `add` deduplicates on
-  `jdUt + lat + lon`, discarding the second `add`'s name/city.
+  `jdUt + lat + lon`, discarding the second `add`'s name/birthplace.
 - **BirthInput** — the parsed, validated birth input: the local wall-clock
   `BirthClock`, integer `offsetMinutes` (−840..+840) and decimal `lat`/`lon`.
   Produced by the birth-input contract from `RawBirthInput`.

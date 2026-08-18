@@ -3,7 +3,7 @@
 lumen v2 — a birth-profile manager (AXI CLI).
 
 lumen is an **AXI CLI**: its primary consumer is an AI agent. The human talks to
-the agent and gives the city/country and the local birth date and time; the
+the agent and gives the birthplace and the local birth date and time; the
 agent resolves coordinates and the UTC offset and calls lumen. lumen validates,
 computes the Julian Day (Meeus, pure arithmetic) and persists the profile.
 
@@ -16,7 +16,7 @@ bun install
 ## Usage
 
 ```bash
-# Register a birth profile (local time + UTC offset + coordinates + city)
+# Register a birth profile (local time + UTC offset + coordinates + birthplace)
 bun run bin/lumen.ts profile add --when "1981-01-26T00:50" --offset 60 --at "9.15,-74.75" --city "Magangué, Colombia" --name silvia
 
 # List, view and remove

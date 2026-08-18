@@ -18,7 +18,7 @@ export interface BirthInput {
 export interface Profile {
 	id: string;
 	name: string | null;
-	city: string;
+	birthplace: string;
 	birth: {
 		local: BirthClock;
 		offsetMinutes: number;

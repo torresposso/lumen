@@ -43,7 +43,7 @@ type AddResult = {
 	status: string;
 	id: string;
 	name: string | null;
-	city: string;
+	birthplace: string;
 	when: string;
 	offset: number;
 	lat: number;
@@ -72,7 +72,7 @@ describe("profileCommand", () => {
 			/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
 		);
 		expect(result.name).toBe("erik");
-		expect(result.city).toBe("Tampa, USA");
+		expect(result.birthplace).toBe("Tampa, USA");
 		expect(result.when).toBe("1990-06-10T14:30");
 		expect(result.offset).toBe(-240);
 		expect(result.lat).toBe(27.95);

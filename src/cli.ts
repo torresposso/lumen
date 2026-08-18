@@ -12,7 +12,7 @@ const topLevelHelp = [
 	"lumen — birth profile manager (AXI CLI)",
 	"",
 	"Commands:",
-	"  profile add   Register a birth (local time + offset + coordinates + city)",
+	"  profile add   Register a birth (local time + offset + coordinates + birthplace)",
 	"  profile list  List saved profiles",
 	"  profile get   Show one profile by UUID",
 	"  profile rm    Remove one profile by UUID",

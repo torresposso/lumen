@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { AxiError } from "axi-sdk-js";
 import type { AddResult, NewProfile, Profile } from "../core/types";
 
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 /** `./lumen.db` in the cwd (per-project), overridable with `LUMEN_DB`. */
 export function defaultDbFile(): string {
@@ -14,7 +14,7 @@ export function defaultDbFile(): string {
 interface ProfileRow {
 	id: string;
 	name: string | null;
-	city: string;
+	birthplace: string;
 	local_year: number;
 	local_month: number;
 	local_day: number;
@@ -32,7 +32,7 @@ function toProfile(row: ProfileRow): Profile {
 	return {
 		id: row.id,
 		name: row.name,
-		city: row.city,
+		birthplace: row.birthplace,
 		birth: {
 			local: {
 				year: row.local_year,
@@ -62,12 +62,13 @@ function createSchema(db: Database): void {
 			["Upgrade lumen, then run `lumen profile list` again"],
 		);
 	}
-	if (user_version < SCHEMA_VERSION) {
+	if (user_version < 1) {
+		// Fresh install: v1 schema with the *(birthplace)* domain term.
 		db.exec(`
 			CREATE TABLE IF NOT EXISTS profiles (
 				id             TEXT    PRIMARY KEY,
 				name           TEXT,
-				city           TEXT    NOT NULL,
+				birthplace     TEXT    NOT NULL,
 				local_year     INTEGER NOT NULL,
 				local_month    INTEGER NOT NULL,
 				local_day      INTEGER NOT NULL,
@@ -85,6 +86,13 @@ function createSchema(db: Database): void {
 			CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_birth
 			ON profiles (jd_ut, lat, lon)
 		`);
+	}
+	if (user_version === 1) {
+		// v1 → v2: the model field was renamed to the domain term *(birthplace)*;
+		// `--city` remains only the CLI flag surface. Rename the stored column.
+		db.exec(`ALTER TABLE profiles RENAME COLUMN city TO birthplace`);
+	}
+	if (user_version < SCHEMA_VERSION) {
 		db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
 	}
 }
@@ -153,7 +161,7 @@ export class ProfileStore {
 	/**
 	 * Inserts a profile, deduplicating on the birth: a profile with the same
 	 * `jdUt + lat + lon` already stored wins and is returned unchanged (the new
-	 * name/city are discarded — the birth is the identity).
+	 * name/birthplace are discarded — the birth is the identity).
 	 */
 	add(profile: NewProfile): AddResult {
 		const db = this.open();
@@ -162,7 +170,7 @@ export class ProfileStore {
 		const result = db
 			.prepare(
 				`INSERT INTO profiles (
-					id, name, city, local_year, local_month, local_day,
+					id, name, birthplace, local_year, local_month, local_day,
 					local_hour, local_minute, offset_minutes, lat, lon, jd_ut,
 					created_at, updated_at
 				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -171,7 +179,7 @@ export class ProfileStore {
 			.run(
 				profile.id,
 				profile.name,
-				profile.city,
+				profile.birthplace,
 				birth.local.year,
 				birth.local.month,
 				birth.local.day,

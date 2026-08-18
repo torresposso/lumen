@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, rmSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { AxiError } from "axi-sdk-js";
@@ -11,7 +11,7 @@ function newProfile(overrides: Partial<NewProfile> = {}): NewProfile {
 	const base: NewProfile = {
 		id: "11111111-1111-4111-8111-111111111111",
 		name: "erik",
-		city: "Tampa, USA",
+		birthplace: "Tampa, USA",
 		birth: {
 			local: { year: 1990, month: 6, day: 10, hour: 14, minute: 30 },
 			offsetMinutes: -240,
@@ -78,7 +78,7 @@ describe("ProfileStore", () => {
 		store.add(added);
 		const stored = store.get(added.id);
 		expect(stored?.name).toBe("erik");
-		expect(stored?.city).toBe("Tampa, USA");
+		expect(stored?.birthplace).toBe("Tampa, USA");
 		expect(stored?.birth.local).toEqual({
 			year: 1990,
 			month: 6,
@@ -97,14 +97,14 @@ describe("ProfileStore", () => {
 			newProfile({
 				id: "22222222-2222-4222-8222-222222222222",
 				name: "other",
-				city: "Somewhere else",
+				birthplace: "Somewhere else",
 			}),
 		);
 
 		expect(second.created).toBe(false);
 		expect(second.profile.id).toBe(first.profile.id);
 		expect(second.profile.name).toBe("erik");
-		expect(second.profile.city).toBe("Tampa, USA");
+		expect(second.profile.birthplace).toBe("Tampa, USA");
 		expect(store.list()).toHaveLength(1);
 	});
 
@@ -159,6 +159,60 @@ describe("ProfileStore", () => {
 		const reopened = new ProfileStore(dbPath);
 		expect(reopened.list()).toHaveLength(1);
 		reopened.close();
+	});
+
+	test("migrates a v1 db: renames the city column to birthplace keeping data", () => {
+		// Simulate a v1 database: `city` column + user_version 1.
+		store.close();
+		rmSync(dir, { recursive: true, force: true });
+		mkdirSync(dir, { recursive: true });
+		const v1 = new Database(dbPath);
+		v1.exec(`
+			CREATE TABLE profiles (
+				id             TEXT    PRIMARY KEY,
+				name           TEXT,
+				city           TEXT    NOT NULL,
+				local_year     INTEGER NOT NULL,
+				local_month    INTEGER NOT NULL,
+				local_day      INTEGER NOT NULL,
+				local_hour     INTEGER NOT NULL,
+				local_minute   INTEGER NOT NULL,
+				offset_minutes INTEGER NOT NULL,
+				lat            REAL    NOT NULL,
+				lon            REAL    NOT NULL,
+				jd_ut          REAL    NOT NULL,
+				created_at     TEXT    NOT NULL,
+				updated_at     TEXT    NOT NULL
+			);
+			INSERT INTO profiles VALUES (
+				'33333333-3333-4333-8333-333333333333', 'old', 'Old City',
+				1990, 6, 10, 14, 30, -240, 27.95, -82.46, 2444068.0625,
+				'2025-01-01T00:00:00.000Z', '2025-01-01T00:00:00.000Z'
+			);
+		`);
+		v1.exec("PRAGMA user_version = 1");
+		v1.close();
+
+		const migrated = new ProfileStore(dbPath);
+		const stored = migrated.get("33333333-3333-4333-8333-333333333333");
+		expect(stored?.birthplace).toBe("Old City");
+		expect(migrated.list()).toHaveLength(1);
+		migrated.close();
+
+		// The schema was migrated: column renamed and version bumped to 2.
+		const check = new Database(dbPath);
+		const columns = check
+			.prepare("PRAGMA table_info(profiles)")
+			.all() as Array<{
+			name: string;
+		}>;
+		expect(columns.map((c) => c.name)).not.toContain("city");
+		expect(columns.map((c) => c.name)).toContain("birthplace");
+		expect(
+			(check.prepare("PRAGMA user_version").get() as { user_version: number })
+				.user_version,
+		).toBe(2);
+		check.close();
 	});
 
 	test("rejects a db with a newer user_version as PROFILE_ERROR", () => {
