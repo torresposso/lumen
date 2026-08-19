@@ -89,6 +89,7 @@ describe("Nodal axis astrology calculations (JWGEA canon)", () => {
 		expect(chart.nodalAxis.skippedSteps[0]?.body).toBe("mars");
 		expect(chart.nodalAxis.skippedSteps[0]?.aspect).toBe("square");
 		expect(chart.nodalAxis.skippedSteps[0]?.orb).toBe(0);
+		expect(chart.nodalAxis.skippedSteps[0]?.resolutionNode).toBe("south");
 
 		expect(chart.nodalAxis.north.sign).toBe("Aries");
 		expect(chart.nodalAxis.south.sign).toBe("Libra");

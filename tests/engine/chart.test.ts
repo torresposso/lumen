@@ -94,7 +94,9 @@ describe("computeNatalChart — Golden Vector (Tampa Anchor)", () => {
 		expect(chart.phase).toBe("Full");
 
 		// Dispositor chains
-		expect(chart.dispositorChains.pluto[0]).toEqual({
+		expect(chart.dispositorChains.pluto.terminalType).toBe("final_dispositor");
+		expect(chart.dispositorChains.pluto.terminalBodies).toEqual(["pluto"]);
+		expect(chart.dispositorChains.pluto.steps[0]).toEqual({
 			body: "pluto",
 			sign: "Scorpio",
 			ruler: "pluto",

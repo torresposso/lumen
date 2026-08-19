@@ -37,16 +37,30 @@ export function detectSkippedSteps(
 	northNodeLon: number,
 	orbLimit = SKIPPED_STEPS_ORB,
 ): SkippedStepProjection[] {
+	const southNodeLon = normalizeLongitude(northNodeLon + 180);
 	return evaluateAspectsAgainstPoint(
 		bodies,
 		{ lon: northNodeLon, excludeId: "pluto" },
 		[{ name: "square", target: 90, orb: orbLimit }],
 		{ excludeNonPlanetary: true, precision: 4 },
-	).map((a) => ({
-		body: a.body,
-		aspect: a.aspect,
-		orb: a.orb,
-	}));
+	).map((a) => {
+		const bodyLon = bodies[a.body]?.lon ?? 0;
+		// In JWGEA, nodes move in retrograde direction (decreasing longitude).
+		// A planet is moving from North Node to South Node if it lies between NN and SN in zodiacal direct order.
+		// Measuring direct distance from North Node to the planet:
+		// If 0 < (planet - NN) < 180, the planet last conjoined North Node and is applying/resolving to the South Node.
+		// If 180 < (planet - NN) < 360, it last conjoined South Node and is applying/resolving to the North Node.
+		const distFromNN = normalizeLongitude(bodyLon - northNodeLon);
+		const resolutionNode: "north" | "south" =
+			distFromNN > 0 && distFromNN < 180 ? "south" : "north";
+
+		return {
+			body: a.body,
+			aspect: a.aspect,
+			orb: a.orb,
+			resolutionNode,
+		};
+	});
 }
 
 function computeNodalRulerPlacement(
@@ -85,8 +99,8 @@ export function computeNodalAxisFact(
 ): {
 	nodalAxis: NodalAxisFact;
 	dispositorChains: {
-		southNodeRuler?: DispositorStep[];
-		northNodeRuler?: DispositorStep[];
+		southNodeRuler?: DispositorChainOutput;
+		northNodeRuler?: DispositorChainOutput;
 	};
 } {
 	const northNode = bodies.true_node;

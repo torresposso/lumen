@@ -140,9 +140,11 @@ pushed.
   by Pluto conjunct the True North Node within the deactivation orb (<= 3°).
 - **Nodal Axis & Skipped Steps** — the True North Node (`true_node`) and its opposite
   South Node defining the karmic trajectory; any planetary body squaring the nodal axis
-  (within 5° orb) is identified as a *Skipped Step* (unresolved evolutionary lessons).
+  (within 5° orb) is identified as a *Skipped Step* (unresolved evolutionary lessons),
+  including its canonical `resolutionNode` ("north" or "south" based on the node it is applying to in retrograde nodal motion).
 - **Dispositor Chain** — the directed path of planetary rulerships starting from a body
-  or nodal ruler through sign rulers up to a maximum depth or final dispositor / mutual reception.
+  or nodal ruler through sign rulers up to a maximum depth, classified with its terminal status:
+  `final_dispositor` (domicile), `mutual_reception` (2-body reciprocal loop), or `loop` (multilateral committee).
 - **Prenatal Eclipses** — the astronomical solar and lunar eclipses immediately preceding
   the birth instant (`birthJdUt`), projected onto the natal house cusps.
 - **Aspect Stress** — the JWGEA classification of planetary aspects into stressful

@@ -95,10 +95,22 @@ export interface NodeAspectProjection {
 	stress: "stressful" | "nonstressful";
 }
 
+export type DispositorTerminalType =
+	| "final_dispositor"
+	| "mutual_reception"
+	| "loop";
+
+export interface DispositorChainOutput {
+	steps: DispositorStep[];
+	terminalType: DispositorTerminalType;
+	terminalBodies: string[];
+}
+
 export interface SkippedStepProjection {
 	body: string;
 	aspect: string;
 	orb: number;
+	resolutionNode: "north" | "south";
 }
 
 export interface AstrologicalSignature {
@@ -154,7 +166,7 @@ export interface PlutoPolarityOutput {
 	ppp: PPPFact;
 	midpoint?: ProjectedEclipticPoint;
 	antiMidpoint?: ProjectedEclipticPoint;
-	dispositorChain: DispositorStep[];
+	dispositorChain: DispositorChainOutput;
 }
 
 export type NodeMotionStatus = "retrograde" | "direct" | "stationary";
@@ -230,9 +242,9 @@ export interface NatalChartOutput {
 	nodalAxis: NodalAxisFact;
 	phase?: string;
 	dispositorChains: {
-		pluto: DispositorStep[];
-		southNodeRuler?: DispositorStep[];
-		northNodeRuler?: DispositorStep[];
+		pluto: DispositorChainOutput;
+		southNodeRuler?: DispositorChainOutput;
+		northNodeRuler?: DispositorChainOutput;
 	};
 	prenatalEclipses: PrenatalEclipsesFact;
 	patterns: AspectPattern[];

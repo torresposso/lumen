@@ -19,27 +19,67 @@ export const SIGN_RULERS: Record<string, string> = {
 	Pisces: "neptune",
 };
 
+export type DispositorTerminalType =
+	| "final_dispositor"
+	| "mutual_reception"
+	| "loop";
+
+export interface DispositorChainOutput {
+	steps: DispositorStep[];
+	terminalType: DispositorTerminalType;
+	terminalBodies: string[];
+}
+
 export function buildDispositorChain(
 	bodies: Record<string, { sign: string }>,
 	startBodyId: string,
-	maxDepth = 5,
-): DispositorStep[] {
-	const chain: DispositorStep[] = [];
+	maxDepth = 8,
+): DispositorChainOutput {
+	const steps: DispositorStep[] = [];
 	let currentId = startBodyId;
-	const visited = new Set<string>();
+	const visitedOrder: string[] = [];
+	const visitedSet = new Set<string>();
 
 	for (let i = 0; i < maxDepth; i++) {
 		const body = bodies[currentId];
-		if (!body || visited.has(currentId)) break;
-		visited.add(currentId);
+		if (!body) break;
 
 		const ruler = SIGN_RULERS[body.sign];
 		if (!ruler) break;
 
-		chain.push({ body: currentId, sign: body.sign, ruler });
-		if (ruler === currentId) break;
+		if (visitedSet.has(currentId)) {
+			// Loop detected. Find the cycle starting from currentId.
+			const loopStartIndex = visitedOrder.indexOf(currentId);
+			const loopBodies = visitedOrder.slice(loopStartIndex);
+			const terminalType: DispositorTerminalType =
+				loopBodies.length === 2 ? "mutual_reception" : "loop";
+			return {
+				steps,
+				terminalType,
+				terminalBodies: loopBodies,
+			};
+		}
+
+		visitedSet.add(currentId);
+		visitedOrder.push(currentId);
+		steps.push({ body: currentId, sign: body.sign, ruler });
+
+		if (ruler === currentId) {
+			// Final dispositor (planet in its own domicile)
+			return {
+				steps,
+				terminalType: "final_dispositor",
+				terminalBodies: [currentId],
+			};
+		}
+
 		currentId = ruler;
 	}
 
-	return chain;
+	// Fallback if maxDepth reached without clean termination
+	return {
+		steps,
+		terminalType: "loop",
+		terminalBodies: visitedOrder.slice(-2),
+	};
 }
