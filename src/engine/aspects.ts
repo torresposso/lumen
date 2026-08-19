@@ -340,7 +340,7 @@ export function projectPoint(
 	return { lon, sign, signDeg, house };
 }
 
-export function matchClosestAspect<
+function matchClosestAspect<
 	T extends { name: string; target: number; orb: number },
 >(
 	lonA: number,
@@ -358,7 +358,7 @@ export function matchClosestAspect<
 	return best;
 }
 
-export function findAspect(
+function findAspect(
 	lonA: number,
 	lonB: number,
 	aspects: readonly { name: string; target: number; orb: number }[],
@@ -372,7 +372,7 @@ export function findAspect(
 	};
 }
 
-export function determineAspectPhase(
+function determineAspectPhase(
 	speedA: number,
 	lonA: number,
 	speedB: number,
@@ -392,7 +392,7 @@ export function determineAspectPhase(
 	return rateOfDistanceChange < 0 ? "applying" : "separating";
 }
 
-export function eachPair<T>(
+function eachPair<T>(
 	items: readonly T[],
 	fn: (a: T, b: T) => void,
 ): void {
@@ -407,7 +407,7 @@ export function eachPair<T>(
 	}
 }
 
-export function findDeclinationAspect(
+function findDeclinationAspect(
 	decA: number,
 	decB: number,
 	maxOrb = 1.2,
@@ -794,8 +794,7 @@ export function detectSkippedSteps(
 	const skipped: SkippedStepProjection[] = [];
 	for (const [bodyId, body] of Object.entries(bodies)) {
 		if (!body || bodyId === "pluto" || NON_PLANETARY_IDS.has(bodyId)) continue;
-		let diff = Math.abs(body.lon - northNodeLon);
-		if (diff > 180) diff = 360 - diff;
+		const diff = angularDistance(body.lon, northNodeLon);
 		const orb = Math.abs(diff - 90);
 		if (orb <= orbLimit) {
 			skipped.push({
