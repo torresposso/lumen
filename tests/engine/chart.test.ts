@@ -36,17 +36,21 @@ describe("computeNatalChart — Golden Vector (Tampa Anchor)", () => {
 		expect(chart.bodies.sun?.sign).toBe("Gemini");
 		expect(chart.bodies.sun?.house).toBe(9);
 		expect(chart.bodies.sun?.signDeg).toBeCloseTo(19.6107, 2);
+		expect(chart.bodies.sun?.outOfBounds).toBe(false);
 
 		expect(chart.bodies.moon?.sign).toBe("Capricorn");
 		expect(chart.bodies.moon?.house).toBe(4);
+		expect(chart.bodies.moon?.outOfBounds).toBe(true);
 
 		expect(chart.bodies.pluto?.sign).toBe("Scorpio");
 		expect(chart.bodies.pluto?.house).toBe(2);
 		expect(chart.bodies.pluto?.signDeg).toBeCloseTo(15.501, 2);
+		expect(chart.bodies.pluto?.outOfBounds).toBe(false);
 
 		expect(chart.bodies.true_node?.sign).toBe("Aquarius");
 		expect(chart.bodies.true_node?.house).toBe(5);
 		expect(chart.bodies.true_node?.signDeg).toBeCloseTo(8.1182, 2);
+		expect(chart.bodies.true_node?.outOfBounds).toBe(false);
 
 		// Angles
 		expect(chart.angles.asc.sign).toBe("Libra");

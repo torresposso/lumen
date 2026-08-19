@@ -43,6 +43,30 @@ describe("CaelusEphemeris adapter", () => {
 		);
 		expect(Array.isArray(decl)).toBe(true);
 	});
+
+	test("computes out-of-bounds status, planetary returns, progressions, and photometrics", () => {
+		const jdUt = 2448053.270833;
+		expect(ephemeris.outOfBounds("moon", jdUt)).toBe(true);
+		expect(ephemeris.outOfBounds("sun", jdUt)).toBe(false);
+
+		const saturnReturns = ephemeris.returns(
+			"saturn",
+			jdUt,
+			jdUt + 365.25 * 28,
+			jdUt + 365.25 * 31,
+		);
+		expect(saturnReturns.length).toBeGreaterThan(0);
+
+		const progSun = ephemeris.progressedLongitude(
+			"sun",
+			jdUt,
+			jdUt + 365.25 * 30,
+		);
+		expect(progSun).toBeGreaterThan(0);
+
+		const moonPheno = ephemeris.pheno("moon", jdUt);
+		expect(moonPheno.phase).toBeGreaterThan(0.9);
+	});
 });
 
 describe("InMemoryEphemeris adapter", () => {
@@ -54,18 +78,36 @@ describe("InMemoryEphemeris adapter", () => {
 		expect(mem.solarEclipses(0, 100)).toEqual([]);
 		expect(mem.lunarEclipses(0, 100)).toEqual([]);
 		expect(mem.declinationAspects(["sun"], 0)).toEqual([]);
+		expect(mem.outOfBounds("sun", 0)).toBe(false);
+		expect(mem.returns("saturn", 0, 10, 20)).toEqual([]);
+		expect(mem.progressedLongitude("sun", 0, 100)).toBe(0);
+		expect(mem.pheno("moon", 0).phase).toBe(1);
 	});
 
-	test("accepts custom chart and eclipse fixtures", () => {
+	test("accepts custom chart, eclipse, and timing fixtures", () => {
 		const customSolar = [{ tMax: 100, type: "total" }];
 		const customDecl = [{ a: "sun", b: "moon", kind: "parallel" as const }];
 		const mem = new InMemoryEphemeris({
 			solarEclipses: customSolar as never,
 			declinationAspects: customDecl as never,
+			outOfBounds: true,
+			returns: [12345],
+			progressedLongitude: 180.5,
+			pheno: {
+				phaseAngle: 10,
+				phase: 0.5,
+				elongation: 20,
+				diameter: 0.5,
+				magnitude: -10,
+			},
 		});
 		expect(mem.solarEclipses(0, 200)).toEqual(customSolar as never);
 		expect(mem.declinationAspects(["sun", "moon"], 0)).toEqual(
 			customDecl as never,
 		);
+		expect(mem.outOfBounds("sun", 0)).toBe(true);
+		expect(mem.returns("sun", 0, 10, 20)).toEqual([12345]);
+		expect(mem.progressedLongitude("sun", 0, 10)).toBe(180.5);
+		expect(mem.pheno("moon", 0).phase).toBe(0.5);
 	});
 });

@@ -3,12 +3,17 @@ import type {
 	Chart,
 	DeclinationPair,
 	LunarEclipse,
+	Pheno,
 	SolarEclipse,
 } from "caelus";
 import {
 	declinationAspects,
 	Engine,
 	lunarEclipses,
+	outOfBounds,
+	pheno,
+	progressedLongitude,
+	returns,
 	solarEclipses,
 } from "caelus";
 import { embeddedData } from "caelus/data-embedded";
@@ -32,6 +37,15 @@ export interface Ephemeris {
 		jdUt: number,
 		orb?: number,
 	): DeclinationPair[];
+	outOfBounds(body: BodyId, jdUt: number): boolean;
+	returns(
+		body: BodyId,
+		natalJd: number,
+		jdStart: number,
+		jdEnd: number,
+	): number[];
+	progressedLongitude(body: BodyId, natalJd: number, targetJd: number): number;
+	pheno(body: BodyId, jdUt: number): Pheno;
 }
 
 /**
@@ -68,6 +82,27 @@ export class CaelusEphemeris implements Ephemeris {
 	): DeclinationPair[] {
 		return declinationAspects(this.engine, bodies, jdUt, orb);
 	}
+
+	outOfBounds(body: BodyId, jdUt: number): boolean {
+		return outOfBounds(this.engine, body, jdUt);
+	}
+
+	returns(
+		body: BodyId,
+		natalJd: number,
+		jdStart: number,
+		jdEnd: number,
+	): number[] {
+		return returns(this.engine, body, natalJd, jdStart, jdEnd);
+	}
+
+	progressedLongitude(body: BodyId, natalJd: number, targetJd: number): number {
+		return progressedLongitude(this.engine, body, natalJd, targetJd);
+	}
+
+	pheno(body: BodyId, jdUt: number): Pheno {
+		return pheno(this.engine, body, jdUt);
+	}
 }
 
 export interface InMemoryEphemerisOptions {
@@ -88,6 +123,19 @@ export interface InMemoryEphemerisOptions {
 	declinationAspects?:
 		| DeclinationPair[]
 		| ((bodies: BodyId[], jdUt: number, orb?: number) => DeclinationPair[]);
+	outOfBounds?: boolean | ((body: BodyId, jdUt: number) => boolean);
+	returns?:
+		| number[]
+		| ((
+				body: BodyId,
+				natalJd: number,
+				jdStart: number,
+				jdEnd: number,
+		  ) => number[]);
+	progressedLongitude?:
+		| number
+		| ((body: BodyId, natalJd: number, targetJd: number) => number);
+	pheno?: Pheno | ((body: BodyId, jdUt: number) => Pheno);
 }
 
 /**
@@ -199,5 +247,46 @@ export class InMemoryEphemeris implements Ephemeris {
 			return this.options.declinationAspects(bodies, jdUt, orb);
 		}
 		return this.options.declinationAspects ?? [];
+	}
+
+	outOfBounds(body: BodyId, jdUt: number): boolean {
+		if (typeof this.options.outOfBounds === "function") {
+			return this.options.outOfBounds(body, jdUt);
+		}
+		return this.options.outOfBounds ?? false;
+	}
+
+	returns(
+		body: BodyId,
+		natalJd: number,
+		jdStart: number,
+		jdEnd: number,
+	): number[] {
+		if (typeof this.options.returns === "function") {
+			return this.options.returns(body, natalJd, jdStart, jdEnd);
+		}
+		return this.options.returns ?? [];
+	}
+
+	progressedLongitude(body: BodyId, natalJd: number, targetJd: number): number {
+		if (typeof this.options.progressedLongitude === "function") {
+			return this.options.progressedLongitude(body, natalJd, targetJd);
+		}
+		return this.options.progressedLongitude ?? 0;
+	}
+
+	pheno(body: BodyId, jdUt: number): Pheno {
+		if (typeof this.options.pheno === "function") {
+			return this.options.pheno(body, jdUt);
+		}
+		return (
+			this.options.pheno ?? {
+				phaseAngle: 0,
+				phase: 1,
+				elongation: 0,
+				diameter: 0,
+				magnitude: 0,
+			}
+		);
 	}
 }

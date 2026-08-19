@@ -87,12 +87,18 @@ function computeSolLunaPhase(sunLon: number, moonLon: number): string {
 function projectBodies(
 	rawBodies: Chart["bodies"],
 	cusps: number[],
+	jdUt?: number,
+	ephemeris?: Ephemeris,
 ): Record<string, ChartBodyProjection> {
 	const result: Record<string, ChartBodyProjection> = {};
 
 	for (const [id, body] of Object.entries(rawBodies)) {
 		if (!body) continue;
 		const point = projectPoint(body.lon, cusps, 4);
+		const oob =
+			ephemeris && jdUt !== undefined
+				? ephemeris.outOfBounds(id as BodyId, jdUt)
+				: Math.abs(body.dec) > 23.44;
 		result[id] = {
 			lon: point.lon,
 			sign: point.sign,
@@ -104,6 +110,7 @@ function projectBodies(
 			dist: body.dist !== null ? roundPrecision(body.dist, 4) : null,
 			ra: roundPrecision(body.ra, 4),
 			dec: roundPrecision(body.dec, 4),
+			outOfBounds: oob,
 			dignities: body.dignities ?? [],
 		};
 	}
@@ -181,7 +188,12 @@ export function projectEclipticGeometry(
 	ephemeris?: Ephemeris,
 ): EclipticGeometryProjection {
 	const cusps = projectCusps(rawChart.cusps);
-	const bodies = projectBodies(rawChart.bodies, rawChart.cusps);
+	const bodies = projectBodies(
+		rawChart.bodies,
+		rawChart.cusps,
+		rawChart.jdUt,
+		ephemeris,
+	);
 	const angles = projectAngles(rawChart.angles);
 	const aspects = computeAspects(rawChart.bodies);
 

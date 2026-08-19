@@ -37,6 +37,7 @@ export interface ChartBodyProjection {
 	dist: number | null;
 	ra: number;
 	dec: number;
+	outOfBounds: boolean;
 	dignities: string[];
 }
 
