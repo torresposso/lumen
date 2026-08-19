@@ -1,7 +1,7 @@
 # 01 — caelus-delta-research
 
 Type: research
-Status: claimed
+Status: resolved
 
 ## Question
 
@@ -21,3 +21,12 @@ Close this ticket when a decision on 03 is possible without further research.
 - v1 code to port: `src/adapters/ephemeris-gateway.ts`, `src/core/charts.ts` at git `297b08e`.
 - v1 manifest floor: `caelus ^0.23.0` (v1 `package.json`).
 - Findings land on branch `research/caelus-delta`, file `.scratch/chart-natal/research/01-caelus-delta.md`, with a context pointer back here.
+
+## Answer
+
+Resolved by research subagent (2026-08-18), committed on branch `research/caelus-delta` (`3148207`). Full evidence: `.scratch/chart-natal/research/01-caelus-delta.md`.
+
+1. **Porphyry houses: available and safe on both versions.** `porphyry` is a `HouseSystem` member on 0.23.0 and 0.24.1; `housesPorphyry(asc, mc)` is angle-derived (no latitude, no throw path). The whole-sign polar fallback fires only on `RangeError`, which only Placidus/Koch can raise — no fallback needed at 85°N. Verified by running the v1 call path against both published tarballs.
+2. **Chart API unchanged.** Surface is `Engine` + `Chart` + positions (no `ChartAt` class). `Engine.chartAt(jdUt, lat, lonEast, opts?)` is identical; the v1 call `chartAt(jd, lat, lon, { houseSystem, zodiac, bodies, topocentric })` is a valid `ChartOptions` on both. `true_node` is a default body (no boolean option), always resolves.
+3. **Breaking changes 0.23.0 → 0.24.1: none touch the ported code.** Additive only: `Chart.warnings` (required; `[]` for modern dates), `Position.latSpeed?`, `ChartOptions.separation?`/`aspects?`, `PackedBody` widened (type-level only). Numeric: two 0.24.0 fixes in `plutoApparent`/`chironApparent` (aberration lat + precession ordering) — measured deltas tiny (Pluto lat +3.05″, lon −0.027″). **`0.24.0` is deprecated on npm (incomplete tarball) — never pin it; `^0.23.0` resolves to 0.24.1.**
+4. **Verdict:** the port runs unchanged on both 0.23.0 and 0.24.1 → ticket 03 decides on reproducibility/maintenance grounds, not compatibility.

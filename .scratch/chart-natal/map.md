@@ -19,6 +19,8 @@ Effort: reimplement lumen v1's final `chart natal` (chart + evo + atoms) on the 
 
 <!-- the index — one line per closed ticket: enough to judge relevance, then zoom the link for the detail the ticket holds -->
 
+- [caelus-delta-research](issues/01-caelus-delta-research.md) — `porphyry` houses available at every latitude and the chart API unchanged on both 0.23.0 and 0.24.1; breaking changes 0.23.0→0.24.1 are additive-only (`Chart.warnings`, `Position.latSpeed`, `ChartOptions.separation/aspects`); **`0.24.0` deprecated on npm, never pin it** (`^0.23.0` resolves to 0.24.1); the port runs on both → ticket 03 decides on reproducibility/maintenance grounds.
+
 ## Not yet specified
 
 - Execution slices (spec.md + implementation) — graduates once the decisions close.
