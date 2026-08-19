@@ -334,6 +334,40 @@ describe("SqliteProfileStore — hardening (F1/F2/F8/F9)", () => {
 		reopened.close();
 	});
 
+	test("F2: an already-open store surfaces PROFILE_ERROR on list/get/add/remove when DB is corrupted", () => {
+		const { profile } = store.add(newProfile());
+		// Store is now open (database handle active and core initialized).
+
+		// Drop the profiles table directly on another connection behind the open store's back
+		const raw = new Database(dbPath);
+		raw.exec("DROP TABLE profiles");
+		raw.close();
+
+		// All four operations on the open store must throw AxiError with code PROFILE_ERROR
+		for (const op of [
+			() => store.list(),
+			() => store.get(profile.id),
+			() =>
+				store.add(
+					newProfile({
+						birthLat: 10,
+						birthLon: 10,
+						birthJdUt: 2400000,
+					}),
+				),
+			() => store.remove(profile.id),
+		]) {
+			let thrown: unknown;
+			try {
+				op();
+			} catch (error) {
+				thrown = error;
+			}
+			expect(thrown).toBeInstanceOf(AxiError);
+			expect((thrown as AxiError).code).toBe("PROFILE_ERROR");
+		}
+	});
+
 	test("F5: operations after close reopen cleanly; a second close is a no-op", () => {
 		store.add(newProfile());
 		store.close();

@@ -261,4 +261,65 @@ describe("ensureSchema — DDL & version migrations", () => {
 			/missing required index 'idx_profiles_birth'/,
 		);
 	});
+
+	test("F3: a migration that fails mid-way rolls back atomically (no partial columns, user_version unchanged)", () => {
+		const db = new Database(":memory:");
+		// Create a v1 db with a conflicting 'birth_lat' column added ahead of time,
+		// so that the late rename `ALTER TABLE profiles RENAME COLUMN lat TO birth_lat` fails.
+		db.exec(`
+			CREATE TABLE profiles (
+				id TEXT PRIMARY KEY,
+				name TEXT,
+				city TEXT NOT NULL,
+				local_year INTEGER NOT NULL,
+				local_month INTEGER NOT NULL,
+				local_day INTEGER NOT NULL,
+				local_hour INTEGER NOT NULL,
+				local_minute INTEGER NOT NULL,
+				offset_minutes INTEGER NOT NULL,
+				lat REAL NOT NULL,
+				lon REAL NOT NULL,
+				jd_ut REAL NOT NULL,
+				birth_lat REAL,
+				created_at TEXT NOT NULL,
+				updated_at TEXT NOT NULL
+			);
+			PRAGMA user_version = 1;
+		`);
+		db.prepare(
+			`INSERT INTO profiles VALUES (
+				'u-rollback', 'Rollback Test', 'Bogotá',
+				1990, 6, 10, 14, 30, -300,
+				4.711, -74.0721, 2448053.3125, NULL,
+				'2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z'
+			)`,
+		).run();
+
+		// Migration should fail due to duplicate column name on late step
+		expect(() => ensureSchema(db)).toThrow();
+
+		// user_version must remain at 1
+		const { user_version } = db.prepare("PRAGMA user_version").get() as {
+			user_version: number;
+		};
+		expect(user_version).toBe(1);
+
+		// Schema must have rolled back completely: 'city' still exists, 'birthplace' and 'birth_place' do not exist
+		const cols = (
+			db.prepare("PRAGMA table_info(profiles)").all() as { name: string }[]
+		).map((c) => c.name);
+
+		expect(cols).toContain("city");
+		expect(cols).toContain("local_year");
+		expect(cols).not.toContain("birthplace");
+		expect(cols).not.toContain("birth_place");
+		expect(cols).not.toContain("birth_date_time");
+
+		// Original row must still be intact
+		const row = db
+			.prepare("SELECT city, local_year FROM profiles WHERE id = 'u-rollback'")
+			.get() as { city: string; local_year: number };
+		expect(row.city).toBe("Bogotá");
+		expect(row.local_year).toBe(1990);
+	});
 });

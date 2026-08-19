@@ -4,8 +4,8 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] F2 path: open a file-backed store, corrupt the DB behind its back while the store is still open, and assert `list` / `get` / `add` / `remove` each throw AxiError with code PROFILE_ERROR
-- [ ] F3 path: craft a pre-v4 database whose migration fails on a late step and assert the transaction rolled back — no partial columns and `user_version` unchanged
-- [ ] `bun test tests/storage` and `bun run typecheck` stay green
+- [x] F2 path: open a file-backed store, corrupt the DB behind its back while the store is still open, and assert `list` / `get` / `add` / `remove` each throw AxiError with code PROFILE_ERROR
+- [x] F3 path: craft a pre-v4 database whose migration fails on a late step and assert the transaction rolled back — no partial columns and `user_version` unchanged
+- [x] `bun test tests/storage` and `bun run typecheck` stay green
