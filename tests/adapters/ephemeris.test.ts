@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { CaelusEphemeris, InMemoryEphemeris } from "../../src/adapters/ephemeris";
+import {
+	CaelusEphemeris,
+	InMemoryEphemeris,
+} from "../../src/adapters/ephemeris";
 
 describe("CaelusEphemeris adapter", () => {
 	const ephemeris = new CaelusEphemeris();

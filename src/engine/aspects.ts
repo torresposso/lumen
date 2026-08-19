@@ -396,7 +396,12 @@ export interface EvaluatedPointAspect {
  * applying definitions, orb checks, optional phase calculus, and canonical sorting.
  */
 export function evaluateAspectsAgainstPoint<
-	TDef extends { name: string; target: number; orb: number; stress?: AspectStress },
+	TDef extends {
+		name: string;
+		target: number;
+		orb: number;
+		stress?: AspectStress;
+	},
 >(
 	bodies: Record<string, { lon: number; speed?: number }>,
 	target: { lon: number; speed?: number; excludeId?: string },
@@ -424,7 +429,11 @@ export function evaluateAspectsAgainstPoint<
 				...(match.def.stress ? { stress: match.def.stress } : {}),
 			};
 
-			if (options.includePhase && body.speed !== undefined && target.speed !== undefined) {
+			if (
+				options.includePhase &&
+				body.speed !== undefined &&
+				target.speed !== undefined
+			) {
 				aspectItem.phase = determineAspectPhase(
 					body.speed,
 					body.lon,
@@ -440,4 +449,3 @@ export function evaluateAspectsAgainstPoint<
 
 	return results.sort((a, b) => a.orb - b.orb || a.body.localeCompare(b.body));
 }
-

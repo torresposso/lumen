@@ -57,13 +57,7 @@ function parseWhen(
 		minute: Number(match[5]),
 	};
 
-	checkIntRange(
-		issues,
-		local.year,
-		MIN_YEAR,
-		MAX_YEAR,
-		`${labels.when} year`,
-	);
+	checkIntRange(issues, local.year, MIN_YEAR, MAX_YEAR, `${labels.when} year`);
 	checkIntRange(issues, local.month, 1, 12, `${labels.when} month`);
 	if (
 		!Number.isInteger(local.day) ||
@@ -182,7 +176,10 @@ function parseWhere(
  */
 export function parseBirthInput(
 	raw: RawBirthInput,
-	labels: { when: string; where: string } = { when: "--when", where: "--where" },
+	labels: { when: string; where: string } = {
+		when: "--when",
+		where: "--where",
+	},
 ): BirthInput {
 	const issues: string[] = [];
 
@@ -225,9 +222,7 @@ function offsetToMinutes(
 		mm < 0 ||
 		mm > 59
 	) {
-		issues.push(
-			`${labels.when} offset must be ±HH:MM, e.g. "-05:00" or "Z"`,
-		);
+		issues.push(`${labels.when} offset must be ±HH:MM, e.g. "-05:00" or "Z"`);
 		return NaN;
 	}
 	return sign * (hh * 60 + mm);

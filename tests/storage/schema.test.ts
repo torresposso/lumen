@@ -257,6 +257,8 @@ describe("ensureSchema — DDL & version migrations", () => {
 		}
 		expect(thrown).toBeInstanceOf(AxiError);
 		expect((thrown as AxiError).code).toBe("PROFILE_ERROR");
-		expect((thrown as Error).message).toMatch(/missing required index 'idx_profiles_birth'/);
+		expect((thrown as Error).message).toMatch(
+			/missing required index 'idx_profiles_birth'/,
+		);
 	});
 });

@@ -44,7 +44,10 @@ function escapeLike(pattern: string): string {
 
 function assertValidProfile(profile: NewProfile): void {
 	const issues: string[] = [];
-	if (typeof profile.birthPlace !== "string" || profile.birthPlace.trim() === "") {
+	if (
+		typeof profile.birthPlace !== "string" ||
+		profile.birthPlace.trim() === ""
+	) {
 		issues.push("birthPlace must not be empty");
 	}
 	if (
@@ -53,10 +56,18 @@ function assertValidProfile(profile: NewProfile): void {
 	) {
 		issues.push("birthDateTime must not be empty");
 	}
-	if (!Number.isFinite(profile.birthLat) || profile.birthLat < -90 || profile.birthLat > 90) {
+	if (
+		!Number.isFinite(profile.birthLat) ||
+		profile.birthLat < -90 ||
+		profile.birthLat > 90
+	) {
 		issues.push("birthLat must be a finite number between -90 and 90");
 	}
-	if (!Number.isFinite(profile.birthLon) || profile.birthLon < -180 || profile.birthLon > 180) {
+	if (
+		!Number.isFinite(profile.birthLon) ||
+		profile.birthLon < -180 ||
+		profile.birthLon > 180
+	) {
 		issues.push("birthLon must be a finite number between -180 and 180");
 	}
 	if (!Number.isFinite(profile.birthJdUt)) {
@@ -75,7 +86,10 @@ function wrapStoreError<T>(fn: () => T): T {
 		throw new AxiError(
 			`Store failure: ${err instanceof Error ? err.message : String(err)}`,
 			"PROFILE_ERROR",
-			["The database may be corrupt", "Back up the file and remove it to start clean"],
+			[
+				"The database may be corrupt",
+				"Back up the file and remove it to start clean",
+			],
 		);
 	}
 }
@@ -95,15 +109,17 @@ class ProfileDb implements ProfileStore {
 
 	list(): Profile[] {
 		return wrapStoreError(() => {
-			const rows = this.db.prepare("SELECT * FROM profiles ORDER BY id").all() as ProfileRow[];
+			const rows = this.db
+				.prepare("SELECT * FROM profiles ORDER BY id")
+				.all() as ProfileRow[];
 			return rows.map(toProfile);
 		});
 	}
 
 	private resolveId(id: string): string | undefined {
-		const exact = this.db.prepare("SELECT id FROM profiles WHERE id = ?").get(id) as
-			| { id: string }
-			| null;
+		const exact = this.db
+			.prepare("SELECT id FROM profiles WHERE id = ?")
+			.get(id) as { id: string } | null;
 		if (exact) return exact.id;
 
 		const prefixMatches = this.db
@@ -119,9 +135,9 @@ class ProfileDb implements ProfileStore {
 		return wrapStoreError(() => {
 			const resolvedId = this.resolveId(id);
 			if (!resolvedId) return undefined;
-			const row = this.db.prepare("SELECT * FROM profiles WHERE id = ?").get(resolvedId) as
-				| ProfileRow
-				| null;
+			const row = this.db
+				.prepare("SELECT * FROM profiles WHERE id = ?")
+				.get(resolvedId) as ProfileRow | null;
 			return row ? toProfile(row) : undefined;
 		});
 	}
@@ -167,11 +183,17 @@ class ProfileDb implements ProfileStore {
 				.prepare(
 					"SELECT * FROM profiles WHERE birth_jd_ut = ? AND birth_lat = ? AND birth_lon = ?",
 				)
-				.get(profile.birthJdUt, profile.birthLat, profile.birthLon) as ProfileRow | null;
+				.get(
+					profile.birthJdUt,
+					profile.birthLat,
+					profile.birthLon,
+				) as ProfileRow | null;
 			if (!row) {
-				throw new AxiError("Duplicate birth not found after conflict", "PROFILE_ERROR", [
-					"The database may be corrupt",
-				]);
+				throw new AxiError(
+					"Duplicate birth not found after conflict",
+					"PROFILE_ERROR",
+					["The database may be corrupt"],
+				);
 			}
 			return { profile: toProfile(row), created: false };
 		});
@@ -181,7 +203,10 @@ class ProfileDb implements ProfileStore {
 		return wrapStoreError(() => {
 			const resolvedId = this.resolveId(id);
 			if (!resolvedId) return false;
-			return this.db.prepare("DELETE FROM profiles WHERE id = ?").run(resolvedId).changes > 0;
+			return (
+				this.db.prepare("DELETE FROM profiles WHERE id = ?").run(resolvedId)
+					.changes > 0
+			);
 		});
 	}
 }

@@ -1,9 +1,9 @@
 import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { AxiError } from "axi-sdk-js";
 import { chmodSync, existsSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { AxiError } from "axi-sdk-js";
 import type { NewProfile } from "../../src/domain/model";
 import {
 	defaultDbFile,

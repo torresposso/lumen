@@ -36,9 +36,9 @@ const REQUIRED_COLUMNS = new Set([
 ]);
 
 function validateSchema(db: Database): void {
-	const cols = db
-		.prepare("PRAGMA table_info(profiles)")
-		.all() as { name: string }[];
+	const cols = db.prepare("PRAGMA table_info(profiles)").all() as {
+		name: string;
+	}[];
 	const colNames = new Set(cols.map((c) => c.name));
 	for (const col of REQUIRED_COLUMNS) {
 		if (!colNames.has(col)) {

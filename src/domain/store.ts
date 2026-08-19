@@ -24,5 +24,3 @@ export interface ProfileStore {
 	/** Removes one profile by UUID; false when unknown. */
 	remove(id: string): boolean;
 }
-
-
