@@ -2,9 +2,9 @@ import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { runAxiCli } from "axi-sdk-js";
 import { buildCliOptions } from "../src/cli";
+import { homeView } from "../src/cli/home";
 import {
 	formatCommandsHelp,
-	homeView,
 	PROFILE_ADD_EXAMPLE,
 	PROFILE_ADD_HINT,
 	PROFILE_LIST_HINT,

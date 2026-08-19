@@ -67,8 +67,3 @@ export function formatCommandsHelp(
 export function emptyStateHint(hasProfiles: boolean): string {
 	return hasProfiles ? PROFILE_LIST_HINT : PROFILE_ADD_HINT;
 }
-
-// Compat barrel: `homeView` used to live here; it now lives in `./home`
-// (vocabulary vs view is the split, ADR-0007). Re-exported so existing
-// consumers keep working during the transition.
-export { homeView } from "./home";

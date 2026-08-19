@@ -4,8 +4,8 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] The home-view tests import `homeView` from its real module, not through the surface
-- [ ] The surface module no longer re-exports `homeView` and its transition comment is gone
-- [ ] No module cycle remains between the surface and the view; `bun test` and `bun run check` stay green
+- [x] The home-view tests import `homeView` from its real module, not through the surface
+- [x] The surface module no longer re-exports `homeView` and its transition comment is gone
+- [x] No module cycle remains between the surface and the view; `bun test` and `bun run check` stay green
