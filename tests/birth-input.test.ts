@@ -191,3 +191,26 @@ describe("parseBirthInput — semantic ranges", () => {
 		);
 	});
 });
+
+describe("parseBirthInput — flag-agnostic labels", () => {
+	test("interpolates caller-supplied flag labels into every suggestion", () => {
+		try {
+			parseBirthInput(
+				{ when: "garbage", where: "nope" },
+				{ when: "--birth-when", where: "--birth-where" },
+			);
+			expect.unreachable();
+		} catch (error) {
+			expect(error).toBeInstanceOf(AxiError);
+			const err = error as AxiError;
+			expect(err.code).toBe("VALIDATION_ERROR");
+			expect(err.suggestions?.join(" ")).toContain("--birth-when");
+			expect(err.suggestions?.join(" ")).toContain("--birth-where");
+		}
+	});
+
+	test("the domain default keeps the historical --when/--where wording", () => {
+		expect(issuesFor({ when: "garbage" })[0]).toContain("--when");
+		expect(issuesFor({ where: "zz" })[0]).toContain("--where");
+	});
+});

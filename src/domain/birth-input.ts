@@ -1,5 +1,4 @@
 import { AxiError } from "axi-sdk-js";
-import { ADD_FLAGS } from "../cli/surface";
 import { daysInMonth, julianDayUt, type LocalTime } from "./jd";
 import type { BirthInput } from "./model";
 
@@ -35,12 +34,16 @@ function pad2(value: number): string {
 	return String(value).padStart(2, "0");
 }
 
-function parseWhen(rawWhen: string, issues: string[]): ParsedWhen | undefined {
+function parseWhen(
+	rawWhen: string,
+	issues: string[],
+	labels: { when: string },
+): ParsedWhen | undefined {
 	const when = rawWhen.trim();
 	const match = DATETIME_RE.exec(when);
 	if (match === null) {
 		issues.push(
-			`${ADD_FLAGS.when} must look like "YYYY-MM-DDTHH:MM±HH:MM" or "…Z" (got "${when}")`,
+			`${labels.when} must look like "YYYY-MM-DDTHH:MM±HH:MM" or "…Z" (got "${when}")`,
 		);
 		return undefined;
 	}
@@ -59,28 +62,28 @@ function parseWhen(rawWhen: string, issues: string[]): ParsedWhen | undefined {
 		local.year,
 		MIN_YEAR,
 		MAX_YEAR,
-		`${ADD_FLAGS.when} year`,
+		`${labels.when} year`,
 	);
-	checkIntRange(issues, local.month, 1, 12, `${ADD_FLAGS.when} month`);
+	checkIntRange(issues, local.month, 1, 12, `${labels.when} month`);
 	if (
 		!Number.isInteger(local.day) ||
 		local.day < 1 ||
 		local.day > daysInMonth(local.year, local.month)
 	) {
-		issues.push(`${ADD_FLAGS.when} day is invalid for that month`);
+		issues.push(`${labels.when} day is invalid for that month`);
 	}
-	checkIntRange(issues, local.hour, 0, 23, `${ADD_FLAGS.when} hour`);
-	checkIntRange(issues, local.minute, 0, 59, `${ADD_FLAGS.when} minute`);
+	checkIntRange(issues, local.hour, 0, 23, `${labels.when} hour`);
+	checkIntRange(issues, local.minute, 0, 59, `${labels.when} minute`);
 
 	const offsetMinutes =
-		offsetSuffix === "Z" ? 0 : offsetToMinutes(offsetSuffix, issues);
+		offsetSuffix === "Z" ? 0 : offsetToMinutes(offsetSuffix, issues, labels);
 	if (!Number.isNaN(offsetMinutes)) {
 		checkIntRange(
 			issues,
 			offsetMinutes,
 			MIN_OFFSET_MINUTES,
 			MAX_OFFSET_MINUTES,
-			`${ADD_FLAGS.when} offset`,
+			`${labels.when} offset`,
 		);
 	}
 
@@ -91,12 +94,13 @@ function parseWhen(rawWhen: string, issues: string[]): ParsedWhen | undefined {
 function parseWhere(
 	rawWhere: string,
 	issues: string[],
+	labels: { where: string },
 ): ParsedWhere | undefined {
 	const where = rawWhere.trim();
 	const whereParts = where.split(",");
 	if (whereParts.length < 3) {
 		issues.push(
-			`${ADD_FLAGS.where} must list coordinates then a place: "lat, lon, Place" (got "${where}")`,
+			`${labels.where} must list coordinates then a place: "lat, lon, Place" (got "${where}")`,
 		);
 		return undefined;
 	}
@@ -110,23 +114,23 @@ function parseWhere(
 
 	if (!NUMBER_RE.test(latText)) {
 		issues.push(
-			`${ADD_FLAGS.where} latitude must be a decimal number (got "${latText}")`,
+			`${labels.where} latitude must be a decimal number (got "${latText}")`,
 		);
 	} else {
 		birthLat = Number(latText);
 		if (!Number.isFinite(birthLat) || birthLat < -90 || birthLat > 90) {
-			issues.push(`${ADD_FLAGS.where} latitude must be between -90 and 90`);
+			issues.push(`${labels.where} latitude must be between -90 and 90`);
 		}
 	}
 
 	if (!NUMBER_RE.test(lonText)) {
 		issues.push(
-			`${ADD_FLAGS.where} longitude must be a decimal number (got "${lonText}")`,
+			`${labels.where} longitude must be a decimal number (got "${lonText}")`,
 		);
 	} else {
 		birthLon = Number(lonText);
 		if (!Number.isFinite(birthLon) || birthLon < -180 || birthLon > 180) {
-			issues.push(`${ADD_FLAGS.where} longitude must be between -180 and 180`);
+			issues.push(`${labels.where} longitude must be between -180 and 180`);
 		}
 	}
 
@@ -136,7 +140,7 @@ function parseWhere(
 		.join(", ")
 		.trim();
 	if (place === "") {
-		issues.push(`${ADD_FLAGS.where} place must not be empty`);
+		issues.push(`${labels.where} place must not be empty`);
 	} else {
 		birthPlace = place;
 	}
@@ -170,12 +174,20 @@ function parseWhere(
  * themselves is the command's concern. The transient `local`/`offsetMinutes`
  * the derivation needs never appear in the result — the complete `birth*` set
  * leaves the seam.
+ *
+ * The caller supplies the flag labels (e.g. `ADD_FLAGS`) so this domain module
+ * does not import the CLI vocabulary — the direction is `commands → domain`,
+ * not `domain → cli` (ADR-0006). Defaults keep the historical `--when`/`--where`
+ * wording for bare domain tests.
  */
-export function parseBirthInput(raw: RawBirthInput): BirthInput {
+export function parseBirthInput(
+	raw: RawBirthInput,
+	labels: { when: string; where: string } = { when: "--when", where: "--where" },
+): BirthInput {
 	const issues: string[] = [];
 
-	const parsedWhen = parseWhen(raw.when, issues);
-	const parsedWhere = parseWhere(raw.where, issues);
+	const parsedWhen = parseWhen(raw.when, issues, labels);
+	const parsedWhere = parseWhere(raw.where, issues, labels);
 
 	if (
 		issues.length > 0 ||
@@ -195,7 +207,11 @@ export function parseBirthInput(raw: RawBirthInput): BirthInput {
 }
 
 /** `Z` → 0; `±HH:MM` → signed minutes; `NaN` when malformed (contributes an issue). */
-function offsetToMinutes(suffix: string, issues: string[]): number {
+function offsetToMinutes(
+	suffix: string,
+	issues: string[],
+	labels: { when: string },
+): number {
 	const sign = suffix.startsWith("-") ? -1 : 1;
 	const [hh, mm] = suffix
 		.slice(1)
@@ -210,7 +226,7 @@ function offsetToMinutes(suffix: string, issues: string[]): number {
 		mm > 59
 	) {
 		issues.push(
-			`${ADD_FLAGS.when} offset must be ±HH:MM, e.g. "-05:00" or "Z"`,
+			`${labels.when} offset must be ±HH:MM, e.g. "-05:00" or "Z"`,
 		);
 		return NaN;
 	}

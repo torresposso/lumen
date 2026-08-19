@@ -2,15 +2,14 @@
  * The command surface — the single home of the whole agent-facing CLI
  * vocabulary (ADR-0007): the command and arm tokens, the flag literals, the
  * canonical add example, the arm help catalog, the derived top-level
- * "Commands:" block and the shared empty-state / NOT_FOUND hints — plus the
- * **home view** (the profile count + empty-state hint a bare invocation
- * publishes). The top-level help, the command's usage text, the subcommand
- * group name and the birth-input contract's messages reference these tokens;
- * none re-types a literal, so a command, arm or flag rename is one edit in
- * this module. The command surface holds the *names* and the *presentation
- * rules*; the contracts hold the *meanings* (ADR-0006).
+ * "Commands:" block and the shared empty-state / NOT_FOUND hints.
+ * The top-level help, the command's usage text and the subcommand group name
+ * reference these tokens; none re-types a literal, so a command, arm or flag
+ * rename is one edit in this module. The command surface holds the *names*
+ * and the *presentation* rules; the contracts hold the *meanings* (ADR-0006).
+ * The **home view** (`homeView` in `src/cli/home.ts`) composes the profile
+ * count plus the empty-state hint a bare invocation publishes.
  */
-import type { ProfileStore } from "../domain/store";
 
 /** The top-level command token — "lumen profile". */
 export const PROFILE_COMMAND = "lumen profile";
@@ -69,18 +68,7 @@ export function emptyStateHint(hasProfiles: boolean): string {
 	return hasProfiles ? PROFILE_LIST_HINT : PROFILE_ADD_HINT;
 }
 
-/**
- * The home view — what a bare `lumen` invocation (no command) publishes: the
- * profile count plus the empty-state hint. Owns the "snapshot the store, apply
- * the empty-state rule" composition; the `list` arm applies the same rule to
- * its rows, but only this seam composes the count-and-hint shape the root
- * wiring publishes.
- */
-export function homeView(store: ProfileStore): {
-	profiles: number;
-	help: [string];
-} {
-	const profiles = store.list();
-	const hasProfiles = profiles.length > 0;
-	return { profiles: profiles.length, help: [emptyStateHint(hasProfiles)] };
-}
+// Compat barrel: `homeView` used to live here; it now lives in `./home`
+// (vocabulary vs view is the split, ADR-0007). Re-exported so existing
+// consumers keep working during the transition.
+export { homeView } from "./home";

@@ -60,3 +60,22 @@ profile count + the empty-state hint a bare invocation publishes) lives here
 too, beside the rule that selects the hint; the root calls the seam instead
 of re-composing the empty-state decision. The promise this ADR made for
 renames now also holds for *additions* and for *rendering*.
+
+## Update (2026-08-19, architecture review — vocabulary vs view)
+
+Two corrections to the shape above:
+
+1. **The home view moved out of the surface.** `homeView` now lives in
+   `src/cli/home.ts`; the surface module keeps the vocabulary and the
+   presentation rules (`emptyStateHint`, `formatCommandsHelp`) but no longer
+   touches the store. Rationale: the surface was the single home of the
+   *names*; composing a store snapshot is a *view* — a different concern
+   (audit F11: presentation → storage inversion). `surface.ts` keeps a compat
+   re-export of `homeView` for the transition.
+2. **The birth-input seam became flag-agnostic.** The birth-input contract
+   previously imported `--when`/`--where` from the surface and typed them into
+   its own messages, making `domain` import from `cli` (ADR-0006 said the
+   dependency is the other way). Now `parseBirthInput(raw, labels)` receives
+   the labels from the `add` arm, which composes them from `ADD_FLAGS`. A flag
+   rename is still one edit (`surface.ts`), but the flags reach the domain as
+   values, not as an import — the layer direction holds.

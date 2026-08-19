@@ -44,21 +44,27 @@ Already enforced, not reviewable:
    coordinates; it does not compute Julian Days, format output, or talk to the
    DB directly.
 6. **One seam per concern.** A contract owns its parsing + validation in one
-   place with one error style (`src/core/args.ts` and `src/core/birth-input.ts`
+   place with one error style (`src/cli/args.ts` and `src/domain/birth-input.ts`
    are the models: each accumulates every *checkable* violation and throws one
-   error citing all of them). The subcommand runner (`src/core/subcommand.ts`)
+   error citing all of them). The subcommand runner (`src/cli/subcommand.ts`)
    is the third contract model: it owns the parse → help → dispatch
    choreography a command would otherwise re-type once per subcommand arm.
    Validation must not be re-implemented at call sites — the command owns
-   presence and orchestration, never value checks. The birth-input seam is the
-   single place where the ergonomic CLI names (`--when`/`--where`) map onto the
-   model's `birth*` fields. The names themselves live in the command surface
-   (`src/core/cli-surface.ts`): the command and arm tokens, the flag literals,
-   the canonical add example, the arm help catalog and the shared hints — plus
-   the derived top-level "Commands:" block (`profileCommandsHelp`) and the
-   home view (`homeView`: the profile count + empty-state hint a bare
-   invocation publishes). The args spec, usage text, top-level help and
-   birth-input messages reference the tokens instead of re-typing them, so a
+   presence and orchestration, never value checks. The birth-input seam
+   (`src/domain/birth-input.ts`) is **flag-agnostic**: it receives the flag
+   labels from the caller, so the mapping of ergonomic CLI names
+   (`--when`/`--where`) onto the model's `birth*` fields happens in the
+   command — the domain never imports the CLI vocabulary (`commands → domain`,
+   never `domain → cli`). The names themselves live in the command surface
+   (`src/cli/surface.ts`): the command and arm tokens, the flag literals, the
+   canonical add example, the arm help catalog and the shared hints — plus
+   the derived top-level "Commands:" block (`formatCommandsHelp`) and the
+   shared empty-state rule (`emptyStateHint`). The **home view** — the profile
+   count + empty-state hint a bare invocation publishes — lives in its own
+   module (`src/cli/home.ts`, `homeView`): vocabulary vs view is a separate
+   concern, so a host that only renders the surface has nothing to do with the
+   store. The args spec, usage text, top-level help and birth-input messages
+   reference / interpolate the tokens instead of re-typing them, so a
    vocabulary rename is one edit and an added arm is one catalog row
    (ADR-0006; ADR-0007).
 7. **Pure kernels don't validate or do I/O.** `src/core/jd.ts` is arithmetic

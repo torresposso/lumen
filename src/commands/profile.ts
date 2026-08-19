@@ -93,8 +93,9 @@ export const profileCommand = createSubcommandGroup<CliContext>({
 				const name = parsed.flags.get(ADD_FLAGS.name) ?? null;
 
 				// One seam: the raw flags in, the complete birth (birthJdUt derived)
-				// out — the store generates the profile's UUID.
-				const birth = parseBirthInput({ when, where });
+				// out — the store generates the profile's UUID. The flag labels come
+				// from the surface vocabulary (the domain seam is flag-agnostic).
+				const birth = parseBirthInput({ when, where }, ADD_FLAGS);
 				const { profile, created } = profiles.add({
 					...birth,
 					name,

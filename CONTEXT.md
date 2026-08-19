@@ -60,12 +60,15 @@ pushed.
   `VALIDATION_ERROR` citing every checkable violated rule in its suggestions.
   It is also the one seam where the ergonomic CLI names (`--when`/`--where`) meet
   the model vocabulary (`birth*`) — neither the command nor the store knows the
-  CLI flag names (ADR-0006). The UTC offset arrives *inside* `--when`, never as a
-  separate flag. Flag presence, syntax and value normalization belong to the
-  **args contract**; value semantics belong here. The contract also derives
-  `birthJdUt` (Meeus, via `src/domain/jd.ts`) — raw flags enter, the complete
-  `birth*` set leaves, and neither the command nor the store performs the
-  derivation.
+  CLI flag names (ADR-0006). The seam is *flag-agnostic*: the caller (the
+  `profile add` arm) passes the flag labels from the command surface, so the
+  domain module never imports the CLI vocabulary — the dependency direction is
+  `commands → domain`, never `domain → cli`. The UTC offset arrives *inside*
+  `--when`, never as a separate flag. Flag presence, syntax and value
+  normalization belong to the **args contract**; value semantics belong here.
+  The contract also derives `birthJdUt` (Meeus, via `src/domain/jd.ts`) — raw
+  flags enter, the complete `birth*` set leaves, and neither the command nor
+  the store performs the derivation.
 - **Args contract** — the module `src/cli/args.ts` that owns the flag and
   positional syntax of every command's raw arguments as one seam: known and
   required flags, `--flag=value` / `--flag value` forms, duplicates, missing
@@ -82,21 +85,25 @@ pushed.
   2026-08-18, ADR-0007): the command token (`lumen profile`), the four arm
   command-lines, the `--when` / `--where` / `--name` flag literals, the
   canonical add example and the shared empty-state / NOT_FOUND hints. The
-  top-level help, the command's usage text, the subcommand group name and the
-  birth-input contract's messages interpolate the tokens — none re-types a
-  literal, so a command, arm or flag rename is one edit in this module
-  (ADR-0006; ADR-0007). It holds the *names*; the birth-input contract holds
-  the *meanings*. It also owns the shared empty-state rule — the hint tokens
-  and the selection between them (`emptyStateHint`: empty store → add-hint,
-  non-empty → list-hint) live beside each other, so `home` and the `list` arm
-  never re-implement the decision. It derives the top-level "Commands:" block
-  (`formatCommandsHelp`) dynamically from registered arm catalogs.
+  top-level help, the command's usage text and the subcommand group name
+  interpolate the tokens; the `add` arm passes the flag labels to the
+  **birth-input contract**, which quotes them in its messages — none re-types
+  a literal, so a command, arm or flag rename is one edit in this module
+  (ADR-0006; ADR-0007). It holds the *names* and the *presentation* rules;
+  the birth-input contract holds the *meanings*. It also owns the shared
+  empty-state rule — the hint tokens and the selection between them
+  (`emptyStateHint`: empty store → add-hint, non-empty → list-hint) live
+  beside each other, so `home` and the `list` arm never re-implement the
+  decision. It derives the top-level "Commands:" block (`formatCommandsHelp`)
+  dynamically from registered arm catalogs.
 - **Home view** — the summary a bare `lumen` invocation (no command) publishes:
   the profile count plus the command surface's empty-state hint, composed by
-  `homeView` (`src/cli/surface.ts`) — "snapshot the store, apply the
+  `homeView` (`src/cli/home.ts`) — "snapshot the store, apply the
   empty-state rule". It is the same decision the `list` arm applies to its
   rows, with one home; the root wiring (`src/cli.ts`) calls the seam instead
-  of re-composing it.
+  of re-composing it. The split (2026-08-19): the surface module owns the
+  *vocabulary*, the home module owns the *view* (presentation vs vocabulary
+  inversion).
 - **CLI Context** — the runtime execution context `CliContext` (`src/cli/context.ts`)
   holding the capability ports `profiles: ProfileStore` and `ephemeris: Ephemeris`.
   `requireCliContext` (`src/cli/context.ts`) validates presence and fails loud
