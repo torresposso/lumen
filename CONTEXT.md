@@ -133,9 +133,9 @@ pushed.
 - **Natal chart engine** — the complete astrological chart geometry and evolutionary
   facts assembled as a pure function (`computeNatalChart`, `src/engine/natal.ts`)
   over a stored `Profile` and `Ephemeris` port, backed by the deep 2-module internal
-  engine (`src/engine/aspects.ts` for parametric aspect calculus and
-  `src/engine/natal.ts` for astronomical measurements and JWGEA evolutionary
-  mechanics) published as a single TOON `chart` block (ADR-0008, ADR-0009, ADR-0010).
+  engine (`src/engine/aspects.ts` for parametric aspect calculus and ecliptic geometry
+  projections, and `src/engine/natal.ts` for JWGEA evolutionary mechanics and chart
+  synthesis) published as a single TOON `chart` block (ADR-0008, ADR-0009, ADR-0010).
 - **Ephemeris seam** — the capability port `Ephemeris` (`src/adapters/ephemeris.ts`)
   wrapping ephemerides (Caelus `Engine.chartAt` in prod, `InMemoryEphemeris` in tests)
   with fixed Porphyry houses, True North Node, and eclipse finders, injected through

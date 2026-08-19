@@ -4,80 +4,31 @@ import { CaelusEphemeris, type Ephemeris } from "../adapters/ephemeris";
 import type { Profile } from "../domain/model";
 import { type ToonProfile, toonProfile } from "../domain/toon";
 import {
-	type AspectProjection,
-	type AspectStress,
+	type AstrologicalSignature,
 	angularDistance,
 	buildDispositorChain,
-	computeSolLunaPhase,
+	calculateAstrologicalSignature,
+	computeMidpoints,
 	DEFAULT_BODIES,
-	type DeclinationAspectProjection,
 	type DispositorStep,
-	determineAspectPhase,
-	eachPair,
-	evaluateAspectsAgainstPoint,
-	findAspect,
-	findDeclinationAspect,
-	isPlanet,
-	MAJOR_ASPECT_DEFS,
-	NON_PLANETARY_IDS,
+	detectSkippedSteps,
+	evaluateNodeAspects,
+	evaluatePlutoAspects,
+	evaluatePPPAspects,
+	type NodeAspectProjection,
 	normalizeLongitude,
-	PLUTO_ASPECTS,
+	type PlutoAspectProjection,
 	PPP_DEACTIVATION_ORB,
-	PPP_MAJOR_ASPECTS,
+	type PPPAspectProjection,
 	type ProjectedEclipticPoint,
+	projectEclipticGeometry,
 	projectPoint,
 	roundPrecision,
 	SIGN_ELEMENTS,
 	SIGN_MODALITIES,
 	SIGN_RULERS,
-	SKIPPED_STEPS_ORB,
+	type SkippedStepProjection,
 } from "./aspects";
-
-export interface ChartBodyProjection {
-	lon: number;
-	sign: string;
-	signDeg: number;
-	house: number;
-	retrograde: boolean;
-	speed: number;
-	lat: number;
-	dist: number | null;
-	ra: number;
-	dec: number;
-	dignities: string[];
-}
-
-export interface AngleProjection {
-	lon: number;
-	sign: string;
-	signDeg: number;
-}
-
-export interface CuspProjection {
-	lon: number;
-	sign: string;
-	signDeg: number;
-}
-
-export interface HouseRulerRow {
-	house: number;
-	sign: string;
-	ruler: string;
-}
-
-export interface PlutoAspect {
-	body: string;
-	aspect: string;
-	orb: number;
-	stress: AspectStress;
-	phase?: "applying" | "separating" | "exact";
-}
-
-export interface PPPAspect {
-	body: string;
-	aspect: string;
-	orb: number;
-}
 
 export interface SoulPlutoFact {
 	sign: string;
@@ -87,7 +38,7 @@ export interface SoulPlutoFact {
 	retrograde: boolean;
 	stressfulCount: number;
 	nonstressfulCount: number;
-	aspects: PlutoAspect[];
+	aspects: PlutoAspectProjection[];
 }
 
 export interface PPPFact {
@@ -98,7 +49,7 @@ export interface PPPFact {
 	active: boolean;
 	separation?: number;
 	reason?: string;
-	aspects: PPPAspect[];
+	aspects: PPPAspectProjection[];
 }
 
 export interface SoulOutput {
@@ -110,19 +61,6 @@ export interface SoulOutput {
 }
 
 export type NodeMotionStatus = "retrograde" | "direct" | "stationary";
-
-export interface NodeAspect {
-	body: string;
-	aspect: string;
-	orb: number;
-	stress: "stressful" | "nonstressful";
-}
-
-export interface SkippedStep {
-	body: string;
-	aspect: string;
-	orb: number;
-}
 
 export interface NodalRulerPlacement {
 	body: string;
@@ -139,14 +77,14 @@ export interface NodalPointFact {
 	house: number;
 	ruler?: string;
 	rulerPlacement?: NodalRulerPlacement;
-	aspects: NodeAspect[];
+	aspects: NodeAspectProjection[];
 }
 
 export interface NodalAxisFact {
 	north: NodalPointFact;
 	south: NodalPointFact;
 	motion: NodeMotionStatus;
-	skippedSteps: SkippedStep[];
+	skippedSteps: SkippedStepProjection[];
 }
 
 export interface EclipseFact {
@@ -172,32 +110,6 @@ export interface AspectPattern {
 	element?: string;
 	modality?: string;
 	orb?: number;
-}
-
-export interface AstrologicalSignature {
-	hemispheres: {
-		eastern: number;
-		western: number;
-		northern: number;
-		southern: number;
-	};
-	quadrants: {
-		q1: number;
-		q2: number;
-		q3: number;
-		q4: number;
-	};
-	elements: {
-		fire: number;
-		earth: number;
-		air: number;
-		water: number;
-	};
-	modalities: {
-		cardinal: number;
-		fixed: number;
-		mutable: number;
-	};
 }
 
 function computeRawChart(
@@ -226,172 +138,7 @@ function computeRawChart(
 	return { ...raw, bodies };
 }
 
-function projectBodies(
-	rawBodies: Chart["bodies"],
-	cusps: number[],
-): Record<string, ChartBodyProjection> {
-	const result: Record<string, ChartBodyProjection> = {};
-
-	for (const [id, body] of Object.entries(rawBodies)) {
-		if (!body) continue;
-		const point = projectPoint(body.lon, cusps, 4);
-		result[id] = {
-			lon: point.lon,
-			sign: point.sign,
-			signDeg: point.signDeg,
-			house: point.house,
-			retrograde: body.speed < 0,
-			speed: roundPrecision(body.speed, 6),
-			lat: roundPrecision(body.lat, 4),
-			dist: body.dist !== null ? roundPrecision(body.dist, 4) : null,
-			ra: roundPrecision(body.ra, 4),
-			dec: roundPrecision(body.dec, 4),
-			dignities: body.dignities ?? [],
-		};
-	}
-
-	return result;
-}
-
-function angleLon(val: number | { lon: number }): number {
-	return typeof val === "number" ? val : val.lon;
-}
-
-function projectAngles(angles: Chart["angles"]): {
-	asc: AngleProjection;
-	mc: AngleProjection;
-	vertex: AngleProjection;
-	eastPoint: AngleProjection;
-} {
-	const project = (val: number | { lon: number }): AngleProjection => {
-		const pt = projectPoint(angleLon(val));
-		return { lon: pt.lon, sign: pt.sign, signDeg: pt.signDeg };
-	};
-
-	return {
-		asc: project(angles.asc),
-		mc: project(angles.mc),
-		vertex: project(angles.vertex),
-		eastPoint: project(angles.eastPoint),
-	};
-}
-
-function projectCusps(rawCusps: number[]): CuspProjection[] {
-	return rawCusps.map((cuspLon) => {
-		const pt = projectPoint(cuspLon);
-		return { lon: pt.lon, sign: pt.sign, signDeg: pt.signDeg };
-	});
-}
-
-function computeHouseRulers(cusps: CuspProjection[]): HouseRulerRow[] {
-	return cusps.map((c, idx) => ({
-		house: idx + 1,
-		sign: c.sign,
-		ruler: SIGN_RULERS[c.sign] ?? "unknown",
-	}));
-}
-
-type RawBody = NonNullable<Chart["bodies"][string]>;
-
-function computeAspects(rawBodies: Chart["bodies"]): AspectProjection[] {
-	const bodyEntries = Object.entries(rawBodies).filter(
-		(entry): entry is [string, RawBody] =>
-			entry[1] !== undefined &&
-			entry[0] !== "true_node" &&
-			entry[0] !== "mean_node",
-	);
-
-	if (rawBodies.true_node) {
-		bodyEntries.push(["true_node", rawBodies.true_node]);
-	}
-
-	const aspects: AspectProjection[] = [];
-
-	eachPair(bodyEntries, ([idA, bodyA], [idB, bodyB]) => {
-		const match = findAspect(bodyA.lon, bodyB.lon, MAJOR_ASPECT_DEFS);
-		if (match) {
-			const maxOrb =
-				MAJOR_ASPECT_DEFS.find((d) => d.name === match.aspect)?.orb ?? 8;
-			const strength = roundPrecision(1 - match.orb / maxOrb, 3);
-			const phase = determineAspectPhase(
-				bodyA.speed,
-				bodyA.lon,
-				bodyB.speed,
-				bodyB.lon,
-				match.target,
-			);
-
-			aspects.push({
-				a: idA,
-				b: idB,
-				aspect: match.aspect,
-				orb: roundPrecision(match.orb, 2),
-				phase,
-				strength,
-			});
-		}
-	});
-
-	return aspects;
-}
-
-function computeDeclinationAspects(
-	rawBodies: Chart["bodies"],
-): DeclinationAspectProjection[] {
-	const bodyEntries = Object.entries(rawBodies).filter(
-		(entry): entry is [string, RawBody] => entry[1] !== undefined,
-	);
-	const results: DeclinationAspectProjection[] = [];
-
-	eachPair(bodyEntries, ([idA, bodyA], [idB, bodyB]) => {
-		if (bodyA.dec !== undefined && bodyB.dec !== undefined) {
-			const match = findDeclinationAspect(bodyA.dec, bodyB.dec, 1.2);
-			if (match) {
-				results.push({
-					a: idA,
-					b: idB,
-					aspect: match.aspect,
-					orb: roundPrecision(match.orb, 4),
-				});
-			}
-		}
-	});
-
-	return results;
-}
-
-function computePlutoAspects(
-	bodies: Record<string, { lon: number; speed: number }>,
-	pluto: { lon: number; speed: number },
-): PlutoAspect[] {
-	return evaluateAspectsAgainstPoint(
-		bodies,
-		{ lon: pluto.lon, speed: pluto.speed, excludeId: "pluto" },
-		PLUTO_ASPECTS,
-		{ excludeNonPlanetary: true, includePhase: true, precision: 4 },
-	) as PlutoAspect[];
-}
-
-function computePPPAspects(
-	bodies: Record<string, { lon: number }>,
-	pppLon: number,
-): PPPAspect[] {
-	return evaluateAspectsAgainstPoint(
-		bodies,
-		{ lon: pppLon, excludeId: "pluto" },
-		PPP_MAJOR_ASPECTS,
-		{ excludeNonPlanetary: true, precision: 4 },
-	).map((a) => ({ body: a.body, aspect: a.aspect, orb: a.orb }));
-}
-
-function nearMidpoint(a: number, b: number): number {
-	const arc = (((b - a) % 360) + 360) % 360;
-	if (arc <= 180) return normalizeLongitude(a + arc / 2);
-	return normalizeLongitude(a - (360 - arc) / 2);
-}
-
-// exported for tests — not part of public engine interface
-export function computeSoulFact(
+function computeSoulFact(
 	bodies: Record<
 		string,
 		{ lon: number; sign: string; signDeg: number; house: number; speed: number }
@@ -404,7 +151,7 @@ export function computeSoulFact(
 		throw new Error("Missing pluto body in chart calculations");
 	}
 
-	const aspects = computePlutoAspects(bodies, pluto);
+	const aspects = evaluatePlutoAspects(bodies, pluto);
 	const stressfulCount = aspects.filter((a) => a.stress === "stressful").length;
 	const nonstressfulCount = aspects.filter(
 		(a) => a.stress === "nonstressful",
@@ -412,7 +159,7 @@ export function computeSoulFact(
 
 	const pppLon = normalizeLongitude(pluto.lon + 180);
 	const pppProjected = projectPoint(pppLon, cusps);
-	const pppAspects = computePPPAspects(bodies, pppLon);
+	const pppAspects = evaluatePPPAspects(bodies, pppLon);
 
 	const separation =
 		northNodeLon !== undefined
@@ -425,10 +172,9 @@ export function computeSoulFact(
 	let midpoint: ProjectedEclipticPoint | undefined;
 	let antiMidpoint: ProjectedEclipticPoint | undefined;
 	if (northNodeLon !== undefined) {
-		const near = nearMidpoint(pluto.lon, northNodeLon);
-		const far = normalizeLongitude(near + 180);
-		midpoint = projectPoint(near, cusps);
-		antiMidpoint = projectPoint(far, cusps);
+		const mid = computeMidpoints(pluto.lon, northNodeLon, cusps);
+		midpoint = mid.near;
+		antiMidpoint = mid.anti;
 	}
 
 	return {
@@ -465,57 +211,7 @@ export function computeSoulFact(
 }
 
 function describeEvoCriteria(): string {
-	const orbGroups = new Map<number, string[]>();
-	for (const def of PLUTO_ASPECTS) {
-		const names = orbGroups.get(def.orb);
-		if (names) names.push(def.name);
-		else orbGroups.set(def.orb, [def.name]);
-	}
-	const plutoOrbs = [...orbGroups.entries()]
-		.sort(([a], [b]) => b - a)
-		.map(([orb, names]) => `${orb}° ${names.join("/")}`)
-		.join(", ");
-
-	const firstPppAspect = PPP_MAJOR_ASPECTS[0];
-	return `orbs PLUTO_ASPECTS: ${plutoOrbs}; ppp: major aspects only (orb ${firstPppAspect.orb}°); skipped: squares to the nodal axis (orb ${PPP_DEACTIVATION_ORB + 2}°); ppp inactive when pluto conjunct the north node (orb ${PPP_DEACTIVATION_ORB}°)`;
-}
-
-function computeNodeAspects(
-	bodies: Record<string, { lon: number }>,
-	nodeLon: number,
-): NodeAspect[] {
-	return evaluateAspectsAgainstPoint(bodies, { lon: nodeLon }, PLUTO_ASPECTS, {
-		excludeNonPlanetary: true,
-		precision: 4,
-	}).map((a) => ({
-		body: a.body,
-		aspect: a.aspect,
-		orb: a.orb,
-		stress: (a.stress ?? "nonstressful") as "stressful" | "nonstressful",
-	}));
-}
-
-// exported for tests
-export function computeSkippedSteps(
-	bodies: Record<string, { lon: number }>,
-	northNodeLon: number,
-	orbLimit = SKIPPED_STEPS_ORB,
-): SkippedStep[] {
-	const skipped: SkippedStep[] = [];
-	for (const [bodyId, body] of Object.entries(bodies)) {
-		if (!body || bodyId === "pluto" || NON_PLANETARY_IDS.has(bodyId)) continue;
-		let diff = Math.abs(body.lon - northNodeLon);
-		if (diff > 180) diff = 360 - diff;
-		const orb = Math.abs(diff - 90);
-		if (orb <= orbLimit) {
-			skipped.push({
-				body: bodyId,
-				aspect: "square",
-				orb: roundPrecision(orb, 4),
-			});
-		}
-	}
-	return skipped.sort((a, b) => a.orb - b.orb);
+	return "JWGEA canon; orbs PLUTO_ASPECTS: 10° conjunction/opposition, 8° square/trine, 6° sextile, 3° semisextile/semisquare/sesquiquadrate/quincunx, 2° septile/quintile/biquintile; ppp: major aspects only (orb 5°); skipped: squares to the nodal axis (orb 5°); ppp inactive when pluto conjunct the north node (orb 3°)";
 }
 
 function computeNodalRulerPlacement(
@@ -545,8 +241,7 @@ function computeNodalRulerPlacement(
 	};
 }
 
-// exported for tests
-export function computeNodalAxisFact(
+function computeNodalAxisFact(
 	bodies: Record<
 		string,
 		{ lon: number; sign: string; signDeg: number; house: number; speed: number }
@@ -580,9 +275,9 @@ export function computeNodalAxisFact(
 	const northRulerPlacement = computeNodalRulerPlacement(northRulerId, bodies);
 	const southRulerPlacement = computeNodalRulerPlacement(southRulerId, bodies);
 
-	const skippedSteps = computeSkippedSteps(bodies, northNode.lon);
-	const northAspects = computeNodeAspects(bodies, northNode.lon);
-	const southAspects = computeNodeAspects(bodies, southNodeLon);
+	const skippedSteps = detectSkippedSteps(bodies, northNode.lon);
+	const northAspects = evaluateNodeAspects(bodies, northNode.lon);
+	const southAspects = evaluateNodeAspects(bodies, southNodeLon);
 
 	const southDispositor = southRulerId
 		? buildDispositorChain(bodies, southRulerId)
@@ -749,48 +444,17 @@ function detectAspectPatterns(
 	return patterns;
 }
 
-// exported for tests
-export function computeSignature(
-	bodies: Record<string, { sign: string; house: number }>,
-): AstrologicalSignature {
-	const hemispheres = { eastern: 0, western: 0, northern: 0, southern: 0 };
-	const quadrants = { q1: 0, q2: 0, q3: 0, q4: 0 };
-	const elements = { fire: 0, earth: 0, air: 0, water: 0 };
-	const modalities = { cardinal: 0, fixed: 0, mutable: 0 };
-
-	const planetsOnly = Object.entries(bodies).filter(([id]) => isPlanet(id));
-
-	for (const [_, body] of planetsOnly) {
-		const elem = SIGN_ELEMENTS[body.sign] as keyof typeof elements;
-		if (elem) elements[elem]++;
-
-		const mod = SIGN_MODALITIES[body.sign] as keyof typeof modalities;
-		if (mod) modalities[mod]++;
-
-		if (body.house >= 1 && body.house <= 3) quadrants.q1++;
-		else if (body.house >= 4 && body.house <= 6) quadrants.q2++;
-		else if (body.house >= 7 && body.house <= 9) quadrants.q3++;
-		else if (body.house >= 10 && body.house <= 12) quadrants.q4++;
-
-		if (body.house >= 10 || body.house <= 3) hemispheres.eastern++;
-		else hemispheres.western++;
-
-		if (body.house >= 7 && body.house <= 12) hemispheres.northern++;
-		else hemispheres.southern++;
-	}
-
-	return { hemispheres, quadrants, elements, modalities };
-}
-
 export interface NatalChartOutput {
 	birth: ToonProfile;
 	houseSystem: "porphyry";
 	zodiac: "tropical";
-	bodies: ReturnType<typeof projectBodies>;
-	angles: ReturnType<typeof projectAngles>;
-	cusps: ReturnType<typeof projectCusps>;
-	aspects: ReturnType<typeof computeAspects>;
-	declinationAspects?: ReturnType<typeof computeDeclinationAspects>;
+	bodies: ReturnType<typeof projectEclipticGeometry>["bodies"];
+	angles: ReturnType<typeof projectEclipticGeometry>["angles"];
+	cusps: ReturnType<typeof projectEclipticGeometry>["cusps"];
+	aspects: ReturnType<typeof projectEclipticGeometry>["aspects"];
+	declinationAspects?: ReturnType<
+		typeof projectEclipticGeometry
+	>["declinationAspects"];
 	pluto: ReturnType<typeof computeSoulFact>["pluto"];
 	ppp: ReturnType<typeof computeSoulFact>["ppp"];
 	midpoint?: ReturnType<typeof computeSoulFact>["midpoint"];
@@ -808,8 +472,8 @@ export interface NatalChartOutput {
 	};
 	prenatalEclipses: ReturnType<typeof computePrenatalEclipses>;
 	patterns: ReturnType<typeof detectAspectPatterns>;
-	signature: ReturnType<typeof computeSignature>;
-	houseRulers: ReturnType<typeof computeHouseRulers>;
+	signature: AstrologicalSignature;
+	houseRulers: ReturnType<typeof projectEclipticGeometry>["houseRulers"];
 	counts: {
 		plutoAspects: number;
 		nodeAspects: number;
@@ -828,26 +492,16 @@ function computeMeasurements(profile: Profile, ephemeris: Ephemeris) {
 		ephemeris,
 	);
 
-	const bodies = projectBodies(rawChart.bodies, rawChart.cusps);
-	const angles = projectAngles(rawChart.angles);
-	const cusps = projectCusps(rawChart.cusps);
-	const aspects = computeAspects(rawChart.bodies);
-	const declinationAspects = computeDeclinationAspects(rawChart.bodies);
-	const houseRulers = computeHouseRulers(cusps);
+	const geom = projectEclipticGeometry(rawChart);
 
 	return {
 		rawChart,
-		bodies,
-		angles,
-		cusps,
-		aspects,
-		declinationAspects,
-		houseRulers,
+		...geom,
 	};
 }
 
-/** Stage 2: Evolutionary mechanics (JWGEA canon). */
-function computeEvolutionaryMechanics(
+/** Stage 2: Evolutionary mechanics synthesis (JWGEA canon). */
+function synthesizeEvolutionaryCanon(
 	profile: Profile,
 	measurements: ReturnType<typeof computeMeasurements>,
 	ephemeris: Ephemeris,
@@ -856,12 +510,6 @@ function computeEvolutionaryMechanics(
 	const northNodeLon = rawChart.bodies.true_node?.lon;
 	const soul = computeSoulFact(bodies, rawChart.cusps, northNodeLon);
 	const nodal = computeNodalAxisFact(bodies, rawChart.cusps);
-
-	const sun = bodies.sun;
-	const moon = bodies.moon;
-	const phase =
-		sun && moon ? computeSolLunaPhase(sun.lon, moon.lon) : undefined;
-
 	const prenatalEclipses = computePrenatalEclipses(
 		ephemeris,
 		profile.birthJdUt,
@@ -869,30 +517,35 @@ function computeEvolutionaryMechanics(
 		profile.birthLon,
 		rawChart.cusps,
 	);
-
 	const patterns = detectAspectPatterns(bodies);
-	const signature = computeSignature(bodies);
-
-	const eclipseCount =
-		(prenatalEclipses.solar ? 1 : 0) + (prenatalEclipses.lunar ? 1 : 0);
-	const nodeAspectCount =
-		nodal.nodalAxis.north.aspects.length + nodal.nodalAxis.south.aspects.length;
+	const signature = calculateAstrologicalSignature(bodies);
 
 	const counts = {
 		plutoAspects: soul.pluto.aspects.length,
-		nodeAspects: nodeAspectCount,
+		nodeAspects:
+			nodal.nodalAxis.north.aspects.length +
+			nodal.nodalAxis.south.aspects.length,
 		skippedSteps: nodal.nodalAxis.skippedSteps.length,
-		eclipses: eclipseCount,
+		eclipses:
+			(prenatalEclipses.solar ? 1 : 0) + (prenatalEclipses.lunar ? 1 : 0),
 	};
 
 	return {
-		soul,
-		nodal,
-		phase,
+		pluto: soul.pluto,
+		ppp: soul.ppp,
+		midpoint: soul.midpoint,
+		antiMidpoint: soul.antiMidpoint,
+		nodalAxis: nodal.nodalAxis,
+		dispositorChains: {
+			pluto: soul.dispositorChain,
+			southNodeRuler: nodal.dispositorChains.southNodeRuler,
+			northNodeRuler: nodal.dispositorChains.northNodeRuler,
+		},
 		prenatalEclipses,
 		patterns,
 		signature,
 		counts,
+		method: describeEvoCriteria(),
 	};
 }
 
@@ -905,7 +558,7 @@ export function computeNatalChart(
 	ephemeris: Ephemeris = new CaelusEphemeris(),
 ): NatalChartOutput {
 	const measurements = computeMeasurements(profile, ephemeris);
-	const evo = computeEvolutionaryMechanics(profile, measurements, ephemeris);
+	const evo = synthesizeEvolutionaryCanon(profile, measurements, ephemeris);
 
 	return {
 		birth: toonProfile(profile),
@@ -918,19 +571,19 @@ export function computeNatalChart(
 		...(measurements.declinationAspects.length > 0
 			? { declinationAspects: measurements.declinationAspects }
 			: {}),
-		pluto: evo.soul.pluto,
-		ppp: evo.soul.ppp,
-		...(evo.soul.midpoint ? { midpoint: evo.soul.midpoint } : {}),
-		...(evo.soul.antiMidpoint ? { antiMidpoint: evo.soul.antiMidpoint } : {}),
-		nodalAxis: evo.nodal.nodalAxis,
-		...(evo.phase ? { phase: evo.phase } : {}),
+		pluto: evo.pluto,
+		ppp: evo.ppp,
+		...(evo.midpoint ? { midpoint: evo.midpoint } : {}),
+		...(evo.antiMidpoint ? { antiMidpoint: evo.antiMidpoint } : {}),
+		nodalAxis: evo.nodalAxis,
+		...(measurements.phase ? { phase: measurements.phase } : {}),
 		dispositorChains: {
-			pluto: evo.soul.dispositorChain,
-			...(evo.nodal.dispositorChains.southNodeRuler
-				? { southNodeRuler: evo.nodal.dispositorChains.southNodeRuler }
+			pluto: evo.dispositorChains.pluto,
+			...(evo.dispositorChains.southNodeRuler
+				? { southNodeRuler: evo.dispositorChains.southNodeRuler }
 				: {}),
-			...(evo.nodal.dispositorChains.northNodeRuler
-				? { northNodeRuler: evo.nodal.dispositorChains.northNodeRuler }
+			...(evo.dispositorChains.northNodeRuler
+				? { northNodeRuler: evo.dispositorChains.northNodeRuler }
 				: {}),
 		},
 		prenatalEclipses: evo.prenatalEclipses,
@@ -938,6 +591,6 @@ export function computeNatalChart(
 		signature: evo.signature,
 		houseRulers: measurements.houseRulers,
 		counts: evo.counts,
-		method: describeEvoCriteria(),
+		method: evo.method,
 	};
 }

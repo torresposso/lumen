@@ -1,11 +1,10 @@
 /**
  * Parametric aspect calculus and ecliptic geometry — internal to the natal
- * engine. Only `PPP_DEACTIVATION_ORB` and `computeSolLunaPhase` are part of
- * the engine's test surface; the rest is imported solely by `natal.ts` and
- * not by external callers. Keep the interface narrow — add new exports only
- * when a second consumer appears.
+ * engine. Only imported by `natal.ts` and not by external callers.
+ * Encapsulates coordinate normalization, orb evaluation, house rulerships,
+ * and ecliptic geometry projections.
  */
-import type { BodyId } from "caelus";
+import type { BodyId, Chart } from "caelus";
 
 export type AspectStress = "stressful" | "nonstressful";
 
@@ -41,11 +40,111 @@ export interface AspectProjection {
 export interface DeclinationAspectProjection {
 	a: string;
 	b: string;
-	aspect: "parallel" | "contraparallel";
+	aspect: string;
 	orb: number;
 }
 
-export const SIGNS = [
+export interface ChartBodyProjection {
+	lon: number;
+	sign: string;
+	signDeg: number;
+	house: number;
+	retrograde: boolean;
+	speed: number;
+	lat: number;
+	dist: number | null;
+	ra: number;
+	dec: number;
+	dignities: string[];
+}
+
+export interface AngleProjection {
+	lon: number;
+	sign: string;
+	signDeg: number;
+}
+
+export interface CuspProjection {
+	lon: number;
+	sign: string;
+	signDeg: number;
+}
+
+export interface HouseRulerRow {
+	house: number;
+	sign: string;
+	ruler: string;
+}
+
+export interface EclipticGeometryProjection {
+	bodies: Record<string, ChartBodyProjection>;
+	angles: {
+		asc: AngleProjection;
+		mc: AngleProjection;
+		vertex: AngleProjection;
+		eastPoint: AngleProjection;
+	};
+	cusps: CuspProjection[];
+	aspects: AspectProjection[];
+	declinationAspects: DeclinationAspectProjection[];
+	houseRulers: HouseRulerRow[];
+	phase?: string;
+}
+
+export interface PlutoAspectProjection {
+	body: string;
+	aspect: string;
+	orb: number;
+	stress: AspectStress;
+	phase?: "applying" | "separating" | "exact";
+}
+
+export interface PPPAspectProjection {
+	body: string;
+	aspect: string;
+	orb: number;
+}
+
+export interface NodeAspectProjection {
+	body: string;
+	aspect: string;
+	orb: number;
+	stress: "stressful" | "nonstressful";
+}
+
+export interface SkippedStepProjection {
+	body: string;
+	aspect: string;
+	orb: number;
+}
+
+export interface AstrologicalSignature {
+	hemispheres: {
+		eastern: number;
+		western: number;
+		northern: number;
+		southern: number;
+	};
+	quadrants: {
+		q1: number;
+		q2: number;
+		q3: number;
+		q4: number;
+	};
+	elements: {
+		fire: number;
+		earth: number;
+		air: number;
+		water: number;
+	};
+	modalities: {
+		cardinal: number;
+		fixed: number;
+		mutable: number;
+	};
+}
+
+const SIGNS = [
 	"Aries",
 	"Taurus",
 	"Gemini",
@@ -105,7 +204,7 @@ export const SIGN_MODALITIES: Record<string, string> = {
 	Pisces: "mutable",
 };
 
-export const PLANETARY_BODIES = new Set([
+const PLANETARY_BODIES = new Set([
 	"sun",
 	"moon",
 	"mercury",
@@ -118,11 +217,11 @@ export const PLANETARY_BODIES = new Set([
 	"pluto",
 ]);
 
-export function isPlanet(bodyId: string): boolean {
+function isPlanet(bodyId: string): boolean {
 	return PLANETARY_BODIES.has(bodyId);
 }
 
-export const NON_PLANETARY_IDS = new Set([
+const NON_PLANETARY_IDS = new Set([
 	"mean_node",
 	"true_node",
 	"mean_lilith",
@@ -144,7 +243,7 @@ export const DEFAULT_BODIES: BodyId[] = [
 	"true_node",
 ];
 
-export const MAJOR_ASPECT_DEFS = [
+const MAJOR_ASPECT_DEFS = [
 	{ name: "conjunction", target: 0, orb: 8 },
 	{ name: "sextile", target: 60, orb: 6 },
 	{ name: "square", target: 90, orb: 7 },
@@ -175,10 +274,9 @@ export const PPP_MAJOR_ASPECTS = [
 	{ name: "opposition", target: 180, orb: 5 },
 ] as const;
 
-// exported for tests
 export const PPP_DEACTIVATION_ORB = 3;
 
-export const SKIPPED_STEPS_ORB = 5;
+const SKIPPED_STEPS_ORB = 5;
 
 export function normalizeLongitude(lon: number): number {
 	let val = lon % 360;
@@ -193,11 +291,11 @@ export function angularDistance(lonA: number, lonB: number): number {
 	return diff;
 }
 
-export function angularDistanceDirect(lonFrom: number, lonTo: number): number {
+function angularDistanceDirect(lonFrom: number, lonTo: number): number {
 	return normalizeLongitude(lonTo - lonFrom);
 }
 
-export function signOf(lon: number): string {
+function signOf(lon: number): string {
 	const norm = normalizeLongitude(lon);
 	const idx = Math.floor(norm / 30) % 12;
 	const sign = SIGNS[idx];
@@ -205,7 +303,7 @@ export function signOf(lon: number): string {
 	return sign;
 }
 
-export function houseOf(cusps: number[], lon: number): number {
+function houseOf(cusps: number[], lon: number): number {
 	if (!cusps || cusps.length < 12) return 1;
 	const normLon = normalizeLongitude(lon);
 	for (let i = 0; i < 12; i++) {
@@ -352,8 +450,7 @@ const PHASES: readonly { name: SolLunaPhaseName; max: number }[] = [
 	{ name: "Balsamic", max: 360 },
 ];
 
-// exported for tests
-export function computeSolLunaPhase(sunLon: number, moonLon: number): string {
+function computeSolLunaPhase(sunLon: number, moonLon: number): string {
 	const angle = roundPrecision(angularDistanceDirect(sunLon, moonLon), 4);
 	const phase = PHASES.find((p) => angle < p.max) ?? PHASES[PHASES.length - 1];
 	return phase ? phase.name : "Balsamic";
@@ -449,4 +546,299 @@ export function evaluateAspectsAgainstPoint<
 	}
 
 	return results.sort((a, b) => a.orb - b.orb || a.body.localeCompare(b.body));
+}
+
+function projectBodies(
+	rawBodies: Chart["bodies"],
+	cusps: number[],
+): Record<string, ChartBodyProjection> {
+	const result: Record<string, ChartBodyProjection> = {};
+
+	for (const [id, body] of Object.entries(rawBodies)) {
+		if (!body) continue;
+		const point = projectPoint(body.lon, cusps, 4);
+		result[id] = {
+			lon: point.lon,
+			sign: point.sign,
+			signDeg: point.signDeg,
+			house: point.house,
+			retrograde: body.speed < 0,
+			speed: roundPrecision(body.speed, 6),
+			lat: roundPrecision(body.lat, 4),
+			dist: body.dist !== null ? roundPrecision(body.dist, 4) : null,
+			ra: roundPrecision(body.ra, 4),
+			dec: roundPrecision(body.dec, 4),
+			dignities: body.dignities ?? [],
+		};
+	}
+
+	return result;
+}
+
+function angleLon(val: number | { lon: number }): number {
+	return typeof val === "number" ? val : val.lon;
+}
+
+function projectAngles(angles: Chart["angles"]): {
+	asc: AngleProjection;
+	mc: AngleProjection;
+	vertex: AngleProjection;
+	eastPoint: AngleProjection;
+} {
+	const project = (val: number | { lon: number }): AngleProjection => {
+		const pt = projectPoint(angleLon(val));
+		return { lon: pt.lon, sign: pt.sign, signDeg: pt.signDeg };
+	};
+
+	return {
+		asc: project(angles.asc),
+		mc: project(angles.mc),
+		vertex: project(angles.vertex),
+		eastPoint: project(angles.eastPoint),
+	};
+}
+
+function projectCusps(rawCusps: number[]): CuspProjection[] {
+	return rawCusps.map((cuspLon) => {
+		const pt = projectPoint(cuspLon);
+		return { lon: pt.lon, sign: pt.sign, signDeg: pt.signDeg };
+	});
+}
+
+function computeHouseRulers(cusps: CuspProjection[]): HouseRulerRow[] {
+	return cusps.map((c, idx) => ({
+		house: idx + 1,
+		sign: c.sign,
+		ruler: SIGN_RULERS[c.sign] ?? "unknown",
+	}));
+}
+
+type RawBody = NonNullable<Chart["bodies"][string]>;
+
+function computeAspects(rawBodies: Chart["bodies"]): AspectProjection[] {
+	const bodyEntries = Object.entries(rawBodies).filter(
+		(entry): entry is [string, RawBody] =>
+			entry[1] !== undefined &&
+			entry[0] !== "true_node" &&
+			entry[0] !== "mean_node",
+	);
+
+	if (rawBodies.true_node) {
+		bodyEntries.push(["true_node", rawBodies.true_node]);
+	}
+
+	const aspects: AspectProjection[] = [];
+
+	eachPair(bodyEntries, ([idA, bodyA], [idB, bodyB]) => {
+		const match = findAspect(bodyA.lon, bodyB.lon, MAJOR_ASPECT_DEFS);
+		if (match) {
+			const maxOrb =
+				MAJOR_ASPECT_DEFS.find((d) => d.name === match.aspect)?.orb ?? 8;
+			const strength = roundPrecision(1 - match.orb / maxOrb, 3);
+			const phase = determineAspectPhase(
+				bodyA.speed,
+				bodyA.lon,
+				bodyB.speed,
+				bodyB.lon,
+				match.target,
+			);
+
+			aspects.push({
+				a: idA,
+				b: idB,
+				aspect: match.aspect,
+				orb: roundPrecision(match.orb, 2),
+				phase,
+				strength,
+			});
+		}
+	});
+
+	return aspects;
+}
+
+function computeDeclinationAspects(
+	rawBodies: Chart["bodies"],
+): DeclinationAspectProjection[] {
+	const bodyEntries = Object.entries(rawBodies).filter(
+		(entry): entry is [string, RawBody] => entry[1] !== undefined,
+	);
+	const results: DeclinationAspectProjection[] = [];
+
+	eachPair(bodyEntries, ([idA, bodyA], [idB, bodyB]) => {
+		if (bodyA.dec !== undefined && bodyB.dec !== undefined) {
+			const match = findDeclinationAspect(bodyA.dec, bodyB.dec, 1.2);
+			if (match) {
+				results.push({
+					a: idA,
+					b: idB,
+					aspect: match.aspect,
+					orb: roundPrecision(match.orb, 4),
+				});
+			}
+		}
+	});
+
+	return results;
+}
+
+/**
+ * Consolidates all raw astronomical measurements (bodies, angles, cusps,
+ * major aspects, declination aspects, house rulers) into a unified projection.
+ */
+export function projectEclipticGeometry(
+	rawChart: Chart,
+): EclipticGeometryProjection {
+	const cusps = projectCusps(rawChart.cusps);
+	const bodies = projectBodies(rawChart.bodies, rawChart.cusps);
+	const angles = projectAngles(rawChart.angles);
+	const aspects = computeAspects(rawChart.bodies);
+	const declinationAspects = computeDeclinationAspects(rawChart.bodies);
+	const houseRulers = computeHouseRulers(cusps);
+	const sun = rawChart.bodies.sun;
+	const moon = rawChart.bodies.moon;
+	const phase =
+		sun && moon ? computeSolLunaPhase(sun.lon, moon.lon) : undefined;
+
+	return {
+		bodies,
+		angles,
+		cusps,
+		aspects,
+		declinationAspects,
+		houseRulers,
+		phase,
+	};
+}
+
+/**
+ * Evaluates Pluto aspects against planetary bodies using PLUTO_ASPECTS orbs and stress definitions.
+ */
+export function evaluatePlutoAspects(
+	bodies: Record<string, { lon: number; speed: number }>,
+	pluto: { lon: number; speed: number },
+): PlutoAspectProjection[] {
+	return evaluateAspectsAgainstPoint(
+		bodies,
+		{ lon: pluto.lon, speed: pluto.speed, excludeId: "pluto" },
+		PLUTO_ASPECTS,
+		{ excludeNonPlanetary: true, includePhase: true, precision: 4 },
+	) as PlutoAspectProjection[];
+}
+
+/**
+ * Evaluates PPP (Pluto Polarity Point) aspects against major aspect definitions.
+ */
+export function evaluatePPPAspects(
+	bodies: Record<string, { lon: number }>,
+	pppLon: number,
+): PPPAspectProjection[] {
+	return evaluateAspectsAgainstPoint(
+		bodies,
+		{ lon: pppLon, excludeId: "pluto" },
+		PPP_MAJOR_ASPECTS,
+		{ excludeNonPlanetary: true, precision: 4 },
+	).map((a) => ({ body: a.body, aspect: a.aspect, orb: a.orb }));
+}
+
+/**
+ * Computes near and anti (far) midpoints between two ecliptic longitudes.
+ */
+export function computeMidpoints(
+	lonA: number,
+	lonB: number,
+	cusps?: number[],
+): {
+	near: ProjectedEclipticPoint;
+	anti: ProjectedEclipticPoint;
+} {
+	const arc = (((lonB - lonA) % 360) + 360) % 360;
+	const nearLon =
+		arc <= 180
+			? normalizeLongitude(lonA + arc / 2)
+			: normalizeLongitude(lonA - (360 - arc) / 2);
+	const farLon = normalizeLongitude(nearLon + 180);
+
+	return {
+		near: projectPoint(nearLon, cusps),
+		anti: projectPoint(farLon, cusps),
+	};
+}
+
+/**
+ * Evaluates aspects against the nodal axis points.
+ */
+export function evaluateNodeAspects(
+	bodies: Record<string, { lon: number }>,
+	nodeLon: number,
+): NodeAspectProjection[] {
+	return evaluateAspectsAgainstPoint(bodies, { lon: nodeLon }, PLUTO_ASPECTS, {
+		excludeNonPlanetary: true,
+		precision: 4,
+	}).map((a) => ({
+		body: a.body,
+		aspect: a.aspect,
+		orb: a.orb,
+		stress: (a.stress ?? "nonstressful") as "stressful" | "nonstressful",
+	}));
+}
+
+/**
+ * Detects skipped steps (planets square the nodal axis).
+ */
+export function detectSkippedSteps(
+	bodies: Record<string, { lon: number }>,
+	northNodeLon: number,
+	orbLimit = SKIPPED_STEPS_ORB,
+): SkippedStepProjection[] {
+	const skipped: SkippedStepProjection[] = [];
+	for (const [bodyId, body] of Object.entries(bodies)) {
+		if (!body || bodyId === "pluto" || NON_PLANETARY_IDS.has(bodyId)) continue;
+		let diff = Math.abs(body.lon - northNodeLon);
+		if (diff > 180) diff = 360 - diff;
+		const orb = Math.abs(diff - 90);
+		if (orb <= orbLimit) {
+			skipped.push({
+				body: bodyId,
+				aspect: "square",
+				orb: roundPrecision(orb, 4),
+			});
+		}
+	}
+	return skipped.sort((a, b) => a.orb - b.orb);
+}
+
+/**
+ * Computes hemispheric, quadrant, elemental, and modal distributions for planetary bodies.
+ */
+export function calculateAstrologicalSignature(
+	bodies: Record<string, { sign: string; house: number }>,
+): AstrologicalSignature {
+	const hemispheres = { eastern: 0, western: 0, northern: 0, southern: 0 };
+	const quadrants = { q1: 0, q2: 0, q3: 0, q4: 0 };
+	const elements = { fire: 0, earth: 0, air: 0, water: 0 };
+	const modalities = { cardinal: 0, fixed: 0, mutable: 0 };
+
+	const planetsOnly = Object.entries(bodies).filter(([id]) => isPlanet(id));
+
+	for (const [_, body] of planetsOnly) {
+		const elem = SIGN_ELEMENTS[body.sign] as keyof typeof elements;
+		if (elem) elements[elem]++;
+
+		const mod = SIGN_MODALITIES[body.sign] as keyof typeof modalities;
+		if (mod) modalities[mod]++;
+
+		if (body.house >= 1 && body.house <= 3) quadrants.q1++;
+		else if (body.house >= 4 && body.house <= 6) quadrants.q2++;
+		else if (body.house >= 7 && body.house <= 9) quadrants.q3++;
+		else if (body.house >= 10 && body.house <= 12) quadrants.q4++;
+
+		if (body.house >= 10 || body.house <= 3) hemispheres.eastern++;
+		else hemispheres.western++;
+
+		if (body.house >= 7 && body.house <= 12) hemispheres.northern++;
+		else hemispheres.southern++;
+	}
+
+	return { hemispheres, quadrants, elements, modalities };
 }
