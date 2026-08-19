@@ -240,7 +240,10 @@ export class SqliteProfileStore implements ProfileStore {
 		private readonly now: () => Date = () => new Date(),
 	) {}
 
-	/** Opens (creating if needed) the database. Only writes call this. */
+	/**
+	 * Opens (creating if needed) the database and repairs permissions (0600,
+	 * F1). Called on writes and on reads against existing files.
+	 */
 	private open(): ProfileDb {
 		if (this.core !== null) return this.core;
 		// A close() followed by a read re-opens the store; keep it closeable

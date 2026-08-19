@@ -175,8 +175,9 @@ export const PPP_MAJOR_ASPECTS = [
 	{ name: "opposition", target: 180, orb: 5 },
 ] as const;
 
-// exported for tests — not part of public engine interface outside engine/
+// exported for tests
 export const PPP_DEACTIVATION_ORB = 3;
+
 export const SKIPPED_STEPS_ORB = 5;
 
 export function normalizeLongitude(lon: number): number {

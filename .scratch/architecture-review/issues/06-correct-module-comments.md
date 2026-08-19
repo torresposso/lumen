@@ -4,8 +4,8 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] The aspects header and each "exported for tests" marker agree on exactly which exports are test surface
-- [ ] The store's `open()` documentation describes the read-repairs-permissions behaviour (no "only writes" claim)
-- [ ] Comment-only change: `bun test` and `bun run typecheck` stay green
+- [x] The aspects header and each "exported for tests" marker agree on exactly which exports are test surface
+- [x] The store's `open()` documentation describes the read-repairs-permissions behaviour (no "only writes" claim)
+- [x] Comment-only change: `bun test` and `bun run typecheck` stay green
