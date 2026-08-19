@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { Profile } from "../../src/domain/model";
-import { computeNatalChart } from "../../src/engine/natal";
+import { computeNatalChart } from "../../src/engine/natal/index";
 
 describe("computeNatalChart — Golden Vector (Tampa Anchor)", () => {
 	const tampaProfile: Profile = {

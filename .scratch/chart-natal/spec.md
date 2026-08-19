@@ -95,7 +95,15 @@ src/domain/model.ts
 src/domain/store.ts
 src/domain/birth-input.ts
 src/domain/toon.ts
-src/engine/natal.ts
+src/engine/shared/geometry.ts
+src/engine/shared/rulers.ts
+src/engine/shared/aspects.ts
+src/engine/natal/types.ts
+src/engine/natal/pluto-polarity.ts
+src/engine/natal/nodal.ts
+src/engine/natal/eclipses.ts
+src/engine/natal/patterns.ts
+src/engine/natal/index.ts
 src/storage/schema.ts
 src/storage/profile-store.ts
 src/adapters/ephemeris.ts

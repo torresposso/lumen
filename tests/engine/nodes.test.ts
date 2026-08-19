@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { InMemoryEphemeris } from "../../src/adapters/ephemeris";
 import type { Profile } from "../../src/domain/model";
-import { computeNatalChart } from "../../src/engine/natal";
+import { computeNatalChart } from "../../src/engine/natal/index";
 
 describe("Nodal axis astrology calculations (JWGEA canon)", () => {
 	const baseProfile: Profile = {

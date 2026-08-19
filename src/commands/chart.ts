@@ -3,7 +3,7 @@ import type { CliContext } from "../cli";
 import type { ArgsSpec } from "../cli/args";
 import { createSubcommandGroup } from "../cli/subcommand";
 import { PROFILE_LIST_HINT } from "../cli/surface";
-import { computeNatalChart } from "../engine/natal";
+import { computeNatalChart } from "../engine/natal/index";
 
 const chartUsage = [
 	"lumen chart natal <uuid>",

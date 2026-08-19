@@ -121,12 +121,12 @@ pushed.
   profile minus its timestamps — never a hand-mirrored duplicate. Policy lives
   in `src/domain/toon.ts`.
 - **Natal chart engine** — the complete astrological chart geometry and evolutionary
-  facts assembled as a pure function (`computeNatalChart`, `src/engine/natal.ts`)
-  over a stored `Profile` and `Ephemeris` port, backed by the deep single-module
-  engine (`src/engine/natal.ts` encapsulating JWGEA evolutionary projections,
-  midpoints, nodal axis mechanics, and chart synthesis, delegating base geometry,
-  midpoints, elements, modalities, and signatures to Caelus primitives) published
-  as a single TOON `chart` block (ADR-0008, ADR-0009, ADR-0010, ADR-0011, ADR-0012, ADR-0013).
+  facts assembled as a pure function (`computeNatalChart`, `src/engine/natal/index.ts`)
+  over a stored `Profile` and `Ephemeris` port, backed by the modular technique package
+  (`src/engine/natal/` with `pluto-polarity.ts`, `nodal.ts`, `eclipses.ts`, `patterns.ts`, and shared primitives
+  in `src/engine/shared/` for geometry, aspects, and rulerships, delegating base geometry and
+  ephemerides to Caelus primitives) published as a single TOON `chart` block
+  (ADR-0008, ADR-0009, ADR-0010, ADR-0011, ADR-0012, ADR-0013, ADR-0015).
 - **Ephemeris seam** — the capability port `Ephemeris` (`src/adapters/ephemeris.ts`)
   wrapping ephemerides (Caelus `Engine.chartAt`, `declinationAspects`, eclipse finders in prod,
   `InMemoryEphemeris` in tests) with fixed Porphyry houses, True North Node, injected through

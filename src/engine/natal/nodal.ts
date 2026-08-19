@@ -1,0 +1,152 @@
+import { evaluateAspectsAgainstPoint } from "../shared/aspects";
+import {
+	normalizeLongitude,
+	projectPoint,
+	roundPrecision,
+} from "../shared/geometry";
+import { buildDispositorChain, SIGN_RULERS } from "../shared/rulers";
+import { PLUTO_ASPECTS } from "./pluto-polarity";
+import type {
+	DispositorStep,
+	NodalAxisFact,
+	NodalRulerPlacement,
+	NodeAspectProjection,
+	NodeMotionStatus,
+	SkippedStepProjection,
+} from "./types";
+
+const SKIPPED_STEPS_ORB = 5;
+
+export function evaluateNodeAspects(
+	bodies: Record<string, { lon: number }>,
+	nodeLon: number,
+): NodeAspectProjection[] {
+	return evaluateAspectsAgainstPoint(bodies, { lon: nodeLon }, PLUTO_ASPECTS, {
+		excludeNonPlanetary: true,
+		precision: 4,
+	}).map((a) => ({
+		body: a.body,
+		aspect: a.aspect,
+		orb: a.orb,
+		stress: (a.stress ?? "nonstressful") as "stressful" | "nonstressful",
+	}));
+}
+
+export function detectSkippedSteps(
+	bodies: Record<string, { lon: number }>,
+	northNodeLon: number,
+	orbLimit = SKIPPED_STEPS_ORB,
+): SkippedStepProjection[] {
+	return evaluateAspectsAgainstPoint(
+		bodies,
+		{ lon: northNodeLon, excludeId: "pluto" },
+		[{ name: "square", target: 90, orb: orbLimit }],
+		{ excludeNonPlanetary: true, precision: 4 },
+	).map((a) => ({
+		body: a.body,
+		aspect: a.aspect,
+		orb: a.orb,
+	}));
+}
+
+function computeNodalRulerPlacement(
+	rulerId: string | undefined,
+	bodies: Record<
+		string,
+		{ sign: string; signDeg: number; house: number; speed: number }
+	>,
+): NodalRulerPlacement | undefined {
+	if (!rulerId) return undefined;
+	const body = bodies[rulerId];
+	if (!body) return undefined;
+
+	const motion: "direct" | "retrograde" | "stationary" =
+		Math.abs(body.speed) < 0.0001
+			? "stationary"
+			: body.speed < 0
+				? "retrograde"
+				: "direct";
+
+	return {
+		body: rulerId,
+		sign: body.sign,
+		signDeg: roundPrecision(body.signDeg, 4),
+		house: body.house,
+		motion,
+	};
+}
+
+export function computeNodalAxisFact(
+	bodies: Record<
+		string,
+		{ lon: number; sign: string; signDeg: number; house: number; speed: number }
+	>,
+	cusps: number[],
+): {
+	nodalAxis: NodalAxisFact;
+	dispositorChains: {
+		southNodeRuler?: DispositorStep[];
+		northNodeRuler?: DispositorStep[];
+	};
+} {
+	const northNode = bodies.true_node;
+	if (!northNode) {
+		throw new Error("Missing true_node in chart calculations");
+	}
+
+	const southNodeLon = normalizeLongitude(northNode.lon + 180);
+	const southNodeProjected = projectPoint(southNodeLon, cusps);
+
+	const motion: NodeMotionStatus =
+		Math.abs(northNode.speed) < 0.0001
+			? "stationary"
+			: northNode.speed < 0
+				? "retrograde"
+				: "direct";
+
+	const northRulerId = SIGN_RULERS[northNode.sign];
+	const southRulerId = SIGN_RULERS[southNodeProjected.sign];
+
+	const northRulerPlacement = computeNodalRulerPlacement(northRulerId, bodies);
+	const southRulerPlacement = computeNodalRulerPlacement(southRulerId, bodies);
+
+	const skippedSteps = detectSkippedSteps(bodies, northNode.lon);
+	const northAspects = evaluateNodeAspects(bodies, northNode.lon);
+	const southAspects = evaluateNodeAspects(bodies, southNodeLon);
+
+	const southDispositor = southRulerId
+		? buildDispositorChain(bodies, southRulerId)
+		: undefined;
+	const northDispositor = northRulerId
+		? buildDispositorChain(bodies, northRulerId)
+		: undefined;
+
+	return {
+		nodalAxis: {
+			north: {
+				sign: northNode.sign,
+				lon: roundPrecision(northNode.lon, 4),
+				signDeg: roundPrecision(northNode.signDeg, 4),
+				house: northNode.house,
+				ruler: northRulerId,
+				rulerPlacement: northRulerPlacement,
+				aspects: northAspects,
+			},
+			south: {
+				sign: southNodeProjected.sign,
+				lon: roundPrecision(southNodeProjected.lon, 4),
+				signDeg: roundPrecision(southNodeProjected.signDeg, 4),
+				house: southNodeProjected.house,
+				ruler: southRulerId,
+				rulerPlacement: southRulerPlacement,
+				aspects: southAspects,
+			},
+			motion,
+			skippedSteps,
+		},
+		dispositorChains: {
+			southNodeRuler: southDispositor,
+			northNodeRuler: northDispositor,
+		},
+	};
+}
