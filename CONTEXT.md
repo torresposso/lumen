@@ -36,7 +36,7 @@ pushed.
   them as the two leading parts of `--where "lat, lon, Place"`. Together with
   `birthJdUt` they are the birth's identity for dedupe.
 - **BirthJdUt** — the derived UT instant of a birth (Meeus ch. 7, pure
-  arithmetic in `src/core/jd.ts`), produced by the birth-input contract from the
+  arithmetic in `src/domain/jd.ts`), produced by the birth-input contract from the
   parsed `--when`. lumen's only derivation; it never consults timezone databases
   or calendars.
 - **BirthInput** — the parsed, validated birth produced by the birth-input
@@ -47,7 +47,7 @@ pushed.
 - **LocalTime** — the transient broken-down local wall-clock (year…minute) the
   birth-input contract yields *internally* from `--when` and feeds to
   `julianDayUt`; never stored. It crosses only the JD arithmetic seam
-  (`src/core/jd.ts`, exported beside `julianDayUt`) — never a contract's
+  (`src/domain/jd.ts`, exported beside `julianDayUt`) — never a contract's
   interface. (Formerly `BirthClock`.)
 - **RawBirthInput** — the raw flag strings `profile add` receives, in their
   ergonomic CLI names (ADR-0006): `--when` (ISO 8601 datetime with UTC offset:
@@ -55,7 +55,7 @@ pushed.
   then place; the first two comma-separated parts are lat/lon, the rest is the
   place). Parsed and validated into a `BirthInput` whose fields use the model's
   `birth*` names.
-- **Birth-input contract** — the module `src/core/birth-input.ts` that owns the
+- **Birth-input contract** — the module `src/domain/birth-input.ts` that owns the
   parsing + semantic validation of those raw flags as one seam: a single
   `VALIDATION_ERROR` citing every checkable violated rule in its suggestions.
   It is also the one seam where the ergonomic CLI names (`--when`/`--where`) meet
@@ -63,10 +63,10 @@ pushed.
   CLI flag names (ADR-0006). The UTC offset arrives *inside* `--when`, never as a
   separate flag. Flag presence, syntax and value normalization belong to the
   **args contract**; value semantics belong here. The contract also derives
-  `birthJdUt` (Meeus, via `src/core/jd.ts`) — raw flags enter, the complete
+  `birthJdUt` (Meeus, via `src/domain/jd.ts`) — raw flags enter, the complete
   `birth*` set leaves, and neither the command nor the store performs the
   derivation.
-- **Args contract** — the module `src/core/args.ts` that owns the flag and
+- **Args contract** — the module `src/cli/args.ts` that owns the flag and
   positional syntax of every command's raw arguments as one seam: known and
   required flags, `--flag=value` / `--flag value` forms, duplicates, missing
   values, `--help` (one rule, one home: a bare `--help` in any spelling wins
@@ -77,7 +77,7 @@ pushed.
   single `VALIDATION_ERROR` citing each rule. Syntax, presence and value
   normalization live here; value *semantics* (format + ranges) live in the
   contract that consumes the parsed flags (the **birth-input contract**).
-- **Command surface** — the module `src/core/cli-surface.ts` that owns the
+- **Command surface** — the module `src/cli/surface.ts` that owns the
   whole agent-facing CLI vocabulary (formerly *add surface*; widened
   2026-08-18, ADR-0007): the command token (`lumen profile`), the four arm
   command-lines, the `--when` / `--where` / `--name` flag literals, the
@@ -89,18 +89,19 @@ pushed.
   the *meanings*. It also owns the shared empty-state rule — the hint tokens
   and the selection between them (`emptyStateHint`: empty store → add-hint,
   non-empty → list-hint) live beside each other, so `home` and the `list` arm
-  never re-implement the decision. It owns the per-arm help catalog
-  (`PROFILE_ARM_HELP`) and derives the top-level "Commands:" block
-  (`profileCommandsHelp`) from it — the top-level help in `src/cli.ts` and the
-  command usage text render the same arm lines from the same tokens, so adding
-  an arm is one catalog row, not an edit in the root wiring.
+  never re-implement the decision. It derives the top-level "Commands:" block
+  (`formatCommandsHelp`) dynamically from registered arm catalogs.
 - **Home view** — the summary a bare `lumen` invocation (no command) publishes:
   the profile count plus the command surface's empty-state hint, composed by
-  `homeView` (`src/core/cli-surface.ts`) — "snapshot the store, apply the
+  `homeView` (`src/cli/surface.ts`) — "snapshot the store, apply the
   empty-state rule". It is the same decision the `list` arm applies to its
   rows, with one home; the root wiring (`src/cli.ts`) calls the seam instead
   of re-composing it.
-- **Profile store** — the persistence port `ProfileStore` (`src/core/store.ts`:
+- **CLI Context** — the runtime execution context `CliContext` (`src/cli/context.ts`)
+  holding the capability ports `profiles: ProfileStore` and `ephemeris: Ephemeris`.
+  `requireCliContext` (`src/cli/context.ts`) validates presence and fails loud
+  when context is missing.
+- **Profile store** — the persistence port `ProfileStore` (`src/domain/store.ts`:
   `list` / `get` / `add` / `remove` — no file policy, no lifecycle) and the
   two SQLite adapters that serve it (`src/storage/profile-store.ts`, sharing
   one internal SQL core): `SqliteProfileStore` — per-project SQLite at
@@ -110,23 +111,22 @@ pushed.
   `InMemoryProfileStore`, a thin wrapper over an injected `bun:sqlite`
   `Database` for tests (same interface, no filesystem side effects). The
   command and the home view type against the port and never create a store —
-  the CLI wiring provides one through context, and `requireCliContext`
-  (`src/core/store.ts`, with `CliContext`) fails loud when context is
-  missing. The adapters own profile identity: `add` generates the profile's
+  the CLI wiring provides one through context. The adapters own profile identity: `add` generates the profile's
   UUID — the command never supplies one.
 - **TOON** — the AXI structured-output encoding lumen publishes: display
   precision only (`birthJdUt` 6 decimals, `birthLat`/`birthLon` 4),
   `birthDateTime` echoed as stored (ISO 8601), rounded at output; the DB keeps
   full float64 precision. The published key set derives from the stored
   profile minus its timestamps — never a hand-mirrored duplicate. Policy lives
-  in `src/core/toon.ts`.
-- **Natal chart** — the complete astrological chart geometry and evolutionary
-  facts assembled as a pure function (`computeNatalChart`, `src/core/chart.ts`)
-  over a stored `Profile`: measurements (birth echo, bodies, angles, cusps,
-  geometric aspects, declination aspects) followed by flat canon facts (Pluto,
-  PPP, midpoint/anti-midpoint, nodal axis, Sol-Luna phase, dispositor chains,
-  prenatal eclipses, aspect patterns, signature, house rulers, counts, method)
-  published as a single TOON `chart` block (ADR-0008).
-- **Ephemeris seam** — the capability interface `Ephemeris` (`src/adapters/ephemeris.ts`)
-  wrapping Caelus `Engine.chartAt` with fixed Porphyry houses and True North Node.
+  in `src/domain/toon.ts`.
+- **Natal chart engine** — the complete astrological chart geometry and evolutionary
+  facts assembled as a pure function (`computeNatalChart`, `src/engine/natal.ts`)
+  over a stored `Profile` and `Ephemeris` port, backed by the deep 2-module internal
+  engine (`src/engine/aspects.ts` for parametric aspect calculus and
+  `src/engine/natal.ts` for astronomical measurements and JWGEA evolutionary
+  mechanics) published as a single TOON `chart` block (ADR-0008, ADR-0009, ADR-0010).
+- **Ephemeris seam** — the capability port `Ephemeris` (`src/adapters/ephemeris.ts`)
+  wrapping ephemerides (Caelus `Engine.chartAt` in prod, `InMemoryEphemeris` in tests)
+  with fixed Porphyry houses, True North Node, and eclipse finders, injected through
+  the CLI Context.
 

@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
 	computeNodalAxisFact,
 	computeSkippedSteps,
-} from "../../../src/core/astrology/nodes";
+} from "../../src/engine/natal";
 
 describe("Nodal axis astrology calculations", () => {
 	const cusps = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];

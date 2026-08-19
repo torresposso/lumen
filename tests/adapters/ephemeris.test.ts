@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { CaelusEphemeris } from "../../src/adapters/ephemeris";
+import { CaelusEphemeris, InMemoryEphemeris } from "../../src/adapters/ephemeris";
 
 describe("CaelusEphemeris adapter", () => {
 	const ephemeris = new CaelusEphemeris();
@@ -30,5 +30,24 @@ describe("CaelusEphemeris adapter", () => {
 		expect(lunar.length).toBeGreaterThan(0);
 		expect(solar[0]?.tMax).toBeLessThanOrEqual(jdUt);
 		expect(lunar[0]?.tMax).toBeLessThanOrEqual(jdUt);
+	});
+});
+
+describe("InMemoryEphemeris adapter", () => {
+	test("returns default stub chart with pluto and true_node", () => {
+		const mem = new InMemoryEphemeris();
+		const chart = mem.chartAt(2448053.27, 27.95, -82.46);
+		expect(chart.bodies.pluto).toBeDefined();
+		expect(chart.bodies.true_node).toBeDefined();
+		expect(mem.solarEclipses(0, 100)).toEqual([]);
+		expect(mem.lunarEclipses(0, 100)).toEqual([]);
+	});
+
+	test("accepts custom chart and eclipse fixtures", () => {
+		const customSolar = [{ tMax: 100, type: "total" }];
+		const mem = new InMemoryEphemeris({
+			solarEclipses: customSolar as never,
+		});
+		expect(mem.solarEclipses(0, 200)).toEqual(customSolar as never);
 	});
 });

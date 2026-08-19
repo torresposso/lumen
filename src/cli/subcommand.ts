@@ -1,9 +1,15 @@
 import type { AxiCliCommand } from "axi-sdk-js";
 import { AxiError } from "axi-sdk-js";
 import { type ArgsSpec, type ParsedArgs, parseArgs, wantsHelp } from "./args";
+import { requireCliContext } from "./context";
 
 /** What the runner may return: the same shapes an AXI command may render (string or structured output). */
 export type Renderable = string | Record<string, unknown>;
+
+export interface CommandArmDescription {
+	line: string;
+	help: string;
+}
 
 /**
  * A subcommand arm of a command module — what differs per arm. The runner
@@ -14,6 +20,10 @@ export type Renderable = string | Record<string, unknown>;
 export interface Subcommand<TContext> {
 	/** The args-contract spec for this arm's raw arguments. */
 	spec: ArgsSpec;
+	/** One-liner summary for catalog and help display. */
+	summary?: string;
+	/** Custom command line syntax for help listing if positionals or flags are included. */
+	line?: string;
 	/** The usage text returned when this arm receives `--help`. */
 	usage: string;
 	/** The arm's behaviour, given the parsed arguments and guaranteed CLI context. */
@@ -33,7 +43,9 @@ export interface SubcommandGroupSpec<TContext> {
 	subcommands: Readonly<Record<string, Subcommand<TContext>>>;
 }
 
-import { requireCliContext } from "./store";
+export interface SubcommandGroupCommand<TContext> extends AxiCliCommand<TContext> {
+	describeArms(): CommandArmDescription[];
+}
 
 /**
  * The subcommand runner — the single seam a command applies to a subcommand's
@@ -67,8 +79,8 @@ export async function runSubcommand<TContext>(
  */
 export function createSubcommandGroup<TContext>(
 	group: SubcommandGroupSpec<TContext>,
-): AxiCliCommand<TContext> {
-	return async (args, context) => {
+): SubcommandGroupCommand<TContext> {
+	const handler: AxiCliCommand<TContext> = async (args, context) => {
 		const [subName, ...rest] = args;
 
 		if (subName === undefined) {
@@ -94,4 +106,18 @@ export function createSubcommandGroup<TContext>(
 			[`Run \`${group.name} --help\` for usage`],
 		);
 	};
+
+	const groupCommand = handler as SubcommandGroupCommand<TContext>;
+	groupCommand.describeArms = () => {
+		const rows: CommandArmDescription[] = [];
+		for (const [subName, arm] of Object.entries(group.subcommands)) {
+			const line = arm.line ?? `${group.name} ${subName}`;
+			const help = arm.summary ?? "";
+			rows.push({ line, help });
+		}
+		return rows;
+	};
+
+	return groupCommand;
 }
+

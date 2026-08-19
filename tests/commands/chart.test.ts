@@ -1,10 +1,13 @@
 import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
 import { AxiError } from "axi-sdk-js";
+import { CaelusEphemeris } from "../../src/adapters/ephemeris";
 import { chartCommand } from "../../src/commands/chart";
 import { InMemoryProfileStore } from "../../src/storage/profile-store";
 
 describe("chartCommand — lumen chart natal <uuid>", () => {
+	const ephemeris = new CaelusEphemeris();
+
 	test("returns full chart output for a valid profile", async () => {
 		const store = new InMemoryProfileStore(new Database(":memory:"));
 		const { profile } = store.add({
@@ -18,6 +21,7 @@ describe("chartCommand — lumen chart natal <uuid>", () => {
 
 		const result = await chartCommand(["natal", profile.id], {
 			profiles: store,
+			ephemeris,
 		});
 		expect(typeof result).toBe("object");
 		expect("chart" in (result as object)).toBe(true);
@@ -38,7 +42,10 @@ describe("chartCommand — lumen chart natal <uuid>", () => {
 
 		let error: unknown;
 		try {
-			await chartCommand(["natal", nonexistentId], { profiles: store });
+			await chartCommand(["natal", nonexistentId], {
+				profiles: store,
+				ephemeris,
+			});
 		} catch (e) {
 			error = e;
 		}
@@ -55,7 +62,7 @@ describe("chartCommand — lumen chart natal <uuid>", () => {
 
 		let error: unknown;
 		try {
-			await chartCommand(["natal"], { profiles: store });
+			await chartCommand(["natal"], { profiles: store, ephemeris });
 		} catch (e) {
 			error = e;
 		}
@@ -67,12 +74,16 @@ describe("chartCommand — lumen chart natal <uuid>", () => {
 
 	test("returns usage with --help", async () => {
 		const store = new InMemoryProfileStore(new Database(":memory:"));
-		const usage = await chartCommand(["--help"], { profiles: store });
+		const usage = await chartCommand(["--help"], {
+			profiles: store,
+			ephemeris,
+		});
 		expect(typeof usage).toBe("string");
 		expect(usage as string).toContain("lumen chart natal <uuid>");
 
 		const natalUsage = await chartCommand(["natal", "--help"], {
 			profiles: store,
+			ephemeris,
 		});
 		expect(typeof natalUsage).toBe("string");
 		expect(natalUsage as string).toContain("Porphyry houses");

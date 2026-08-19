@@ -1,8 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import {
-	computeSoulFact,
-	PPP_DEACTIVATION_ORB,
-} from "../../../src/core/astrology/soul";
+import { PPP_DEACTIVATION_ORB } from "../../src/engine/aspects";
+import { computeSoulFact } from "../../src/engine/natal";
 
 describe("Soul astrology calculations", () => {
 	test("PPP_DEACTIVATION_ORB is 3 degrees", () => {

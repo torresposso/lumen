@@ -10,7 +10,7 @@
  * this module. The command surface holds the *names* and the *presentation
  * rules*; the contracts hold the *meanings* (ADR-0006).
  */
-import type { ProfileStore } from "./store";
+import type { ProfileStore } from "../domain/store";
 
 /** The top-level command token — "lumen profile". */
 export const PROFILE_COMMAND = "lumen profile";
@@ -46,29 +46,11 @@ export const PROFILE_ARM_HELP = {
 	delete: "Remove one profile by UUID",
 } as const;
 
-export const CHART_COMMAND = "lumen chart";
-
-export const CHART_ARMS = {
-	natal: `${CHART_COMMAND} natal`,
-} as const;
-
-export const CHART_ARM_HELP = {
-	natal: "Calculate natal chart (Porphyry / True Node / JWGEA)",
-} as const;
-
-export const COMMAND_ARM_CATALOG = [
-	{ line: PROFILE_ARMS.add, help: PROFILE_ARM_HELP.add },
-	{ line: PROFILE_ARMS.list, help: PROFILE_ARM_HELP.list },
-	{ line: PROFILE_ARMS.get, help: PROFILE_ARM_HELP.get },
-	{ line: PROFILE_ARMS.delete, help: PROFILE_ARM_HELP.delete },
-	{ line: `${CHART_ARMS.natal} <uuid>`, help: CHART_ARM_HELP.natal },
-] as const;
-
 /**
- * The top-level "Commands:" block, derived from the arm catalog.
+ * The top-level "Commands:" block, derived from the registered arm catalog.
  */
-export function profileCommandsHelp(
-	catalog: readonly { line: string; help: string }[] = COMMAND_ARM_CATALOG,
+export function formatCommandsHelp(
+	catalog: readonly { line: string; help: string }[],
 ): string {
 	const width = Math.max(...catalog.map((entry) => entry.line.length));
 

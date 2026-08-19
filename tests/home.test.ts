@@ -8,9 +8,9 @@ import {
 	PROFILE_ADD_HINT,
 	PROFILE_ARMS,
 	PROFILE_LIST_HINT,
-	profileCommandsHelp,
-} from "../src/core/cli-surface";
-import type { NewProfile } from "../src/core/model";
+	formatCommandsHelp,
+} from "../src/cli/surface";
+import type { NewProfile } from "../src/domain/model";
 import { InMemoryProfileStore } from "../src/storage/profile-store";
 
 let db: Database;
@@ -70,13 +70,16 @@ describe("homeView — the bare-invocation shape", () => {
 	});
 });
 
-describe("profileCommandsHelp — the derived Commands block", () => {
+describe("formatCommandsHelp — the derived Commands block", () => {
 	test("lists every arm line with its one-liner from the catalog", () => {
-		const help = profileCommandsHelp();
+		const sampleCatalog = [
+			{ line: "lumen profile add", help: "Register a birth" },
+			{ line: "lumen profile list", help: "List saved profiles" },
+		];
+		const help = formatCommandsHelp(sampleCatalog);
 		expect(help).toContain("Commands:");
-		for (const line of Object.values(PROFILE_ARMS)) {
-			expect(help).toContain(line);
-		}
+		expect(help).toContain("lumen profile add");
+		expect(help).toContain("lumen profile list");
 	});
 });
 
@@ -110,7 +113,8 @@ describe("buildCliOptions — the injectable composition root", () => {
 	test("--help renders the derived top-level Commands block", async () => {
 		const { out, options } = runCli(["--help"]);
 		await runAxiCli(options);
-		expect(out.join("")).toContain(profileCommandsHelp());
+		expect(out.join("")).toContain("Commands:\n  lumen profile add");
+		expect(out.join("")).toContain("lumen chart natal <uuid>");
 	});
 
 	test("command routing through the root reaches the profile store", async () => {

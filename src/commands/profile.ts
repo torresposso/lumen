@@ -1,17 +1,18 @@
 import { AxiError } from "axi-sdk-js";
-import type { ArgsSpec } from "../core/args";
-import { parseBirthInput } from "../core/birth-input";
+import type { ArgsSpec } from "../cli/args";
+import { parseBirthInput } from "../domain/birth-input";
 import {
 	ADD_FLAGS,
 	emptyStateHint,
 	PROFILE_ADD_EXAMPLE,
+	PROFILE_ARM_HELP,
 	PROFILE_ARMS,
 	PROFILE_COMMAND,
 	PROFILE_LIST_HINT,
-} from "../core/cli-surface";
-import type { CliContext } from "../core/store";
-import { createSubcommandGroup } from "../core/subcommand";
-import { toonProfile } from "../core/toon";
+} from "../cli/surface";
+import type { CliContext } from "../cli/context";
+import { createSubcommandGroup } from "../cli/subcommand";
+import { toonProfile } from "../domain/toon";
 
 const profileUsage = [
 	`${PROFILE_ADD_EXAMPLE} [${ADD_FLAGS.name} slug]`,
@@ -83,6 +84,7 @@ export const profileCommand = createSubcommandGroup<CliContext>({
 	subcommands: {
 		add: {
 			spec: ADD_SPEC,
+			summary: PROFILE_ARM_HELP.add,
 			usage: profileAddUsage,
 			run: (parsed, context) => {
 				const { profiles } = context;
@@ -106,6 +108,7 @@ export const profileCommand = createSubcommandGroup<CliContext>({
 
 		list: {
 			spec: LIST_SPEC,
+			summary: PROFILE_ARM_HELP.list,
 			usage: profileListUsage,
 			run: (_parsed, context) => {
 				const { profiles } = context;
@@ -119,6 +122,7 @@ export const profileCommand = createSubcommandGroup<CliContext>({
 
 		get: {
 			spec: ID_SPEC,
+			summary: PROFILE_ARM_HELP.get,
 			usage: profileGetUsage,
 			run: (parsed, context) => {
 				const { profiles } = context;
@@ -135,6 +139,7 @@ export const profileCommand = createSubcommandGroup<CliContext>({
 
 		delete: {
 			spec: ID_SPEC,
+			summary: PROFILE_ARM_HELP.delete,
 			usage: profileDeleteUsage,
 			run: (parsed, context) => {
 				const { profiles } = context;

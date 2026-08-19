@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { AxiError } from "axi-sdk-js";
-import { type ArgsSpec, parseArgs } from "../src/core/args";
+import { type ArgsSpec, parseArgs } from "../src/cli/args";
 
 const ADD_SPEC: ArgsSpec = {
 	known: new Set(["--when", "--where", "--name"]),

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { NewProfile } from "../../src/core/model";
+import type { NewProfile } from "../../src/domain/model";
 import {
 	defaultDbFile,
 	InMemoryProfileStore,

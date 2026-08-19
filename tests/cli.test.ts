@@ -2,16 +2,18 @@ import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { AxiError } from "axi-sdk-js";
 import { profileCommand } from "../src/commands/profile";
+import { CaelusEphemeris } from "../src/adapters/ephemeris";
 import {
 	ADD_FLAGS,
 	PROFILE_ADD_HINT,
 	PROFILE_ARMS,
 	PROFILE_COMMAND,
-} from "../src/core/cli-surface";
-import type { CliContext } from "../src/core/store";
+} from "../src/cli/surface";
+import type { CliContext } from "../src/cli/context";
 import { InMemoryProfileStore } from "../src/storage/profile-store";
 
 let db: Database;
+const ephemeris = new CaelusEphemeris();
 
 beforeEach(() => {
 	db = new Database(":memory:");
@@ -24,6 +26,7 @@ afterEach(() => {
 function ctx(): CliContext {
 	return {
 		profiles: new InMemoryProfileStore(db, () => new Date()),
+		ephemeris,
 	};
 }
 

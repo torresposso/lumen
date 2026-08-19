@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { AxiError } from "axi-sdk-js";
-import type { ArgsSpec } from "../src/core/args";
-import { createSubcommandGroup, runSubcommand } from "../src/core/subcommand";
+import type { ArgsSpec } from "../src/cli/args";
+import { createSubcommandGroup, runSubcommand } from "../src/cli/subcommand";
 
 const SPEC: ArgsSpec = {
 	known: new Set(["--when", "--where"]),

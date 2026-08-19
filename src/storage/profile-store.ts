@@ -3,8 +3,8 @@ import { randomUUID } from "node:crypto";
 import { chmodSync, existsSync, mkdirSync, openSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { AxiError } from "axi-sdk-js";
-import type { NewProfile, Profile } from "../core/model";
-import type { AddResult, ProfileStore } from "../core/store";
+import type { NewProfile, Profile } from "../domain/model";
+import type { AddResult, ProfileStore } from "../domain/store";
 import { ensureSchema } from "./schema";
 
 /** `./lumen.db` in the cwd (per-project), overridable with `LUMEN_DB`. */

@@ -1,17 +1,13 @@
 import { type AxiCliOptions, runAxiCli } from "axi-sdk-js";
+import { CaelusEphemeris, type Ephemeris } from "./adapters/ephemeris";
 import { chartCommand } from "./commands/chart";
 import { profileCommand } from "./commands/profile";
-import { homeView, profileCommandsHelp } from "./core/cli-surface";
-import type { CliContext, ProfileStore } from "./core/store";
-import { requireCliContext } from "./core/store";
+import { homeView, formatCommandsHelp } from "./cli/surface";
+import type { CliContext } from "./cli/context";
+import { requireCliContext } from "./cli/context";
+import type { ProfileStore } from "./domain/store";
 import { SqliteProfileStore } from "./storage/profile-store";
 import { VERSION } from "./version";
-
-const topLevelHelp = [
-	"lumen — birth profile manager & astrological chart engine (AXI CLI)",
-	"",
-	profileCommandsHelp(),
-].join("\n");
 
 /** The wiring's injectable seams — the pieces the SDK reads from the process that tests stub. */
 export interface CliSeams {
@@ -25,14 +21,25 @@ export interface CliSeams {
 export function buildCliOptions(
 	seams: CliSeams = {},
 	profiles: ProfileStore = new SqliteProfileStore(),
+	ephemeris: Ephemeris = new CaelusEphemeris(),
 ): AxiCliOptions<CliContext> {
+	const catalog = [
+		...profileCommand.describeArms(),
+		...chartCommand.describeArms(),
+	];
+	const topLevelHelp = [
+		"lumen — birth profile manager & astrological chart engine (AXI CLI)",
+		"",
+		formatCommandsHelp(catalog),
+	].join("\n");
+
 	return {
 		description: "lumen — birth profile manager & astrological chart engine",
 		version: VERSION,
 		argv: seams.argv,
 		stdout: seams.stdout,
 		topLevelHelp,
-		resolveContext: async () => ({ profiles }),
+		resolveContext: async () => ({ profiles, ephemeris }),
 		commands: {
 			profile: profileCommand,
 			chart: chartCommand,
@@ -47,3 +54,4 @@ export function buildCliOptions(
 export async function main(): Promise<void> {
 	await runAxiCli(buildCliOptions());
 }
+

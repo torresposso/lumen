@@ -7,7 +7,7 @@ import {
 	PROFILE_ARMS,
 	PROFILE_COMMAND,
 	PROFILE_LIST_HINT,
-} from "../src/core/cli-surface";
+} from "../src/cli/surface";
 
 // The expected literals come from spec.md §3 — the independent source of
 // truth for the CLI surface, not a re-derivation of the code under test.
