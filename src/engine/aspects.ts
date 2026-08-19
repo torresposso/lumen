@@ -1,3 +1,10 @@
+/**
+ * Parametric aspect calculus and ecliptic geometry — internal to the natal
+ * engine. Only `PPP_DEACTIVATION_ORB` and `computeSolLunaPhase` are part of
+ * the engine's test surface; the rest is imported solely by `natal.ts` and
+ * not by external callers. Keep the interface narrow — add new exports only
+ * when a second consumer appears.
+ */
 import type { BodyId } from "caelus";
 
 export type AspectStress = "stressful" | "nonstressful";
@@ -168,6 +175,7 @@ export const PPP_MAJOR_ASPECTS = [
 	{ name: "opposition", target: 180, orb: 5 },
 ] as const;
 
+// exported for tests — not part of public engine interface outside engine/
 export const PPP_DEACTIVATION_ORB = 3;
 export const SKIPPED_STEPS_ORB = 5;
 
@@ -343,6 +351,7 @@ const PHASES: readonly { name: SolLunaPhaseName; max: number }[] = [
 	{ name: "Balsamic", max: 360 },
 ];
 
+// exported for tests
 export function computeSolLunaPhase(sunLon: number, moonLon: number): string {
 	const angle = roundPrecision(angularDistanceDirect(sunLon, moonLon), 4);
 	const phase = PHASES.find((p) => angle < p.max) ?? PHASES[PHASES.length - 1];

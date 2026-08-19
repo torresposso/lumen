@@ -202,7 +202,7 @@ export interface AstrologicalSignature {
 	};
 }
 
-export function computeRawChart(
+function computeRawChart(
 	jdUt: number,
 	lat: number,
 	lon: number,
@@ -228,7 +228,7 @@ export function computeRawChart(
 	return { ...raw, bodies };
 }
 
-export function projectBodies(
+function projectBodies(
 	rawBodies: Chart["bodies"],
 	cusps: number[],
 ): Record<string, ChartBodyProjection> {
@@ -259,7 +259,7 @@ function angleLon(val: number | { lon: number }): number {
 	return typeof val === "number" ? val : val.lon;
 }
 
-export function projectAngles(angles: Chart["angles"]): {
+function projectAngles(angles: Chart["angles"]): {
 	asc: AngleProjection;
 	mc: AngleProjection;
 	vertex: AngleProjection;
@@ -278,14 +278,14 @@ export function projectAngles(angles: Chart["angles"]): {
 	};
 }
 
-export function projectCusps(rawCusps: number[]): CuspProjection[] {
+function projectCusps(rawCusps: number[]): CuspProjection[] {
 	return rawCusps.map((cuspLon) => {
 		const pt = projectPoint(cuspLon);
 		return { lon: pt.lon, sign: pt.sign, signDeg: pt.signDeg };
 	});
 }
 
-export function computeHouseRulers(cusps: CuspProjection[]): HouseRulerRow[] {
+function computeHouseRulers(cusps: CuspProjection[]): HouseRulerRow[] {
 	return cusps.map((c, idx) => ({
 		house: idx + 1,
 		sign: c.sign,
@@ -295,7 +295,7 @@ export function computeHouseRulers(cusps: CuspProjection[]): HouseRulerRow[] {
 
 type RawBody = NonNullable<Chart["bodies"][string]>;
 
-export function computeAspects(rawBodies: Chart["bodies"]): AspectProjection[] {
+function computeAspects(rawBodies: Chart["bodies"]): AspectProjection[] {
 	const bodyEntries = Object.entries(rawBodies).filter(
 		(entry): entry is [string, RawBody] =>
 			entry[1] !== undefined &&
@@ -337,7 +337,7 @@ export function computeAspects(rawBodies: Chart["bodies"]): AspectProjection[] {
 	return aspects;
 }
 
-export function computeDeclinationAspects(
+function computeDeclinationAspects(
 	rawBodies: Chart["bodies"],
 ): DeclinationAspectProjection[] {
 	const bodyEntries = Object.entries(rawBodies).filter(
@@ -362,7 +362,7 @@ export function computeDeclinationAspects(
 	return results;
 }
 
-export function computePlutoAspects(
+function computePlutoAspects(
 	bodies: Record<string, { lon: number; speed: number }>,
 	pluto: { lon: number; speed: number },
 ): PlutoAspect[] {
@@ -374,7 +374,7 @@ export function computePlutoAspects(
 	) as PlutoAspect[];
 }
 
-export function computePPPAspects(
+function computePPPAspects(
 	bodies: Record<string, { lon: number }>,
 	pppLon: number,
 ): PPPAspect[] {
@@ -392,6 +392,7 @@ function nearMidpoint(a: number, b: number): number {
 	return normalizeLongitude(a - (360 - arc) / 2);
 }
 
+// exported for tests — not part of public engine interface
 export function computeSoulFact(
 	bodies: Record<
 		string,
@@ -465,7 +466,7 @@ export function computeSoulFact(
 	};
 }
 
-export function describeEvoCriteria(): string {
+function describeEvoCriteria(): string {
 	const orbGroups = new Map<number, string[]>();
 	for (const def of PLUTO_ASPECTS) {
 		const names = orbGroups.get(def.orb);
@@ -481,7 +482,7 @@ export function describeEvoCriteria(): string {
 	return `orbs PLUTO_ASPECTS: ${plutoOrbs}; ppp: major aspects only (orb ${firstPppAspect.orb}°); skipped: squares to the nodal axis (orb ${PPP_DEACTIVATION_ORB + 2}°); ppp inactive when pluto conjunct the north node (orb ${PPP_DEACTIVATION_ORB}°)`;
 }
 
-export function computeNodeAspects(
+function computeNodeAspects(
 	bodies: Record<string, { lon: number }>,
 	nodeLon: number,
 ): NodeAspect[] {
@@ -498,6 +499,7 @@ export function computeNodeAspects(
 	}));
 }
 
+// exported for tests
 export function computeSkippedSteps(
 	bodies: Record<string, { lon: number }>,
 	northNodeLon: number,
@@ -520,7 +522,7 @@ export function computeSkippedSteps(
 	return skipped.sort((a, b) => a.orb - b.orb);
 }
 
-export function computeNodalRulerPlacement(
+function computeNodalRulerPlacement(
 	rulerId: string | undefined,
 	bodies: Record<
 		string,
@@ -547,6 +549,7 @@ export function computeNodalRulerPlacement(
 	};
 }
 
+// exported for tests
 export function computeNodalAxisFact(
 	bodies: Record<
 		string,
@@ -622,7 +625,7 @@ export function computeNodalAxisFact(
 	};
 }
 
-export function computePrenatalEclipses(
+function computePrenatalEclipses(
 	ephemeris: Ephemeris,
 	birthJdUt: number,
 	birthLat: number,
@@ -675,7 +678,7 @@ export function computePrenatalEclipses(
 	};
 }
 
-export function detectAspectPatterns(
+function detectAspectPatterns(
 	bodies: Record<string, { lon: number; sign: string; house: number }>,
 ): AspectPattern[] {
 	const bodyMap: Record<string, { lon: number; house?: number | null }> = {};
@@ -750,6 +753,7 @@ export function detectAspectPatterns(
 	return patterns;
 }
 
+// exported for tests
 export function computeSignature(
 	bodies: Record<string, { sign: string; house: number }>,
 ): AstrologicalSignature {
