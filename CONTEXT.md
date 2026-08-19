@@ -36,19 +36,17 @@ pushed.
   them as the two leading parts of `--where "lat, lon, Place"`. Together with
   `birthJdUt` they are the birth's identity for dedupe.
 - **BirthJdUt** — the derived UT instant of a birth (Meeus ch. 7, pure
-  arithmetic in `src/domain/jd.ts`), produced by the birth-input contract from the
-  parsed `--when`. lumen's only derivation; it never consults timezone databases
-  or calendars.
+  arithmetic internal to `src/domain/birth-input.ts`), produced by the birth-input
+  contract from the parsed `--when`. lumen's only derivation; it never consults timezone
+  databases or calendars (ADR-0014).
 - **BirthInput** — the parsed, validated birth produced by the birth-input
   contract: `birthDateTime` (canonical ISO with offset), `birthLat`, `birthLon`,
   `birthPlace` and the derived `birthJdUt`. Produced from `RawBirthInput`. The
   transient `local`/`offsetMinutes` the derivation needs never cross the
-  contract's interface — they are implementation, not interface (ADR-0005).
+  contract's interface — they are implementation, not interface (ADR-0005, ADR-0014).
 - **LocalTime** — the transient broken-down local wall-clock (year…minute) the
-  birth-input contract yields *internally* from `--when` and feeds to
-  `julianDayUt`; never stored. It crosses only the JD arithmetic seam
-  (`src/domain/jd.ts`, exported beside `julianDayUt`) — never a contract's
-  interface. (Formerly `BirthClock`.)
+  birth-input contract yields *internally* from `--when` and feeds to the Meeus
+  derivation; never stored or leaked across file seams (ADR-0014).
 - **RawBirthInput** — the raw flag strings `profile add` receives, in their
   ergonomic CLI names (ADR-0006): `--when` (ISO 8601 datetime with UTC offset:
   `YYYY-MM-DDTHH:MM±HH:MM` or `…Z`) and `--where "lat, lon, Place"` (coordinates
@@ -56,18 +54,17 @@ pushed.
   place). Parsed and validated into a `BirthInput` whose fields use the model's
   `birth*` names.
 - **Birth-input contract** — the module `src/domain/birth-input.ts` that owns the
-  parsing + semantic validation of those raw flags as one seam: a single
-  `VALIDATION_ERROR` citing every checkable violated rule in its suggestions.
-  It is also the one seam where the ergonomic CLI names (`--when`/`--where`) meet
-  the model vocabulary (`birth*`) — neither the command nor the store knows the
-  CLI flag names (ADR-0006). The seam is *flag-agnostic*: the caller (the
-  `profile add` arm) passes the flag labels from the command surface, so the
-  domain module never imports the CLI vocabulary — the dependency direction is
-  `commands → domain`, never `domain → cli`. The UTC offset arrives *inside*
-  `--when`, never as a separate flag. Flag presence, syntax and value
+  parsing, semantic validation, Gregorian calendar checks, and Meeus Julian Day
+  derivation as one deep seam (ADR-0014): a single `VALIDATION_ERROR` citing
+  every checkable violated rule in its suggestions. It is also the one seam where
+  the ergonomic CLI names (`--when`/`--where`) meet the model vocabulary (`birth*`) —
+  neither the command nor the store knows the CLI flag names (ADR-0006). The seam is
+  *flag-agnostic*: the caller (the `profile add` arm) passes the flag labels from
+  the command surface, so the domain module never imports the CLI vocabulary — the
+  dependency direction is `commands → domain`, never `domain → cli`. The UTC offset
+  arrives *inside* `--when`, never as a separate flag. Flag presence, syntax and value
   normalization belong to the **args contract**; value semantics belong here.
-  The contract also derives `birthJdUt` (Meeus, via `src/domain/jd.ts`) — raw
-  flags enter, the complete `birth*` set leaves, and neither the command nor
+  Raw flags enter, the complete `birth*` set leaves, and neither the command nor
   the store performs the derivation.
 - **Args contract** — the module `src/cli/args.ts` that owns the flag and
   positional syntax of every command's raw arguments as one seam: known and
@@ -81,37 +78,30 @@ pushed.
   normalization live here; value *semantics* (format + ranges) live in the
   contract that consumes the parsed flags (the **birth-input contract**).
 - **Command surface** — the module `src/cli/surface.ts` that owns the
-  whole agent-facing CLI vocabulary (formerly *add surface*; widened
-  2026-08-18, ADR-0007): the command token (`lumen profile`), the four arm
-  command-lines, the `--when` / `--where` / `--name` flag literals, the
-  canonical add example and the shared empty-state / NOT_FOUND hints. The
-  top-level help, the command's usage text and the subcommand group name
-  interpolate the tokens; the `add` arm passes the flag labels to the
+  whole agent-facing CLI vocabulary and bare invocation presentation (ADR-0007, ADR-0014):
+  the command token (`lumen profile`), the four arm command-lines, the `--when` /
+  `--where` / `--name` flag literals, the canonical add example, the arm catalog,
+  the derived top-level Commands block, the shared empty-state / NOT_FOUND hints,
+  and `homeView`. The top-level help, the command's usage text and the subcommand
+  group name interpolate the tokens; the `add` arm passes the flag labels to the
   **birth-input contract**, which quotes them in its messages — none re-types
   a literal, so a command, arm or flag rename is one edit in this module
   (ADR-0006; ADR-0007). It holds the *names* and the *presentation* rules;
   the birth-input contract holds the *meanings*. It also owns the shared
   empty-state rule — the hint tokens and the selection between them
   (`emptyStateHint`: empty store → add-hint, non-empty → list-hint) live
-  beside each other, so `home` and the `list` arm never re-implement the
+  beside each other, so `homeView` and the `list` arm never re-implement the
   decision. It derives the top-level "Commands:" block (`formatCommandsHelp`)
   dynamically from registered arm catalogs.
 - **Home view** — the summary a bare `lumen` invocation (no command) publishes:
   the profile count plus the command surface's empty-state hint, composed by
-  `homeView` (`src/cli/home.ts`) — "snapshot the store, apply the
-  empty-state rule". It is the same decision the `list` arm applies to its
-  rows, with one home; the root wiring (`src/cli.ts`) calls the seam instead
-  of re-composing it. The split (2026-08-19): the surface module owns the
-  *vocabulary*, the home module owns the *view* (presentation vs vocabulary
-  inversion).
+  `homeView` directly in `src/cli/surface.ts` (ADR-0014) — "snapshot the store,
+  apply the empty-state rule".
 - **CLI Context** — the runtime execution context `CliContext` holding the
   capability ports `profiles: ProfileStore` and `ephemeris: Ephemeris`,
   defined at the composition root (`src/cli.ts`) and resolved by
   `buildCliOptions`. `requireCliContext` (also `src/cli.ts`) validates
-  presence and fails loud (`CONTEXT_ERROR`) when context is missing —
-  collapsed out of `src/cli/context.ts` 2026-08-19: the guard and the shape
-  shared one tiny module with the root, so the seam became two exports of the
-  wiring itself.
+  presence and fails loud (`CONTEXT_ERROR`) when context is missing.
 - **Profile store** — the persistence port `ProfileStore` (`src/domain/store.ts`:
   `list` / `get` / `add` / `remove` — no file policy, no lifecycle) and the
   two SQLite adapters that serve it (`src/storage/profile-store.ts`, sharing
@@ -134,13 +124,13 @@ pushed.
   facts assembled as a pure function (`computeNatalChart`, `src/engine/natal.ts`)
   over a stored `Profile` and `Ephemeris` port, backed by the deep single-module
   engine (`src/engine/natal.ts` encapsulating JWGEA evolutionary projections,
-  midpoints, nodal axis mechanics, and chart synthesis, delegating base geometry and
-  signatures to Caelus primitives) published as a single TOON `chart` block
-  (ADR-0008, ADR-0009, ADR-0010, ADR-0011, ADR-0012).
+  midpoints, nodal axis mechanics, and chart synthesis, delegating base geometry,
+  midpoints, elements, modalities, and signatures to Caelus primitives) published
+  as a single TOON `chart` block (ADR-0008, ADR-0009, ADR-0010, ADR-0011, ADR-0012, ADR-0013).
 - **Ephemeris seam** — the capability port `Ephemeris` (`src/adapters/ephemeris.ts`)
   wrapping ephemerides (Caelus `Engine.chartAt`, `declinationAspects`, eclipse finders in prod,
   `InMemoryEphemeris` in tests) with fixed Porphyry houses, True North Node, injected through
-  the CLI Context (ADR-0011, ADR-0012).
+  the CLI Context (ADR-0011, ADR-0012, ADR-0013).
 
 
 

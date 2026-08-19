@@ -1,11 +1,60 @@
 import { AxiError } from "axi-sdk-js";
-import { daysInMonth, julianDayUt, type LocalTime } from "./jd";
 import { type BirthInput, MAX_LAT, MAX_LON, MIN_LAT, MIN_LON } from "./model";
 
 export const MIN_YEAR = 1800;
 export const MAX_YEAR = 2100;
 export const MIN_OFFSET_MINUTES = -840;
 export const MAX_OFFSET_MINUTES = 840;
+
+/**
+ * Transient broken-down local wall-clock reading derived internally from `--when`.
+ */
+export interface LocalTime {
+	year: number;
+	month: number;
+	day: number;
+	hour: number;
+	minute: number;
+}
+
+export function isLeapYear(year: number): boolean {
+	return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+}
+
+export function daysInMonth(year: number, month: number): number {
+	switch (month) {
+		case 2:
+			return isLeapYear(year) ? 29 : 28;
+		case 4:
+		case 6:
+		case 9:
+		case 11:
+			return 30;
+		default:
+			return 31;
+	}
+}
+
+/**
+ * Julian Day (UT) from local wall-clock time and a fixed UTC offset — Meeus,
+ * "Astronomical Algorithms" (2nd ed., 1998), ch. 7. Pure arithmetic, no
+ * timezone database.
+ */
+export function julianDayUt(local: LocalTime, offsetMinutes: number): number {
+	const utDay =
+		local.day + (local.hour + local.minute / 60 - offsetMinutes / 60) / 24;
+	const y = local.month <= 2 ? local.year - 1 : local.year;
+	const m = local.month <= 2 ? local.month + 12 : local.month;
+	const a = Math.floor(y / 100);
+	const b = 2 - a + Math.floor(a / 4);
+	return (
+		Math.floor(365.25 * (y + 4716)) +
+		Math.floor(30.6001 * (m + 1)) +
+		utDay +
+		b -
+		1524.5
+	);
+}
 
 /** The raw `--when` / `--where` strings as received by `profile add`. */
 export interface RawBirthInput {

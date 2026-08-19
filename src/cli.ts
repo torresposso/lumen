@@ -1,7 +1,6 @@
 import { type AxiCliOptions, AxiError, runAxiCli } from "axi-sdk-js";
 import { CaelusEphemeris, type Ephemeris } from "./adapters/ephemeris";
-import { homeView } from "./cli/home";
-import { formatCommandsHelp } from "./cli/surface";
+import { formatCommandsHelp, homeView } from "./cli/surface";
 import { chartCommand } from "./commands/chart";
 import { profileCommand } from "./commands/profile";
 import type { ProfileStore } from "./domain/store";

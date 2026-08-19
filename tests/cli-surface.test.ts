@@ -1,13 +1,42 @@
-import { describe, expect, test } from "bun:test";
+import { Database } from "bun:sqlite";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
 	ADD_FLAGS,
 	emptyStateHint,
+	formatCommandsHelp,
+	homeView,
 	PROFILE_ADD_EXAMPLE,
 	PROFILE_ADD_HINT,
 	PROFILE_ARMS,
 	PROFILE_COMMAND,
 	PROFILE_LIST_HINT,
 } from "../src/cli/surface";
+import type { NewProfile } from "../src/domain/model";
+import { InMemoryProfileStore } from "../src/storage/profile-store";
+
+let db: Database;
+let store: InMemoryProfileStore;
+
+beforeEach(() => {
+	db = new Database(":memory:");
+	store = new InMemoryProfileStore(db, () => new Date());
+});
+
+afterEach(() => {
+	db.close();
+});
+
+function newProfile(overrides: Partial<NewProfile> = {}): NewProfile {
+	const base: NewProfile = {
+		name: "erik",
+		birthPlace: "Tampa, USA",
+		birthDateTime: "1990-06-10T14:30-04:00",
+		birthLat: 27.95,
+		birthLon: -82.46,
+		birthJdUt: 2444068.0625,
+	};
+	return { ...base, ...overrides };
+}
 
 // The expected literals come from spec.md §3 — the independent source of
 // truth for the CLI surface, not a re-derivation of the code under test.
@@ -53,5 +82,39 @@ describe("command surface", () => {
 	test("the empty-state rule picks the add hint for an empty store and the list hint otherwise", () => {
 		expect(emptyStateHint(false)).toBe(PROFILE_ADD_HINT);
 		expect(emptyStateHint(true)).toBe(PROFILE_LIST_HINT);
+	});
+});
+
+describe("homeView — the bare-invocation shape", () => {
+	test("an empty store reports 0 profiles and points the agent at add", () => {
+		expect(homeView(store)).toEqual({
+			profiles: 0,
+			help: [PROFILE_ADD_HINT],
+		});
+	});
+
+	test("a non-empty store reports the count and points the agent at list", () => {
+		store.add(newProfile());
+		expect(homeView(store)).toEqual({
+			profiles: 1,
+			help: [PROFILE_LIST_HINT],
+		});
+	});
+
+	test("the add hint is built from the canonical example, not a re-typed line", () => {
+		expect(PROFILE_ADD_HINT).toBe(`Run \`${PROFILE_ADD_EXAMPLE}\``);
+	});
+});
+
+describe("formatCommandsHelp — the derived Commands block", () => {
+	test("lists every arm line with its one-liner from the catalog", () => {
+		const sampleCatalog = [
+			{ line: "lumen profile add", help: "Register a birth" },
+			{ line: "lumen profile list", help: "List saved profiles" },
+		];
+		const help = formatCommandsHelp(sampleCatalog);
+		expect(help).toContain("Commands:");
+		expect(help).toContain("lumen profile add");
+		expect(help).toContain("lumen profile list");
 	});
 });

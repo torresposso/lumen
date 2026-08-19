@@ -90,12 +90,10 @@ src/commands/profile.ts
 src/commands/chart.ts
 src/cli/args.ts
 src/cli/surface.ts
-src/cli/home.ts
 src/cli/subcommand.ts
 src/domain/model.ts
 src/domain/store.ts
 src/domain/birth-input.ts
-src/domain/jd.ts
 src/domain/toon.ts
 src/engine/natal.ts
 src/storage/schema.ts

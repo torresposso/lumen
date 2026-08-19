@@ -7,10 +7,13 @@
 import type { BodyId, Chart, Position } from "caelus";
 import {
 	aspectPhase,
-	chartSignatureOf,
+	chartSignature,
 	detectPatterns as detectCaelusPatterns,
+	element,
 	findAspects,
 	houseOf,
+	midpointLon,
+	modality,
 	SIGNS,
 } from "caelus";
 import { CaelusEphemeris, type Ephemeris } from "../adapters/ephemeris";
@@ -168,36 +171,6 @@ export const SIGN_RULERS: Record<string, string> = {
 	Capricorn: "saturn",
 	Aquarius: "uranus",
 	Pisces: "neptune",
-};
-
-export const SIGN_ELEMENTS: Record<string, string> = {
-	Aries: "fire",
-	Leo: "fire",
-	Sagittarius: "fire",
-	Taurus: "earth",
-	Virgo: "earth",
-	Capricorn: "earth",
-	Gemini: "air",
-	Libra: "air",
-	Aquarius: "air",
-	Cancer: "water",
-	Scorpio: "water",
-	Pisces: "water",
-};
-
-export const SIGN_MODALITIES: Record<string, string> = {
-	Aries: "cardinal",
-	Cancer: "cardinal",
-	Libra: "cardinal",
-	Capricorn: "cardinal",
-	Taurus: "fixed",
-	Leo: "fixed",
-	Scorpio: "fixed",
-	Aquarius: "fixed",
-	Gemini: "mutable",
-	Virgo: "mutable",
-	Sagittarius: "mutable",
-	Pisces: "mutable",
 };
 
 const PLANETARY_BODIES = new Set([
@@ -622,11 +595,7 @@ export function computeMidpoints(
 	near: ProjectedEclipticPoint;
 	anti: ProjectedEclipticPoint;
 } {
-	const arc = (((lonB - lonA) % 360) + 360) % 360;
-	const nearLon =
-		arc <= 180
-			? normalizeLongitude(lonA + arc / 2)
-			: normalizeLongitude(lonA - (360 - arc) / 2);
+	const nearLon = midpointLon(lonA, lonB);
 	const farLon = normalizeLongitude(nearLon + 180);
 
 	return {
@@ -655,27 +624,23 @@ export function detectSkippedSteps(
 	northNodeLon: number,
 	orbLimit = SKIPPED_STEPS_ORB,
 ): SkippedStepProjection[] {
-	const skipped: SkippedStepProjection[] = [];
-	for (const [bodyId, body] of Object.entries(bodies)) {
-		if (!body || bodyId === "pluto" || NON_PLANETARY_IDS.has(bodyId)) continue;
-		const diff = angularDistance(body.lon, northNodeLon);
-		const orb = Math.abs(diff - 90);
-		if (orb <= orbLimit) {
-			skipped.push({
-				body: bodyId,
-				aspect: "square",
-				orb: roundPrecision(orb, 4),
-			});
-		}
-	}
-	return skipped.sort((a, b) => a.orb - b.orb);
+	return evaluateAspectsAgainstPoint(
+		bodies,
+		{ lon: northNodeLon, excludeId: "pluto" },
+		[{ name: "square", target: 90, orb: orbLimit }],
+		{ excludeNonPlanetary: true, precision: 4 },
+	).map((a) => ({
+		body: a.body,
+		aspect: a.aspect,
+		orb: a.orb,
+	}));
 }
 
 export function calculateAstrologicalSignature(
-	bodies: Record<string, { sign: string; house: number; lon: number }>,
+	rawChart: Chart,
 ): AstrologicalSignature {
-	const sig = chartSignatureOf(bodies, {
-		bodies: Object.keys(bodies).filter(isPlanet),
+	const sig = chartSignature(rawChart, {
+		bodies: Object.keys(rawChart.bodies).filter(isPlanet),
 	});
 
 	return {
@@ -1044,19 +1009,8 @@ function computePrenatalEclipses(
 	};
 }
 
-function detectAspectPatterns(
-	bodies: Record<string, { lon: number; sign: string; house: number }>,
-): AspectPattern[] {
-	const bodyMap: Record<string, { lon: number; house?: number | null }> = {};
-	for (const [id, body] of Object.entries(bodies)) {
-		if (body) {
-			bodyMap[id] = { lon: body.lon, house: body.house };
-		}
-	}
-
-	const detected = detectCaelusPatterns({
-		bodies: bodyMap,
-	} as Parameters<typeof detectCaelusPatterns>[0]);
+function detectAspectPatterns(rawChart: Chart): AspectPattern[] {
+	const detected = detectCaelusPatterns(rawChart);
 	const patterns: AspectPattern[] = [];
 
 	for (const pattern of detected) {
@@ -1072,21 +1026,23 @@ function detectAspectPatterns(
 		switch (pattern.kind) {
 			case "grand_trine": {
 				const sign = pattern.bodies[0]
-					? bodies[pattern.bodies[0]]?.sign
+					? rawChart.bodies[pattern.bodies[0]]?.sign
 					: undefined;
 				patterns.push({
 					...base,
 					type: "grand_trine",
-					element: sign ? SIGN_ELEMENTS[sign] : undefined,
+					element: sign ? element(sign) : undefined,
 				});
 				break;
 			}
 			case "t_square": {
-				const apexSign = pattern.apex ? bodies[pattern.apex]?.sign : undefined;
+				const apexSign = pattern.apex
+					? rawChart.bodies[pattern.apex]?.sign
+					: undefined;
 				patterns.push({
 					...base,
 					type: "t_square",
-					modality: apexSign ? SIGN_MODALITIES[apexSign] : undefined,
+					modality: apexSign ? modality(apexSign) : undefined,
 				});
 				break;
 			}
@@ -1106,8 +1062,8 @@ function detectAspectPatterns(
 				patterns.push({
 					...base,
 					type: "stellium",
-					element: pattern.sign ? SIGN_ELEMENTS[pattern.sign] : undefined,
-					modality: pattern.sign ? SIGN_MODALITIES[pattern.sign] : undefined,
+					element: pattern.sign ? element(pattern.sign) : undefined,
+					modality: pattern.sign ? modality(pattern.sign) : undefined,
 				});
 				break;
 			case "stellium_house":
@@ -1192,8 +1148,8 @@ function synthesizeEvolutionaryCanon(
 		profile.birthLon,
 		rawChart.cusps,
 	);
-	const patterns = detectAspectPatterns(bodies);
-	const signature = calculateAstrologicalSignature(bodies);
+	const patterns = detectAspectPatterns(rawChart);
+	const signature = calculateAstrologicalSignature(rawChart);
 
 	const counts = {
 		plutoAspects: soul.pluto.aspects.length,

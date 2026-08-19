@@ -11,7 +11,11 @@
  * count plus the empty-state hint a bare invocation publishes.
  */
 
-/** The top-level command token — "lumen profile". */
+import type { ProfileStore } from "../domain/store";
+
+/**
+ * The top-level command token — "lumen profile".
+ */
 export const PROFILE_COMMAND = "lumen profile";
 
 /** The four arm command-lines as an agent sees them in help and usage text. */
@@ -66,4 +70,18 @@ export function formatCommandsHelp(
  */
 export function emptyStateHint(hasProfiles: boolean): string {
 	return hasProfiles ? PROFILE_LIST_HINT : PROFILE_ADD_HINT;
+}
+
+/**
+ * The home view — what a bare `lumen` invocation (no command) publishes: the
+ * profile count plus the empty-state hint. Owns the "snapshot the store, apply
+ * the empty-state rule" composition.
+ */
+export function homeView(store: ProfileStore): {
+	profiles: number;
+	help: [string];
+} {
+	const profiles = store.list();
+	const hasProfiles = profiles.length > 0;
+	return { profiles: profiles.length, help: [emptyStateHint(hasProfiles)] };
 }
