@@ -20,6 +20,7 @@ Effort: reimplement lumen v1's final `chart natal` (chart + evo + atoms) on the 
 <!-- the index — one line per closed ticket: enough to judge relevance, then zoom the link for the detail the ticket holds -->
 
 - [caelus-delta-research](issues/01-caelus-delta-research.md) — `porphyry` houses available at every latitude and the chart API unchanged on both 0.23.0 and 0.24.1; breaking changes 0.23.0→0.24.1 are additive-only (`Chart.warnings`, `Position.latSpeed`, `ChartOptions.separation/aspects`); **`0.24.0` deprecated on npm, never pin it** (`^0.23.0` resolves to 0.24.1); the port runs on both → ticket 03 decides on reproducibility/maintenance grounds.
+- [single-block chart output structure](issues/02-output-structure-prototype.md) — ONE `chart` block is the whole output (no evo/atoms/summary): measurements first (birth echo = stored `ToonProfile` keys, `houseSystem`/`zodiac` scalars, bodies full v1 set, angles, cusps, aspects, declinationAspects), then flat canon facts in JWGEA order (pluto → ppp → midpoint → antiMidpoint → nodalAxis → phase → dispositorChains → prenatalEclipses → patterns → signature → houseRulers → counts → method). Midpoint/antiMidpoint structured, patterns omit absent keys, houseRulers published, pluto counts keep v1 names. Real TOON sample (Porphyry, Tampa anchor) IS the target shape — asset [`prototypes/02-output-structure.md`](prototypes/02-output-structure.md).
 
 ## Not yet specified
 
