@@ -1,5 +1,16 @@
-import type { Chart, LunarEclipse, SolarEclipse } from "caelus";
-import { Engine, lunarEclipses, solarEclipses } from "caelus";
+import type {
+	BodyId,
+	Chart,
+	DeclinationPair,
+	LunarEclipse,
+	SolarEclipse,
+} from "caelus";
+import {
+	declinationAspects,
+	Engine,
+	lunarEclipses,
+	solarEclipses,
+} from "caelus";
 import { embeddedData } from "caelus/data-embedded";
 
 export type ChartAtOptions = Parameters<Engine["chartAt"]>[3];
@@ -16,6 +27,11 @@ export interface Ephemeris {
 	): Chart;
 	solarEclipses(jdStart: number, jdEnd: number): SolarEclipse[];
 	lunarEclipses(jdStart: number, jdEnd: number): LunarEclipse[];
+	declinationAspects(
+		bodies: BodyId[],
+		jdUt: number,
+		orb?: number,
+	): DeclinationPair[];
 }
 
 /**
@@ -44,6 +60,14 @@ export class CaelusEphemeris implements Ephemeris {
 	lunarEclipses(jdStart: number, jdEnd: number): LunarEclipse[] {
 		return lunarEclipses(this.engine, jdStart, jdEnd);
 	}
+
+	declinationAspects(
+		bodies: BodyId[],
+		jdUt: number,
+		orb?: number,
+	): DeclinationPair[] {
+		return declinationAspects(this.engine, bodies, jdUt, orb);
+	}
 }
 
 export interface InMemoryEphemerisOptions {
@@ -61,6 +85,9 @@ export interface InMemoryEphemerisOptions {
 	lunarEclipses?:
 		| LunarEclipse[]
 		| ((jdStart: number, jdEnd: number) => LunarEclipse[]);
+	declinationAspects?:
+		| DeclinationPair[]
+		| ((bodies: BodyId[], jdUt: number, orb?: number) => DeclinationPair[]);
 }
 
 /**
@@ -161,5 +188,16 @@ export class InMemoryEphemeris implements Ephemeris {
 			return this.options.lunarEclipses(jdStart, jdEnd);
 		}
 		return this.options.lunarEclipses ?? [];
+	}
+
+	declinationAspects(
+		bodies: BodyId[],
+		jdUt: number,
+		orb?: number,
+	): DeclinationPair[] {
+		if (typeof this.options.declinationAspects === "function") {
+			return this.options.declinationAspects(bodies, jdUt, orb);
+		}
+		return this.options.declinationAspects ?? [];
 	}
 }

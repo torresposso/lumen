@@ -34,6 +34,15 @@ describe("CaelusEphemeris adapter", () => {
 		expect(solar[0]?.tMax).toBeLessThanOrEqual(jdUt);
 		expect(lunar[0]?.tMax).toBeLessThanOrEqual(jdUt);
 	});
+
+	test("computes declination aspects", () => {
+		const jdUt = 2448053.270833;
+		const decl = ephemeris.declinationAspects(
+			["sun", "moon", "venus", "mars", "jupiter"],
+			jdUt,
+		);
+		expect(Array.isArray(decl)).toBe(true);
+	});
 });
 
 describe("InMemoryEphemeris adapter", () => {
@@ -44,13 +53,19 @@ describe("InMemoryEphemeris adapter", () => {
 		expect(chart.bodies.true_node).toBeDefined();
 		expect(mem.solarEclipses(0, 100)).toEqual([]);
 		expect(mem.lunarEclipses(0, 100)).toEqual([]);
+		expect(mem.declinationAspects(["sun"], 0)).toEqual([]);
 	});
 
 	test("accepts custom chart and eclipse fixtures", () => {
 		const customSolar = [{ tMax: 100, type: "total" }];
+		const customDecl = [{ a: "sun", b: "moon", kind: "parallel" as const }];
 		const mem = new InMemoryEphemeris({
 			solarEclipses: customSolar as never,
+			declinationAspects: customDecl as never,
 		});
 		expect(mem.solarEclipses(0, 200)).toEqual(customSolar as never);
+		expect(mem.declinationAspects(["sun", "moon"], 0)).toEqual(
+			customDecl as never,
+		);
 	});
 });

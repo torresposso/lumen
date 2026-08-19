@@ -97,11 +97,11 @@ src/domain/store.ts
 src/domain/birth-input.ts
 src/domain/jd.ts
 src/domain/toon.ts
-src/engine/aspects.ts
 src/engine/natal.ts
 src/storage/schema.ts
 src/storage/profile-store.ts
 src/adapters/ephemeris.ts
 ```
+
 
 
