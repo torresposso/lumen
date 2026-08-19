@@ -221,6 +221,12 @@ export interface AspectPattern {
 	orb?: number;
 }
 
+export interface SoulLotsProjection {
+	fortune: ProjectedEclipticPoint;
+	spirit: ProjectedEclipticPoint;
+	isDay: boolean;
+}
+
 export interface NatalChartOutput {
 	birth: ToonProfile;
 	houseSystem: "porphyry";
@@ -247,6 +253,7 @@ export interface NatalChartOutput {
 		northNodeRuler?: DispositorChainOutput;
 	};
 	prenatalEclipses: PrenatalEclipsesFact;
+	lots: SoulLotsProjection;
 	patterns: AspectPattern[];
 	signature: AstrologicalSignature;
 	houseRulers: HouseRulerRow[];

@@ -147,6 +147,11 @@ pushed.
   `final_dispositor` (domicile), `mutual_reception` (2-body reciprocal loop), or `loop` (multilateral committee).
 - **Prenatal Eclipses** — the astronomical solar and lunar eclipses immediately preceding
   the birth instant (`birthJdUt`), projected onto the natal house cusps.
+- **True Lilith** — the osculating lunar apogee (`true_lilith`) calculated from the
+  lunar Chebyshev series, representing the primordial instinct, repressed trauma, and raw soul truth.
+- **Soul Lots (Fortune & Spirit)** — the Hermetic lots of physical incarnation (`fortune`,
+  Asc + Moon - Sun by day) and volitional soul purpose / *daimon* (`spirit`, Asc + Sun - Moon by day),
+  projected onto natal houses according to chart sect (diurnal vs nocturnal) (ADR-0018).
 - **Aspect Stress** — the JWGEA classification of planetary aspects into stressful
   (evolutionary tension/friction: conjunction, square, opposition, semisquare, sesquiquadrate,
   quincunx) and nonstressful (integration/flow: trine, sextile, semisextile, septile,

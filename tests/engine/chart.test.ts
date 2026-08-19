@@ -52,6 +52,10 @@ describe("computeNatalChart — Golden Vector (Tampa Anchor)", () => {
 		expect(chart.bodies.true_node?.signDeg).toBeCloseTo(8.1182, 2);
 		expect(chart.bodies.true_node?.outOfBounds).toBe(false);
 
+		expect(chart.bodies.true_lilith?.sign).toBe("Sagittarius");
+		expect(chart.bodies.true_lilith?.house).toBe(3);
+		expect(chart.bodies.true_lilith?.outOfBounds).toBe(true);
+
 		// Angles
 		expect(chart.angles.asc.sign).toBe("Libra");
 		expect(chart.angles.asc.signDeg).toBeCloseTo(3.4492, 2);
@@ -92,6 +96,11 @@ describe("computeNatalChart — Golden Vector (Tampa Anchor)", () => {
 
 		// Phase
 		expect(chart.phase).toBe("Full");
+
+		// Soul Lots
+		expect(chart.lots.isDay).toBe(true);
+		expect(chart.lots.fortune.sign).toBe("Aries");
+		expect(chart.lots.spirit.sign).toBe("Pisces");
 
 		// Dispositor chains
 		expect(chart.dispositorChains.pluto.terminalType).toBe("final_dispositor");

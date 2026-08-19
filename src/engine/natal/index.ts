@@ -1,4 +1,5 @@
 import type { BodyId, Chart, Position } from "caelus";
+import { lotFortune, lotSpirit } from "caelus";
 import { CaelusEphemeris, type Ephemeris } from "../../adapters/ephemeris";
 import type { Profile } from "../../domain/model";
 import { toonProfile } from "../../domain/toon";
@@ -24,9 +25,10 @@ import type {
 	EclipticGeometryProjection,
 	HouseRulerRow,
 	NatalChartOutput,
+	SoulLotsProjection,
 } from "./types";
 
-export type { NatalChartOutput } from "./types";
+export type { NatalChartOutput, SoulLotsProjection } from "./types";
 
 const DEFAULT_BODIES: BodyId[] = [
 	"sun",
@@ -41,6 +43,7 @@ const DEFAULT_BODIES: BodyId[] = [
 	"pluto",
 	"chiron",
 	"true_node",
+	"true_lilith",
 ];
 
 export type SolLunaPhaseName =
@@ -68,6 +71,27 @@ function computeSolLunaPhase(sunLon: number, moonLon: number): string {
 	const angle = roundPrecision(angularDistanceDirect(sunLon, moonLon), 4);
 	const phase = PHASES.find((p) => angle < p.max) ?? PHASES[PHASES.length - 1];
 	return phase ? phase.name : "Balsamic";
+}
+
+export function computeSoulLots(
+	rawChart: Chart,
+	cusps: number[],
+): SoulLotsProjection {
+	const asc = typeof rawChart.angles.asc === "number" ? rawChart.angles.asc : rawChart.angles.asc.lon;
+	const sun = rawChart.bodies.sun?.lon ?? 0;
+	const moon = rawChart.bodies.moon?.lon ?? 0;
+	const sunHouse = rawChart.bodies.sun?.house;
+	// Diurnal when Sun is in upper hemisphere (houses 7, 8, 9, 10, 11, 12)
+	const isDay = sunHouse !== undefined ? sunHouse >= 7 && sunHouse <= 12 : true;
+
+	const fortuneLon = lotFortune(asc, sun, moon, isDay);
+	const spiritLon = lotSpirit(asc, sun, moon, isDay);
+
+	return {
+		fortune: projectPoint(fortuneLon, cusps, 4),
+		spirit: projectPoint(spiritLon, cusps, 4),
+		isDay,
+	};
 }
 
 function projectBodies(
@@ -293,6 +317,7 @@ function synthesizeEvolutionaryCanon(
 		profile.birthLon,
 		rawChart.cusps,
 	);
+	const lots = computeSoulLots(rawChart, rawChart.cusps);
 	const patterns = detectAspectPatterns(rawChart);
 	const signature = calculateAstrologicalSignature(rawChart);
 
@@ -318,6 +343,7 @@ function synthesizeEvolutionaryCanon(
 			northNodeRuler: nodal.dispositorChains.northNodeRuler,
 		},
 		prenatalEclipses,
+		lots,
 		patterns,
 		signature,
 		counts,
@@ -363,6 +389,7 @@ export function computeNatalChart(
 				: {}),
 		},
 		prenatalEclipses: evo.prenatalEclipses,
+		lots: evo.lots,
 		patterns: evo.patterns,
 		signature: evo.signature,
 		houseRulers: measurements.houseRulers,
