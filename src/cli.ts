@@ -1,11 +1,9 @@
-import { type AxiCliOptions, runAxiCli } from "axi-sdk-js";
+import { type AxiCliOptions, AxiError, runAxiCli } from "axi-sdk-js";
 import { CaelusEphemeris, type Ephemeris } from "./adapters/ephemeris";
-import { chartCommand } from "./commands/chart";
-import { profileCommand } from "./commands/profile";
 import { homeView } from "./cli/home";
 import { formatCommandsHelp } from "./cli/surface";
-import type { CliContext } from "./cli/context";
-import { requireCliContext } from "./cli/context";
+import { chartCommand } from "./commands/chart";
+import { profileCommand } from "./commands/profile";
 import type { ProfileStore } from "./domain/store";
 import { SqliteProfileStore } from "./storage/profile-store";
 import { VERSION } from "./version";
@@ -14,6 +12,30 @@ import { VERSION } from "./version";
 export interface CliSeams {
 	argv?: string[];
 	stdout?: { write: (chunk: string) => unknown };
+}
+
+/**
+ * The runtime execution context the composition root resolves and every arm
+ * (and the home handler) receives: the capability ports, nothing else.
+ * Defined next to the wiring that provides it (collapsed here 2026-08-19:
+ * the guard and the shape shared one tiny module with the root).
+ */
+export interface CliContext {
+	profiles: ProfileStore;
+	ephemeris: Ephemeris;
+}
+
+/**
+ * Asserts that CLI context is present, throwing a loud CONTEXT_ERROR if the
+ * composition root failed to provide it.
+ */
+export function requireCliContext(context: CliContext | undefined): CliContext {
+	if (context === undefined) {
+		throw new AxiError("No context provided", "CONTEXT_ERROR", [
+			"The CLI always provides one — this is a lumen bug",
+		]);
+	}
+	return context;
 }
 
 /**
@@ -55,4 +77,3 @@ export function buildCliOptions(
 export async function main(): Promise<void> {
 	await runAxiCli(buildCliOptions());
 }
-

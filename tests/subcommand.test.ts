@@ -161,4 +161,26 @@ describe("createSubcommandGroup", () => {
 			]);
 		}
 	});
+
+	test("proto-chain arm names are own-property rejected, never routed", async () => {
+		// Without the F6 guard, "constructor"/"toString" resolve through
+		// Object.prototype and are treated as arms — the arm table must be an
+		// own-property registry.
+		for (const protoName of [
+			"constructor",
+			"__proto__",
+			"toString",
+			"hasOwnProperty",
+		]) {
+			try {
+				await group([protoName], {});
+				expect.unreachable();
+			} catch (error) {
+				expect(code(error)).toBe("VALIDATION_ERROR");
+				expect((error as Error).message).toBe(
+					`Unknown profile command: ${protoName}`,
+				);
+			}
+		}
+	});
 });

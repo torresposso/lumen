@@ -1,8 +1,8 @@
 import { AxiError } from "axi-sdk-js";
+import type { CliContext } from "../cli";
 import type { ArgsSpec } from "../cli/args";
-import { PROFILE_LIST_HINT } from "../cli/surface";
-import type { CliContext } from "../cli/context";
 import { createSubcommandGroup } from "../cli/subcommand";
+import { PROFILE_LIST_HINT } from "../cli/surface";
 import { computeNatalChart } from "../engine/natal";
 
 const chartUsage = [

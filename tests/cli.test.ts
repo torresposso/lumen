@@ -1,15 +1,15 @@
 import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { AxiError } from "axi-sdk-js";
-import { profileCommand } from "../src/commands/profile";
 import { CaelusEphemeris } from "../src/adapters/ephemeris";
+import type { CliContext } from "../src/cli";
 import {
 	ADD_FLAGS,
 	PROFILE_ADD_HINT,
 	PROFILE_ARMS,
 	PROFILE_COMMAND,
 } from "../src/cli/surface";
-import type { CliContext } from "../src/cli/context";
+import { profileCommand } from "../src/commands/profile";
 import { InMemoryProfileStore } from "../src/storage/profile-store";
 
 let db: Database;
@@ -202,9 +202,9 @@ describe("profileCommand", () => {
 		});
 	});
 
-	test("a store operation without context fails loud (PROFILE_ERROR)", async () => {
+	test("a store operation without context fails loud (CONTEXT_ERROR)", async () => {
 		await expect(profileCommand(["list"], undefined)).rejects.toMatchObject({
-			code: "PROFILE_ERROR",
+			code: "CONTEXT_ERROR",
 		});
 	});
 

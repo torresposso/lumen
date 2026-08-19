@@ -11,3 +11,10 @@ We decided:
    - `src/core/chart.ts`: Single external pure entry point `computeNatalChart(profile, ephemeris)`.
    - Delete 6 shallow micro-modules (`geometry.ts`, `positions.ts`, `soul.ts`, `nodes.ts`, `eclipses.ts`, `patterns.ts`).
 3. **Self-Describing Subcommands**: Subcommands declare their summary metadata directly; command groups expose arm catalogs dynamically to the composition root.
+
+## Update (2026-08-19, architecture review)
+
+The `CliContext` seam it decided on has since become part of the composition
+root: `CliContext` and `requireCliContext` (now `CONTEXT_ERROR`) live in
+`src/cli.ts` — the one-module `src/cli/context.ts` grew no depth, so the seam
+collapsed back into the wiring. The ports on the context are unchanged.

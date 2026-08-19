@@ -104,10 +104,14 @@ pushed.
   of re-composing it. The split (2026-08-19): the surface module owns the
   *vocabulary*, the home module owns the *view* (presentation vs vocabulary
   inversion).
-- **CLI Context** — the runtime execution context `CliContext` (`src/cli/context.ts`)
-  holding the capability ports `profiles: ProfileStore` and `ephemeris: Ephemeris`.
-  `requireCliContext` (`src/cli/context.ts`) validates presence and fails loud
-  when context is missing.
+- **CLI Context** — the runtime execution context `CliContext` holding the
+  capability ports `profiles: ProfileStore` and `ephemeris: Ephemeris`,
+  defined at the composition root (`src/cli.ts`) and resolved by
+  `buildCliOptions`. `requireCliContext` (also `src/cli.ts`) validates
+  presence and fails loud (`CONTEXT_ERROR`) when context is missing —
+  collapsed out of `src/cli/context.ts` 2026-08-19: the guard and the shape
+  shared one tiny module with the root, so the seam became two exports of the
+  wiring itself.
 - **Profile store** — the persistence port `ProfileStore` (`src/domain/store.ts`:
   `list` / `get` / `add` / `remove` — no file policy, no lifecycle) and the
   two SQLite adapters that serve it (`src/storage/profile-store.ts`, sharing

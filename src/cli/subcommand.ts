@@ -1,7 +1,7 @@
 import type { AxiCliCommand } from "axi-sdk-js";
 import { AxiError } from "axi-sdk-js";
+import { requireCliContext } from "../cli";
 import { type ArgsSpec, type ParsedArgs, parseArgs, wantsHelp } from "./args";
-import { requireCliContext } from "./context";
 
 /** What the runner may return: the same shapes an AXI command may render (string or structured output). */
 export type Renderable = string | Record<string, unknown>;
@@ -43,7 +43,8 @@ export interface SubcommandGroupSpec<TContext> {
 	subcommands: Readonly<Record<string, Subcommand<TContext>>>;
 }
 
-export interface SubcommandGroupCommand<TContext> extends AxiCliCommand<TContext> {
+export interface SubcommandGroupCommand<TContext>
+	extends AxiCliCommand<TContext> {
 	describeArms(): CommandArmDescription[];
 }
 
@@ -87,9 +88,16 @@ export function createSubcommandGroup<TContext>(
 			return group.usage;
 		}
 
-		const arm = group.subcommands[subName];
-		if (arm !== undefined) {
-			return runSubcommand(context, rest, `${group.name} ${subName}`, arm);
+		// Own-property guard: a proto-arm name such as "constructor",
+		// "__proto__" or "toString" must not resolve through the prototype
+		// chain. The arm table is an own-property registry — rejecting the
+		// registry entry is the routing rule, and the args contract owns the
+		// lookup semantics.
+		if (Object.hasOwn(group.subcommands, subName)) {
+			const arm = group.subcommands[subName];
+			if (arm !== undefined) {
+				return runSubcommand(context, rest, `${group.name} ${subName}`, arm);
+			}
 		}
 
 		// Unknown subcommand — unless help was requested. The help-wins rule
@@ -120,4 +128,3 @@ export function createSubcommandGroup<TContext>(
 
 	return groupCommand;
 }
-

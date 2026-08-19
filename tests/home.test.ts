@@ -3,12 +3,11 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { runAxiCli } from "axi-sdk-js";
 import { buildCliOptions } from "../src/cli";
 import {
+	formatCommandsHelp,
 	homeView,
 	PROFILE_ADD_EXAMPLE,
 	PROFILE_ADD_HINT,
-	PROFILE_ARMS,
 	PROFILE_LIST_HINT,
-	formatCommandsHelp,
 } from "../src/cli/surface";
 import type { NewProfile } from "../src/domain/model";
 import { InMemoryProfileStore } from "../src/storage/profile-store";
@@ -90,7 +89,7 @@ describe("buildCliOptions — the injectable composition root", () => {
 			await options.home([], undefined);
 			expect.unreachable();
 		} catch (error) {
-			expect(error).toMatchObject({ code: "PROFILE_ERROR" });
+			expect(error).toMatchObject({ code: "CONTEXT_ERROR" });
 		}
 	});
 

@@ -1,6 +1,7 @@
 import { AxiError } from "axi-sdk-js";
+import type { CliContext } from "../cli";
 import type { ArgsSpec } from "../cli/args";
-import { parseBirthInput } from "../domain/birth-input";
+import { createSubcommandGroup } from "../cli/subcommand";
 import {
 	ADD_FLAGS,
 	emptyStateHint,
@@ -10,8 +11,7 @@ import {
 	PROFILE_COMMAND,
 	PROFILE_LIST_HINT,
 } from "../cli/surface";
-import type { CliContext } from "../cli/context";
-import { createSubcommandGroup } from "../cli/subcommand";
+import { parseBirthInput } from "../domain/birth-input";
 import { toonProfile } from "../domain/toon";
 
 const profileUsage = [

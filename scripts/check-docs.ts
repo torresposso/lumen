@@ -4,17 +4,27 @@
  * "Doc-first" rule: no feature is implemented against stale docs. This check
  * fails when the lumen-v2 effort spec drifts from the real code:
  *   1. SPEC §3 (surface) ↔ command registration in src/cli.ts
- *   2. SPEC §8 (suggested src/ tree) ↔ actual files under src/
+ *   2. SPEC §3 (surface) ↔ CLI vocabulary in src/cli/surface.ts (PROFILE_COMMAND
+ *      and the ADD_FLAGS literals must be the ones the spec §3 block cites)
+ *   3. SPEC §8 (suggested src/ tree) ↔ actual files under src/
  *
  * During implementation it may be RED on purpose (the spec describes the
  * target before the code lands) and turns green when the feature is done.
- * Exit != 0 with the list of divergences.
+ * Exit != 0 with the list of divergences. A missing effort spec directory is
+ * only a warning — the parity gate needs a spec to check against.
  */
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const ROOT = join(import.meta.dir, "..");
 const SPEC = join(ROOT, ".scratch", "chart-natal", "spec.md");
+
+if (!existsSync(SPEC)) {
+	console.warn(
+		"check:docs — warning: no spec at .scratch/chart-natal/spec.md; skipping parity checks",
+	);
+	process.exit(0);
+}
 
 const problems: string[] = [];
 function fail(msg: string) {
@@ -33,7 +43,7 @@ function specSection(heading: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// 1. Surface: SPEC §3 ↔ cli.ts
+// 1. Surface: SPEC §3 ↔ cli.ts command registration
 // ---------------------------------------------------------------------------
 
 function specCommands(): string[] {
@@ -73,13 +83,71 @@ function checkSurface() {
 }
 
 // ---------------------------------------------------------------------------
-// 2. src/ tree (SPEC §8) ↔ real files
+// 2. Surface vocabulary: SPEC §3 ↔ src/cli/surface.ts
+// ---------------------------------------------------------------------------
+
+/** Root command tokens named in the spec §3 block, e.g. "lumen profile". */
+function specCommandTokens(): string[] {
+	const block = firstFence(specSection("## 3."));
+	if (!block) return [];
+	return [
+		...new Set(
+			[...block.matchAll(/^lumen\s+(\S+)/gm)].map((m) => `lumen ${m[1] ?? ""}`),
+		),
+	];
+}
+
+/** Flag literals named in the spec §3 block, e.g. "--when". */
+function specFlags(): string[] {
+	const block = firstFence(specSection("## 3."));
+	if (!block) return [];
+	return [...new Set([...block.matchAll(/--[\w-]+/g)].map((m) => m[0] ?? ""))];
+}
+
+function surfaceVocabulary() {
+	const src = readFileSync(join(ROOT, "src", "cli", "surface.ts"), "utf8");
+
+	const command = src.match(/PROFILE_COMMAND\s*=\s*"([^"]+)"/)?.[1];
+	if (command === undefined) {
+		fail("src/cli/surface.ts does not declare PROFILE_COMMAND");
+	} else if (!specCommandTokens().includes(command)) {
+		fail(
+			`spec.md §3 does not list command token '${command}' (declared PROFILE_COMMAND). Update spec.md §3.`,
+		);
+	}
+
+	const flagsBlock = src.match(/ADD_FLAGS\s*=\s*{([\s\S]*?)}/)?.[1];
+	if (flagsBlock === undefined) {
+		fail("src/cli/surface.ts does not declare ADD_FLAGS");
+		return;
+	}
+	const flags = [...flagsBlock.matchAll(/["'](--[\w-]+)["']/g)]
+		.map((m) => m[1] ?? "")
+		.filter((s) => s.length > 0);
+	const specFlagSet = new Set(specFlags());
+	for (const f of flags)
+		if (!specFlagSet.has(f))
+			fail(
+				`spec.md §3 does not list flag '${f}' (declared in ADD_FLAGS). Update spec.md §3.`,
+			);
+	for (const f of specFlagSet)
+		if (!flags.includes(f))
+			fail(
+				`surface.ts ADD_FLAGS does not declare '${f}' (listed in spec.md §3). Update src/cli/surface.ts.`,
+			);
+}
+
+// ---------------------------------------------------------------------------
+// 3. src/ tree (SPEC §8) ↔ real files
 // ---------------------------------------------------------------------------
 
 function specSrcFiles(): string[] {
 	const block = firstFence(specSection("## 8."));
 	if (!block) return [];
-	const files = [...block.matchAll(/(?:^|\s)(src\/[\w./-]+\.ts)\b/gm)]
+	// Full-line anchor: a src path is one whole entry in the §8 fence, so a
+	// greedy inline regex cannot conflate two paths sharing a prefix or let a
+	// nested path bleed across lines.
+	const files = [...block.matchAll(/^\s*(src\/[\w./-]+\.ts)\s*$/gm)]
 		.map((m) => (m[1] ?? "").replace(/^src\//, ""))
 		.filter((s) => s.length > 0);
 	return [...new Set(files)].sort();
@@ -119,6 +187,7 @@ function checkTree() {
 // ---------------------------------------------------------------------------
 
 checkSurface();
+surfaceVocabulary();
 checkTree();
 
 if (problems.length > 0) {

@@ -90,7 +90,6 @@ src/commands/profile.ts
 src/commands/chart.ts
 src/cli/args.ts
 src/cli/surface.ts
-src/cli/context.ts
 src/cli/home.ts
 src/cli/subcommand.ts
 src/domain/model.ts
