@@ -38,6 +38,48 @@ function toProfile(row: ProfileRow): Profile {
 	};
 }
 
+function escapeLike(pattern: string): string {
+	return pattern.replace(/[\\%_]/g, (c) => `\\${c}`);
+}
+
+function assertValidProfile(profile: NewProfile): void {
+	const issues: string[] = [];
+	if (typeof profile.birthPlace !== "string" || profile.birthPlace.trim() === "") {
+		issues.push("birthPlace must not be empty");
+	}
+	if (
+		typeof profile.birthDateTime !== "string" ||
+		profile.birthDateTime.trim() === ""
+	) {
+		issues.push("birthDateTime must not be empty");
+	}
+	if (!Number.isFinite(profile.birthLat) || profile.birthLat < -90 || profile.birthLat > 90) {
+		issues.push("birthLat must be a finite number between -90 and 90");
+	}
+	if (!Number.isFinite(profile.birthLon) || profile.birthLon < -180 || profile.birthLon > 180) {
+		issues.push("birthLon must be a finite number between -180 and 180");
+	}
+	if (!Number.isFinite(profile.birthJdUt)) {
+		issues.push("birthJdUt must be a finite number");
+	}
+	if (issues.length > 0) {
+		throw new AxiError("Invalid profile", "VALIDATION_ERROR", issues);
+	}
+}
+
+function wrapStoreError<T>(fn: () => T): T {
+	try {
+		return fn();
+	} catch (err) {
+		if (err instanceof AxiError) throw err;
+		throw new AxiError(
+			`Store failure: ${err instanceof Error ? err.message : String(err)}`,
+			"PROFILE_ERROR",
+			["The database may be corrupt", "Back up the file and remove it to start clean"],
+		);
+	}
+}
+
 /**
  * The SQL core both adapters share: the four store operations, the dedupe, the
  * UUID generation and the clock, over an already-opened bun:sqlite `Database`.
@@ -52,21 +94,21 @@ class ProfileDb implements ProfileStore {
 	) {}
 
 	list(): Profile[] {
-		const rows = this.db
-			.prepare("SELECT * FROM profiles ORDER BY id")
-			.all() as ProfileRow[];
-		return rows.map(toProfile);
+		return wrapStoreError(() => {
+			const rows = this.db.prepare("SELECT * FROM profiles ORDER BY id").all() as ProfileRow[];
+			return rows.map(toProfile);
+		});
 	}
 
 	private resolveId(id: string): string | undefined {
-		const exact = this.db
-			.prepare("SELECT id FROM profiles WHERE id = ?")
-			.get(id) as { id: string } | null;
+		const exact = this.db.prepare("SELECT id FROM profiles WHERE id = ?").get(id) as
+			| { id: string }
+			| null;
 		if (exact) return exact.id;
 
 		const prefixMatches = this.db
-			.prepare("SELECT id FROM profiles WHERE id LIKE ?")
-			.all(`${id}%`) as { id: string }[];
+			.prepare("SELECT id FROM profiles WHERE id LIKE ? ESCAPE '\\'")
+			.all(`${escapeLike(id)}%`) as { id: string }[];
 		if (prefixMatches.length === 1 && prefixMatches[0]) {
 			return prefixMatches[0].id;
 		}
@@ -74,12 +116,14 @@ class ProfileDb implements ProfileStore {
 	}
 
 	get(id: string): Profile | undefined {
-		const resolvedId = this.resolveId(id);
-		if (!resolvedId) return undefined;
-		const row = this.db
-			.prepare("SELECT * FROM profiles WHERE id = ?")
-			.get(resolvedId) as ProfileRow | null;
-		return row ? toProfile(row) : undefined;
+		return wrapStoreError(() => {
+			const resolvedId = this.resolveId(id);
+			if (!resolvedId) return undefined;
+			const row = this.db.prepare("SELECT * FROM profiles WHERE id = ?").get(resolvedId) as
+				| ProfileRow
+				| null;
+			return row ? toProfile(row) : undefined;
+		});
 	}
 
 	/**
@@ -90,52 +134,55 @@ class ProfileDb implements ProfileStore {
 	 * clock.
 	 */
 	add(profile: NewProfile): AddResult {
-		const nowIso = this.now().toISOString();
-		const id = randomUUID();
-		const result = this.db
-			.prepare(
-				`INSERT INTO profiles (
+		return wrapStoreError(() => {
+			assertValidProfile(profile);
+			const nowIso = this.now().toISOString();
+			const id = randomUUID();
+			const result = this.db
+				.prepare(
+					`INSERT INTO profiles (
 					id, name, birth_place, birth_date_time, birth_lat, birth_lon, birth_jd_ut,
 					created_at, updated_at
 				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 				ON CONFLICT(birth_jd_ut, birth_lat, birth_lon) DO NOTHING`,
-			)
-			.run(
-				id,
-				profile.name,
-				profile.birthPlace,
-				profile.birthDateTime,
-				profile.birthLat,
-				profile.birthLon,
-				profile.birthJdUt,
-				nowIso,
-				nowIso,
-			);
+				)
+				.run(
+					id,
+					profile.name,
+					profile.birthPlace,
+					profile.birthDateTime,
+					profile.birthLat,
+					profile.birthLon,
+					profile.birthJdUt,
+					nowIso,
+					nowIso,
+				);
 
-		if (result.changes > 0) {
-			return { profile: this.get(id) as Profile, created: true };
-		}
+			if (result.changes > 0) {
+				return { profile: this.get(id) as Profile, created: true };
+			}
 
-		// Duplicate birth — return the existing profile, unchanged.
-		const row = this.db
-			.prepare(
-				"SELECT * FROM profiles WHERE birth_jd_ut = ? AND birth_lat = ? AND birth_lon = ?",
-			)
-			.get(
-				profile.birthJdUt,
-				profile.birthLat,
-				profile.birthLon,
-			) as ProfileRow | null;
-		return { profile: toProfile(row as ProfileRow), created: false };
+			// Duplicate birth — return the existing profile, unchanged.
+			const row = this.db
+				.prepare(
+					"SELECT * FROM profiles WHERE birth_jd_ut = ? AND birth_lat = ? AND birth_lon = ?",
+				)
+				.get(profile.birthJdUt, profile.birthLat, profile.birthLon) as ProfileRow | null;
+			if (!row) {
+				throw new AxiError("Duplicate birth not found after conflict", "PROFILE_ERROR", [
+					"The database may be corrupt",
+				]);
+			}
+			return { profile: toProfile(row), created: false };
+		});
 	}
 
 	remove(id: string): boolean {
-		const resolvedId = this.resolveId(id);
-		if (!resolvedId) return false;
-		return (
-			this.db.prepare("DELETE FROM profiles WHERE id = ?").run(resolvedId)
-				.changes > 0
-		);
+		return wrapStoreError(() => {
+			const resolvedId = this.resolveId(id);
+			if (!resolvedId) return false;
+			return this.db.prepare("DELETE FROM profiles WHERE id = ?").run(resolvedId).changes > 0;
+		});
 	}
 }
 
@@ -160,23 +207,38 @@ export class SqliteProfileStore implements ProfileStore {
 	/** Opens (creating if needed) the database. Only writes call this. */
 	private open(): ProfileDb {
 		if (this.core !== null) return this.core;
+		// A close() followed by a read re-opens the store; keep it closeable
+		// again so the re-opened handle is not leaked on a later close().
+		if (this.closed) this.closed = false;
+		let database: Database | null = null;
 		try {
 			mkdirSync(dirname(this.dbPath), { recursive: true, mode: 0o700 });
+			try {
+				chmodSync(dirname(this.dbPath), 0o700);
+			} catch {}
 			if (!existsSync(this.dbPath)) {
 				openSync(this.dbPath, "a");
 				chmodSync(this.dbPath, 0o600);
+			} else {
+				try {
+					chmodSync(this.dbPath, 0o600);
+				} catch {}
 			}
-			const database = new Database(this.dbPath);
+			database = new Database(this.dbPath);
 			// Policy: rollback journal (no WAL) regardless of any pre-existing
 			// connection setting on the file.
 			database.exec("PRAGMA journal_mode = DELETE;");
 			ensureSchema(database);
+			try {
+				chmodSync(this.dbPath, 0o600);
+			} catch {}
 			this.database = database;
 			this.core = new ProfileDb(database, this.now);
-			// A close() followed by a read re-opens the store; keep it closeable
-			// again so the re-opened handle is not leaked on a later close().
-			this.closed = false;
+			return this.core;
 		} catch (err) {
+			try {
+				database?.close();
+			} catch {}
 			if (err instanceof AxiError) throw err;
 			throw new AxiError(
 				`Could not open profile store: ${err instanceof Error ? err.message : String(err)}`,
@@ -187,7 +249,6 @@ export class SqliteProfileStore implements ProfileStore {
 				],
 			);
 		}
-		return this.core;
 	}
 
 	private fileExists(): boolean {
@@ -239,19 +300,31 @@ export class InMemoryProfileStore implements ProfileStore {
 		this.core = new ProfileDb(database, now);
 	}
 
+	private assertOpen(): void {
+		if (this.closed) {
+			throw new AxiError("Profile store is closed", "PROFILE_ERROR", [
+				"The store was closed and cannot be reused",
+			]);
+		}
+	}
+
 	list(): Profile[] {
+		this.assertOpen();
 		return this.core.list();
 	}
 
 	get(id: string): Profile | undefined {
+		this.assertOpen();
 		return this.core.get(id);
 	}
 
 	add(profile: NewProfile): AddResult {
+		this.assertOpen();
 		return this.core.add(profile);
 	}
 
 	remove(id: string): boolean {
+		this.assertOpen();
 		return this.core.remove(id);
 	}
 

@@ -1,6 +1,7 @@
 import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, rmSync, statSync } from "node:fs";
+import { AxiError } from "axi-sdk-js";
+import { chmodSync, existsSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { NewProfile } from "../../src/domain/model";
@@ -236,5 +237,108 @@ describe("InMemoryProfileStore — the in-memory adapter", () => {
 		expect(second.profile.id).toBeDefined();
 		expect(second.profile.name).toBe("erik");
 		expect(store.list()).toHaveLength(1);
+	});
+});
+
+describe("SqliteProfileStore — hardening (F1/F2/F8/F9)", () => {
+	let dir: string;
+	let dbPath: string;
+	let store: SqliteProfileStore;
+
+	beforeEach(() => {
+		dir = join(
+			tmpdir(),
+			`lumen-hardening-${Math.random().toString(36).slice(2)}`,
+		);
+		dbPath = join(dir, "lumen.db");
+		store = new SqliteProfileStore(dbPath);
+	});
+
+	afterEach(() => {
+		store.close();
+		rmSync(dir, { recursive: true, force: true });
+	});
+
+	test("F1: repairs 0644 permissions on an existing file at open", () => {
+		store.add(newProfile());
+		store.close();
+		chmodSync(dbPath, 0o644);
+
+		store.list();
+		expect(statSync(dbPath).mode & 0o777).toBe(0o600);
+	});
+
+	test("F8: add rejects out-of-range coordinates as VALIDATION_ERROR", () => {
+		expect(() => store.add(newProfile({ birthLat: 91 }))).toThrowError(
+			expect.objectContaining({
+				code: "VALIDATION_ERROR",
+				message: "Invalid profile",
+			}),
+		);
+		expect(() => store.add(newProfile({ birthLon: -181 }))).toThrowError(
+			expect.objectContaining({ code: "VALIDATION_ERROR" }),
+		);
+		expect(() => store.add(newProfile({ birthJdUt: Number.NaN }))).toThrowError(
+			expect.objectContaining({ code: "VALIDATION_ERROR" }),
+		);
+		expect(store.list()).toHaveLength(0);
+	});
+
+	test("F8: validation suggestions cite the violated rule for an agent", () => {
+		let thrown: unknown;
+		try {
+			store.add(newProfile({ birthLat: 91, birthPlace: "  " }));
+		} catch (error) {
+			thrown = error;
+		}
+		expect(thrown).toBeInstanceOf(AxiError);
+		const err = thrown as AxiError;
+		expect(err.code).toBe("VALIDATION_ERROR");
+		expect(err.suggestions).toEqual(
+			expect.arrayContaining([
+				expect.stringContaining("birthLat"),
+				expect.stringContaining("birthPlace"),
+			]),
+		);
+	});
+
+	test("F9: LIKE wildcards in an id are literal, not patterns", () => {
+		const { profile } = store.add(newProfile());
+		// Unescaped, '%' would match the whole id as a prefix wildcard; escaped,
+		// it is a literal character that matches nothing.
+		expect(store.get(`${profile.id.slice(0, 8)}%`)).toBeUndefined();
+		expect(store.get(`${profile.id.slice(0, 8)}_`)).toBeUndefined();
+		expect(store.remove(`${profile.id.slice(0, 8)}%`)).toBe(false);
+	});
+
+	test("F2: a raw SQL failure surfaces as PROFILE_ERROR, not a leaked error", () => {
+		store.add(newProfile());
+		store.close();
+
+		// Corrupt the file behind the store's back: drop the table so the next
+		// read hits a raw SQL error that must be wrapped.
+		const raw = new Database(dbPath);
+		raw.exec("DROP TABLE profiles");
+		raw.close();
+
+		// Re-open: schema invariant check fails first, also as PROFILE_ERROR.
+		const reopened = new SqliteProfileStore(dbPath);
+		let thrown: unknown;
+		try {
+			reopened.list();
+		} catch (error) {
+			thrown = error;
+		}
+		expect(thrown).toBeInstanceOf(AxiError);
+		expect((thrown as AxiError).code).toBe("PROFILE_ERROR");
+		reopened.close();
+	});
+
+	test("F5: operations after close reopen cleanly; a second close is a no-op", () => {
+		store.add(newProfile());
+		store.close();
+		store.close(); // no-op, not a throw
+		expect(store.list()).toHaveLength(1);
+		store.close();
 	});
 });

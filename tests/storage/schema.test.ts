@@ -202,4 +202,61 @@ describe("ensureSchema — DDL & version migrations", () => {
 		expect((thrown as AxiError).code).toBe("PROFILE_ERROR");
 		expect((thrown as Error).message).toMatch(/schema version is 0/);
 	});
+
+	test("rejects a v4 db missing a required column as PROFILE_ERROR", () => {
+		const db = new Database(":memory:");
+		// A v4 db whose `name` column is missing (corrupt or half-migrated).
+		db.exec(`
+			CREATE TABLE profiles (
+				id              TEXT PRIMARY KEY,
+				birth_place     TEXT NOT NULL,
+				birth_date_time TEXT NOT NULL,
+				birth_lat       REAL NOT NULL,
+				birth_lon       REAL NOT NULL,
+				birth_jd_ut     REAL NOT NULL,
+				created_at      TEXT NOT NULL,
+				updated_at      TEXT NOT NULL
+			);
+			CREATE UNIQUE INDEX idx_profiles_birth
+				ON profiles (birth_jd_ut, birth_lat, birth_lon);
+			PRAGMA user_version = 4;
+		`);
+		let thrown: unknown;
+		try {
+			ensureSchema(db);
+		} catch (error) {
+			thrown = error;
+		}
+		expect(thrown).toBeInstanceOf(AxiError);
+		expect((thrown as AxiError).code).toBe("PROFILE_ERROR");
+		expect((thrown as Error).message).toMatch(/missing column 'name'/);
+	});
+
+	test("rejects a v4 db missing the birth identity index as PROFILE_ERROR", () => {
+		const db = new Database(":memory:");
+		// A v4 db with the right columns but no dedupe index.
+		db.exec(`
+			CREATE TABLE profiles (
+				id              TEXT PRIMARY KEY,
+				name            TEXT,
+				birth_place     TEXT NOT NULL,
+				birth_date_time TEXT NOT NULL,
+				birth_lat       REAL NOT NULL,
+				birth_lon       REAL NOT NULL,
+				birth_jd_ut     REAL NOT NULL,
+				created_at      TEXT NOT NULL,
+				updated_at      TEXT NOT NULL
+			);
+			PRAGMA user_version = 4;
+		`);
+		let thrown: unknown;
+		try {
+			ensureSchema(db);
+		} catch (error) {
+			thrown = error;
+		}
+		expect(thrown).toBeInstanceOf(AxiError);
+		expect((thrown as AxiError).code).toBe("PROFILE_ERROR");
+		expect((thrown as Error).message).toMatch(/missing required index 'idx_profiles_birth'/);
+	});
 });

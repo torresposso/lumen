@@ -69,14 +69,22 @@ Already enforced, not reviewable:
    real behaviour beats broad one.
 9. **Storage rules** (`src/storage/profile-store.ts`): the command, the home
    view and the CLI context see only the persistence port `ProfileStore`
-   (`src/core/store.ts` — `list`/`get`/`add`/`remove`); the file adapter
+   (`src/domain/store.ts` — `list`/`get`/`add`/`remove`); the file adapter
    `SqliteProfileStore` owns the policies: the DB is created **lazily** (only
-   `add`); permissions `0600`; rollback journal (no WAL); migrations via
-   `PRAGMA user_version`. Reads against a missing DB return empty / not-found
-   without creating files. `InMemoryProfileStore` is the second adapter behind
-   the port — a thin wrapper over an injected in-memory `bun:sqlite` `Database`
-   for tests, no filesystem side effects. Both adapters share one internal SQL
-   core; neither file policy nor lifecycle leaks into the port.
+   `add`); permissions `0600` (repaired on every open); rollback journal (no
+   WAL); migrations via `PRAGMA user_version` in one `BEGIN IMMEDIATE` …
+   `COMMIT` transaction with a `ROLLBACK` on failure, then a post-migration
+   invariant check that the required columns and the `idx_profiles_birth`
+   index exist. `add` is the range-guard seam: it rejects out-of-range or
+   non-finite `birth*` values as `VALIDATION_ERROR` before any SQL runs.
+   Non-`AxiError` SQL failures are wrapped in a `PROFILE_ERROR` (the port
+   never leaks a raw driver error); UUID-prefix resolution escapes `%` / `_`
+   so a user-supplied id cannot act as a LIKE wildcard. Reads against a
+   missing DB return empty / not-found without creating files.
+   `InMemoryProfileStore` is the second adapter behind the port — a thin
+   wrapper over an injected in-memory `bun:sqlite` `Database` for tests, no
+   filesystem side effects. Both adapters share one internal SQL core; neither
+   file policy nor lifecycle leaks into the port.
 
 ## Data & identity
 
