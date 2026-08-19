@@ -124,17 +124,17 @@ pushed.
   facts assembled as a pure function (`computeNatalChart`, `src/engine/natal/index.ts`)
   over a stored `Profile` and `Ephemeris` port, backed by the modular technique package
   (`src/engine/natal/` with `pluto-polarity.ts`, `nodal.ts`, `eclipses.ts`, `patterns.ts`, and shared primitives
-  in `src/engine/shared/` for geometry, aspects, and rulerships, delegating base geometry and
-  ephemerides to Caelus primitives) published as a single TOON `chart` block
-  (ADR-0008, ADR-0009, ADR-0010, ADR-0011, ADR-0012, ADR-0013, ADR-0015, ADR-0016).
+  in `src/engine/shared/` for geometry, aspects, and rulerships, delegating base geometry, aspects, and
+  ephemerides to the Ephemeris port) published as a single TOON `chart` block
+  (ADR-0008, ADR-0009, ADR-0010, ADR-0011, ADR-0012, ADR-0013, ADR-0015, ADR-0016, ADR-0017).
 - **Out-of-Bounds** — the astronomical state where a body's declination exceeds the
   maximum true obliquity of the ecliptic for the epoch (~23°26'), carrying core evolutionary
   meaning in JWGEA; calculated via Caelus `outOfBounds` and projected as `outOfBounds: boolean`
   on each body (ADR-0016).
 - **Ephemeris seam** — the capability port `Ephemeris` (`src/adapters/ephemeris.ts`)
-  wrapping ephemerides (Caelus `Engine.chartAt`, `declinationAspects`, `outOfBounds`, `returns`,
+  wrapping ephemerides (Caelus `Engine.chartAt`, `findAspects`, `declinationAspects`, `outOfBounds`, `returns`,
   `progressedLongitude`, `pheno`, eclipse finders in prod, `InMemoryEphemeris` in tests) with fixed
-  Porphyry houses, True North Node, injected through the CLI Context (ADR-0011, ADR-0012, ADR-0013, ADR-0016).
+  Porphyry houses, True North Node, injected through the CLI Context (ADR-0011, ADR-0012, ADR-0013, ADR-0016, ADR-0017).
 
 
 

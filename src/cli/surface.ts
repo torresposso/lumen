@@ -14,9 +14,10 @@
 import type { ProfileStore } from "../domain/store";
 
 /**
- * The top-level command token — "lumen profile".
+ * The top-level command tokens.
  */
 export const PROFILE_COMMAND = "lumen profile";
+export const CHART_COMMAND = "lumen chart";
 
 /** The four arm command-lines as an agent sees them in help and usage text. */
 export const PROFILE_ARMS = {
@@ -24,6 +25,10 @@ export const PROFILE_ARMS = {
 	list: `${PROFILE_COMMAND} list`,
 	get: `${PROFILE_COMMAND} get`,
 	delete: `${PROFILE_COMMAND} delete`,
+} as const;
+
+export const CHART_ARMS = {
+	natal: `${CHART_COMMAND} natal <uuid>`,
 } as const;
 
 export const ADD_FLAGS = {
@@ -47,6 +52,10 @@ export const PROFILE_ARM_HELP = {
 	list: "List saved profiles",
 	get: "Show one profile by UUID",
 	delete: "Remove one profile by UUID",
+} as const;
+
+export const CHART_ARM_HELP = {
+	natal: "Calculate natal chart (Porphyry / True Node / JWGEA)",
 } as const;
 
 /**

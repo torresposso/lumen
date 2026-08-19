@@ -2,17 +2,22 @@ import { AxiError } from "axi-sdk-js";
 import type { CliContext } from "../cli";
 import type { ArgsSpec } from "../cli/args";
 import { createSubcommandGroup } from "../cli/subcommand";
-import { PROFILE_LIST_HINT } from "../cli/surface";
+import {
+	CHART_ARM_HELP,
+	CHART_ARMS,
+	CHART_COMMAND,
+	PROFILE_LIST_HINT,
+} from "../cli/surface";
 import { computeNatalChart } from "../engine/natal/index";
 
 const chartUsage = [
-	"lumen chart natal <uuid>",
+	CHART_ARMS.natal,
 	"",
 	"Calculate astrological charts.",
 ].join("\n");
 
 const chartNatalUsage = [
-	"lumen chart natal <uuid>",
+	CHART_ARMS.natal,
 	"",
 	"Calculates the natal chart with Porphyry houses, True Node, and JWGEA evolutionary mechanics.",
 ].join("\n");
@@ -25,13 +30,13 @@ const NATAL_SPEC: ArgsSpec = {
 };
 
 export const chartCommand = createSubcommandGroup<CliContext>({
-	name: "lumen chart",
+	name: CHART_COMMAND,
 	usage: chartUsage,
 	subcommands: {
 		natal: {
 			spec: NATAL_SPEC,
-			summary: "Calculate natal chart (Porphyry / True Node / JWGEA)",
-			line: "lumen chart natal <uuid>",
+			summary: CHART_ARM_HELP.natal,
+			line: CHART_ARMS.natal,
 			usage: chartNatalUsage,
 			run: (parsed, context) => {
 				const { profiles, ephemeris } = context;

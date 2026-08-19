@@ -1,14 +1,20 @@
 import type {
+	Aspect,
+	AspectKind,
+	AspectPhase,
 	BodyId,
 	Chart,
 	DeclinationPair,
 	LunarEclipse,
 	Pheno,
+	Position,
 	SolarEclipse,
 } from "caelus";
 import {
+	aspectPhase,
 	declinationAspects,
 	Engine,
+	findAspects,
 	lunarEclipses,
 	outOfBounds,
 	pheno,
@@ -17,6 +23,20 @@ import {
 	solarEclipses,
 } from "caelus";
 import { embeddedData } from "caelus/data-embedded";
+
+export type {
+	Aspect,
+	AspectKind,
+	AspectPhase,
+	BodyId,
+	Chart,
+	DeclinationPair,
+	LunarEclipse,
+	Pheno,
+	Position,
+	SolarEclipse,
+};
+export { aspectPhase, findAspects };
 
 export type ChartAtOptions = Parameters<Engine["chartAt"]>[3];
 
@@ -32,6 +52,10 @@ export interface Ephemeris {
 	): Chart;
 	solarEclipses(jdStart: number, jdEnd: number): SolarEclipse[];
 	lunarEclipses(jdStart: number, jdEnd: number): LunarEclipse[];
+	aspects(
+		bodies: Record<string, Position>,
+		orbs?: Record<string, number>,
+	): Aspect[];
 	declinationAspects(
 		bodies: BodyId[],
 		jdUt: number,
@@ -73,6 +97,13 @@ export class CaelusEphemeris implements Ephemeris {
 
 	lunarEclipses(jdStart: number, jdEnd: number): LunarEclipse[] {
 		return lunarEclipses(this.engine, jdStart, jdEnd);
+	}
+
+	aspects(
+		bodies: Record<string, Position>,
+		orbs?: Record<string, number>,
+	): Aspect[] {
+		return findAspects(bodies, orbs);
 	}
 
 	declinationAspects(
@@ -120,6 +151,12 @@ export interface InMemoryEphemerisOptions {
 	lunarEclipses?:
 		| LunarEclipse[]
 		| ((jdStart: number, jdEnd: number) => LunarEclipse[]);
+	aspects?:
+		| Aspect[]
+		| ((
+				bodies: Record<string, Position>,
+				orbs?: Record<string, number>,
+		  ) => Aspect[]);
 	declinationAspects?:
 		| DeclinationPair[]
 		| ((bodies: BodyId[], jdUt: number, orb?: number) => DeclinationPair[]);
@@ -236,6 +273,19 @@ export class InMemoryEphemeris implements Ephemeris {
 			return this.options.lunarEclipses(jdStart, jdEnd);
 		}
 		return this.options.lunarEclipses ?? [];
+	}
+
+	aspects(
+		bodies: Record<string, Position>,
+		orbs?: Record<string, number>,
+	): Aspect[] {
+		if (typeof this.options.aspects === "function") {
+			return this.options.aspects(bodies, orbs);
+		}
+		if (this.options.aspects !== undefined) {
+			return this.options.aspects;
+		}
+		return findAspects(bodies, orbs);
 	}
 
 	declinationAspects(

@@ -67,6 +67,17 @@ describe("CaelusEphemeris adapter", () => {
 		const moonPheno = ephemeris.pheno("moon", jdUt);
 		expect(moonPheno.phase).toBeGreaterThan(0.9);
 	});
+
+	test("computes longitudinal aspects between bodies", () => {
+		const jdUt = 2448053.270833;
+		const chart = ephemeris.chartAt(jdUt, 27.9506, -82.4572);
+		const aspects = ephemeris.aspects(
+			chart.bodies as Record<string, { lon: number; lat: number }>,
+		);
+		expect(Array.isArray(aspects)).toBe(true);
+		expect(aspects.length).toBeGreaterThan(0);
+		expect(aspects[0]?.aspect).toBeDefined();
+	});
 });
 
 describe("InMemoryEphemeris adapter", () => {
@@ -82,14 +93,31 @@ describe("InMemoryEphemeris adapter", () => {
 		expect(mem.returns("saturn", 0, 10, 20)).toEqual([]);
 		expect(mem.progressedLongitude("sun", 0, 100)).toBe(0);
 		expect(mem.pheno("moon", 0).phase).toBe(1);
+
+		const stubAspects = mem.aspects({
+			sun: { lon: 0, lat: 0 } as never,
+			moon: { lon: 180, lat: 0 } as never,
+		});
+		expect(Array.isArray(stubAspects)).toBe(true);
 	});
 
 	test("accepts custom chart, eclipse, and timing fixtures", () => {
 		const customSolar = [{ tMax: 100, type: "total" }];
 		const customDecl = [{ a: "sun", b: "moon", kind: "parallel" as const }];
+		const customAspects = [
+			{
+				a: "sun" as const,
+				b: "moon" as const,
+				aspect: "trine" as const,
+				orb: 0.5,
+				phase: "applying" as const,
+				strength: 0.9,
+			},
+		];
 		const mem = new InMemoryEphemeris({
 			solarEclipses: customSolar as never,
 			declinationAspects: customDecl as never,
+			aspects: customAspects,
 			outOfBounds: true,
 			returns: [12345],
 			progressedLongitude: 180.5,
@@ -105,6 +133,7 @@ describe("InMemoryEphemeris adapter", () => {
 		expect(mem.declinationAspects(["sun", "moon"], 0)).toEqual(
 			customDecl as never,
 		);
+		expect(mem.aspects({})).toEqual(customAspects);
 		expect(mem.outOfBounds("sun", 0)).toBe(true);
 		expect(mem.returns("sun", 0, 10, 20)).toEqual([12345]);
 		expect(mem.progressedLongitude("sun", 0, 10)).toBe(180.5);

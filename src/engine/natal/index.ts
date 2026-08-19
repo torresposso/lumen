@@ -1,5 +1,4 @@
 import type { BodyId, Chart, Position } from "caelus";
-import { findAspects } from "caelus";
 import { CaelusEphemeris, type Ephemeris } from "../../adapters/ephemeris";
 import type { Profile } from "../../domain/model";
 import { toonProfile } from "../../domain/toon";
@@ -27,22 +26,9 @@ import type {
 	NatalChartOutput,
 } from "./types";
 
-export { evaluateAspectsAgainstPoint } from "../shared/aspects";
-export {
-	angularDistance,
-	computeMidpoints,
-	normalizeLongitude,
-	projectPoint,
-	roundPrecision,
-} from "../shared/geometry";
-export { buildDispositorChain, SIGN_RULERS } from "../shared/rulers";
-export * from "./eclipses";
-export * from "./nodal";
-export * from "./patterns";
-export * from "./pluto-polarity";
-export * from "./types";
+export type { NatalChartOutput } from "./types";
 
-export const DEFAULT_BODIES: BodyId[] = [
+const DEFAULT_BODIES: BodyId[] = [
 	"sun",
 	"moon",
 	"mercury",
@@ -156,7 +142,10 @@ function computeHouseRulers(cusps: CuspProjection[]): HouseRulerRow[] {
 	}));
 }
 
-function computeAspects(rawBodies: Chart["bodies"]): AspectProjection[] {
+function computeAspects(
+	rawBodies: Chart["bodies"],
+	ephemeris: Ephemeris = new CaelusEphemeris(),
+): AspectProjection[] {
 	const bodyMap: Record<string, Position> = {};
 	for (const [id, body] of Object.entries(rawBodies)) {
 		if (body && id !== "mean_node") {
@@ -172,7 +161,7 @@ function computeAspects(rawBodies: Chart["bodies"]): AspectProjection[] {
 		opposition: 8,
 	};
 
-	const aspects = findAspects(bodyMap, orbs);
+	const aspects = ephemeris.aspects(bodyMap, orbs);
 	return aspects.map((a) => ({
 		a: a.a,
 		b: a.b,
@@ -185,7 +174,7 @@ function computeAspects(rawBodies: Chart["bodies"]): AspectProjection[] {
 
 export function projectEclipticGeometry(
 	rawChart: Chart,
-	ephemeris?: Ephemeris,
+	ephemeris: Ephemeris = new CaelusEphemeris(),
 ): EclipticGeometryProjection {
 	const cusps = projectCusps(rawChart.cusps);
 	const bodies = projectBodies(
@@ -195,7 +184,7 @@ export function projectEclipticGeometry(
 		ephemeris,
 	);
 	const angles = projectAngles(rawChart.angles);
-	const aspects = computeAspects(rawChart.bodies);
+	const aspects = computeAspects(rawChart.bodies, ephemeris);
 
 	let declinationAspects: DeclinationAspectProjection[] = [];
 	if (ephemeris) {

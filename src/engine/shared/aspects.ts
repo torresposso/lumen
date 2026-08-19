@@ -1,4 +1,4 @@
-import { aspectPhase } from "caelus";
+import { aspectPhase } from "../../adapters/ephemeris";
 import { angularDistance, roundPrecision } from "./geometry";
 
 export type AspectStress = "stressful" | "nonstressful";

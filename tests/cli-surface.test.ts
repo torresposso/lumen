@@ -2,6 +2,8 @@ import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
 	ADD_FLAGS,
+	CHART_ARMS,
+	CHART_COMMAND,
 	emptyStateHint,
 	formatCommandsHelp,
 	homeView,
@@ -11,6 +13,8 @@ import {
 	PROFILE_COMMAND,
 	PROFILE_LIST_HINT,
 } from "../src/cli/surface";
+
+
 import type { NewProfile } from "../src/domain/model";
 import { InMemoryProfileStore } from "../src/storage/profile-store";
 
@@ -53,6 +57,8 @@ describe("command surface", () => {
 		expect(PROFILE_ARMS.list).toBe("lumen profile list");
 		expect(PROFILE_ARMS.get).toBe("lumen profile get");
 		expect(PROFILE_ARMS.delete).toBe("lumen profile delete");
+		expect(CHART_COMMAND).toBe("lumen chart");
+		expect(CHART_ARMS.natal).toBe("lumen chart natal <uuid>");
 	});
 
 	test("the canonical example matches the spec §3 example verbatim", () => {
