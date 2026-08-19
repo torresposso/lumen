@@ -4,8 +4,8 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] CODING_STANDARDS #4, #5, #7, #11 point at `src/domain/` (and any other stale path they cite), consistent with spec.md §8
-- [ ] CODING_STANDARDS #12 lists `CONTEXT_ERROR` alongside VALIDATION_ERROR / NOT_FOUND / PROFILE_ERROR
-- [ ] `bun run check` stays green (docs-only change)
+- [x] CODING_STANDARDS #4, #5, #7, #11 point at `src/domain/` (and any other stale path they cite), consistent with spec.md §8
+- [x] CODING_STANDARDS #12 lists `CONTEXT_ERROR` alongside VALIDATION_ERROR / NOT_FOUND / PROFILE_ERROR
+- [x] `bun run check` stays green (docs-only change)

@@ -34,13 +34,13 @@ Already enforced, not reviewable:
 ## Architecture & module shape
 
 4. **Layered layout per spec.md §8.** `bin/` → `src/cli.ts` (wiring) →
-   `src/commands/` (orchestration) → `src/core/` (domain) → `src/storage/`
+   `src/commands/` (orchestration) → `src/domain/` (domain) → `src/storage/`
    (persistence). `src/cli.ts` stays thin: it registers commands and provides
    dependencies through context; commands never construct the store. `main` is
    a thin runner over the declarative, injectable `buildCliOptions`
    (`argv`/`stdout`/store seams), so the whole agent-facing surface is
    testable.
-5. **Domain logic lives in `core/`, persistence in `storage/`.** A command file
+5. **Domain logic lives in `domain/`, persistence in `storage/`.** A command file
    coordinates; it does not compute Julian Days, format output, or talk to the
    DB directly.
 6. **One seam per concern.** A contract owns its parsing + validation in one
@@ -67,7 +67,7 @@ Already enforced, not reviewable:
    reference / interpolate the tokens instead of re-typing them, so a
    vocabulary rename is one edit and an added arm is one catalog row
    (ADR-0006; ADR-0007).
-7. **Pure kernels don't validate or do I/O.** `src/core/jd.ts` is arithmetic
+7. **Pure kernels don't validate or do I/O.** `src/domain/jd.ts` is arithmetic
    only — no range checks, no imports beyond plain math. Validation belongs to
    the calling contract; I/O belongs to the storage layer.
 8. **No speculative generality.** Abstract, parameterize or add hooks only when
@@ -101,7 +101,7 @@ Already enforced, not reviewable:
 11. **The published output is a policy, not data.** The DB keeps full float64
     precision. The TOON shape an agent parses — which fields, in what order, at
     what precision (`birthJdUt` 6 decimals, `birthLat`/`birthLon` 4) — lives in
-    the single display-policy module (`src/core/toon.ts`, `toonProfile`). No
+    the single display-policy module (`src/domain/toon.ts`, `toonProfile`). No
     other module rounds or shapes output. A moment value is one ISO string
     (`birthDateTime`), echoed verbatim — never split into civil + offset pieces
     (ADR-0004; ADR-0005).
@@ -109,7 +109,7 @@ Already enforced, not reviewable:
 ## Errors & output (AXI)
 
 12. **AXI error convention.** Throw `AxiError` with the AXI codes
-    (`VALIDATION_ERROR`, `NOT_FOUND`, `PROFILE_ERROR`). Input errors cite the
+    (`VALIDATION_ERROR`, `NOT_FOUND`, `PROFILE_ERROR`, `CONTEXT_ERROR`). Input errors cite the
     violated rule; a contract accumulates every checkable violation into the
     error's suggestions so an agent gets the whole verdict in one round-trip.
 13. **TOON-only output.** No `--json`. All formatting goes through the TOON
