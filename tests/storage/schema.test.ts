@@ -322,4 +322,48 @@ describe("ensureSchema — DDL & version migrations", () => {
 		expect(row.city).toBe("Bogotá");
 		expect(row.local_year).toBe(1990);
 	});
+
+	test("F3: if post-migration schema validation fails, transaction rolls back atomically", () => {
+		const db = new Database(":memory:");
+		// Mock a pre-v4 db where during migration, the resulting schema misses a required column
+		// (e.g. user_version = 3, but the table was created without 'name')
+		db.exec(`
+			CREATE TABLE profiles (
+				id              TEXT PRIMARY KEY,
+				birthplace      TEXT NOT NULL,
+				"when"          TEXT NOT NULL,
+				lat             REAL NOT NULL,
+				lon             REAL NOT NULL,
+				jd_ut           REAL NOT NULL,
+				created_at      TEXT NOT NULL,
+				updated_at      TEXT NOT NULL
+			);
+			CREATE UNIQUE INDEX idx_profiles_birth ON profiles (jd_ut, lat, lon);
+			PRAGMA user_version = 3;
+		`);
+
+		// Migration should fail at validateSchema and roll back
+		let thrown: unknown;
+		try {
+			ensureSchema(db);
+		} catch (error) {
+			thrown = error;
+		}
+		expect(thrown).toBeInstanceOf(AxiError);
+		expect((thrown as AxiError).code).toBe("PROFILE_ERROR");
+		expect((thrown as Error).message).toMatch(/missing column 'name'/);
+
+		// user_version must remain 3
+		const { user_version } = db.prepare("PRAGMA user_version").get() as {
+			user_version: number;
+		};
+		expect(user_version).toBe(3);
+
+		// Check that changes in migration rolled back: column 'lat' is still named 'lat', not 'birth_lat'
+		const cols = (
+			db.prepare("PRAGMA table_info(profiles)").all() as { name: string }[]
+		).map((c) => c.name);
+		expect(cols).toContain("lat");
+		expect(cols).not.toContain("birth_lat");
+	});
 });

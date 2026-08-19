@@ -184,6 +184,10 @@ function ensureSchemaInner(db: Database): void {
 			db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
 		}
 
+		// Post-migration invariant check inside the transaction (F3/F4) —
+		// ensures required columns and index exist before committing.
+		validateSchema(db);
+
 		db.exec("COMMIT");
 		inTx = false;
 	} catch (err) {
@@ -194,8 +198,4 @@ function ensureSchemaInner(db: Database): void {
 		}
 		throw err;
 	}
-
-	// Post-migration invariant check — ensures idx and columns are present even
-	// if a previous migration half-completed before this fix (F4).
-	validateSchema(db);
 }
