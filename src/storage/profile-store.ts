@@ -3,7 +3,14 @@ import { randomUUID } from "node:crypto";
 import { chmodSync, existsSync, mkdirSync, openSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { AxiError } from "axi-sdk-js";
-import type { NewProfile, Profile } from "../domain/model";
+import {
+	MAX_LAT,
+	MAX_LON,
+	MIN_LAT,
+	MIN_LON,
+	type NewProfile,
+	type Profile,
+} from "../domain/model";
 import type { AddResult, ProfileStore } from "../domain/store";
 import { ensureSchema } from "./schema";
 
@@ -58,17 +65,21 @@ function assertValidProfile(profile: NewProfile): void {
 	}
 	if (
 		!Number.isFinite(profile.birthLat) ||
-		profile.birthLat < -90 ||
-		profile.birthLat > 90
+		profile.birthLat < MIN_LAT ||
+		profile.birthLat > MAX_LAT
 	) {
-		issues.push("birthLat must be a finite number between -90 and 90");
+		issues.push(
+			`birthLat must be a finite number between ${MIN_LAT} and ${MAX_LAT}`,
+		);
 	}
 	if (
 		!Number.isFinite(profile.birthLon) ||
-		profile.birthLon < -180 ||
-		profile.birthLon > 180
+		profile.birthLon < MIN_LON ||
+		profile.birthLon > MAX_LON
 	) {
-		issues.push("birthLon must be a finite number between -180 and 180");
+		issues.push(
+			`birthLon must be a finite number between ${MIN_LON} and ${MAX_LON}`,
+		);
 	}
 	if (!Number.isFinite(profile.birthJdUt)) {
 		issues.push("birthJdUt must be a finite number");

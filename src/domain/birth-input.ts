@@ -1,6 +1,6 @@
 import { AxiError } from "axi-sdk-js";
 import { daysInMonth, julianDayUt, type LocalTime } from "./jd";
-import type { BirthInput } from "./model";
+import { type BirthInput, MAX_LAT, MAX_LON, MIN_LAT, MIN_LON } from "./model";
 
 export const MIN_YEAR = 1800;
 export const MAX_YEAR = 2100;
@@ -112,8 +112,14 @@ function parseWhere(
 		);
 	} else {
 		birthLat = Number(latText);
-		if (!Number.isFinite(birthLat) || birthLat < -90 || birthLat > 90) {
-			issues.push(`${labels.where} latitude must be between -90 and 90`);
+		if (
+			!Number.isFinite(birthLat) ||
+			birthLat < MIN_LAT ||
+			birthLat > MAX_LAT
+		) {
+			issues.push(
+				`${labels.where} latitude must be between ${MIN_LAT} and ${MAX_LAT}`,
+			);
 		}
 	}
 
@@ -123,8 +129,14 @@ function parseWhere(
 		);
 	} else {
 		birthLon = Number(lonText);
-		if (!Number.isFinite(birthLon) || birthLon < -180 || birthLon > 180) {
-			issues.push(`${labels.where} longitude must be between -180 and 180`);
+		if (
+			!Number.isFinite(birthLon) ||
+			birthLon < MIN_LON ||
+			birthLon > MAX_LON
+		) {
+			issues.push(
+				`${labels.where} longitude must be between ${MIN_LON} and ${MAX_LON}`,
+			);
 		}
 	}
 

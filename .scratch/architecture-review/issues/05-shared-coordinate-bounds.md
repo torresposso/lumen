@@ -4,8 +4,8 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] The lat/lon/finite bounds live in one exported place in the domain layer
-- [ ] The birth-input contract and the store's range guard both consume that one source (no inline duplicate remains)
-- [ ] `bun test` (contract + storage hardening suites) and `bun run typecheck` stay green
+- [x] The lat/lon/finite bounds live in one exported place in the domain layer
+- [x] The birth-input contract and the store's range guard both consume that one source (no inline duplicate remains)
+- [x] `bun test` (contract + storage hardening suites) and `bun run typecheck` stay green
