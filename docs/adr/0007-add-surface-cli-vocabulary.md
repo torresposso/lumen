@@ -70,12 +70,12 @@ Two corrections to the shape above:
    presentation rules (`emptyStateHint`, `formatCommandsHelp`) but no longer
    touches the store. Rationale: the surface was the single home of the
    *names*; composing a store snapshot is a *view* — a different concern
-   (audit F11: presentation → storage inversion). `surface.ts` keeps a compat
-   re-export of `homeView` for the transition.
+   (audit F11: presentation → storage inversion).
 2. **The birth-input seam became flag-agnostic.** The birth-input contract
    previously imported `--when`/`--where` from the surface and typed them into
    its own messages, making `domain` import from `cli` (ADR-0006 said the
-   dependency is the other way). Now `parseBirthInput(raw, labels)` receives
-   the labels from the `add` arm, which composes them from `ADD_FLAGS`. A flag
-   rename is still one edit (`surface.ts`), but the flags reach the domain as
-   values, not as an import — the layer direction holds.
+   dependency is the other way). Now `parseBirthInput(raw, labels)` requires
+   the labels from the `add` arm, which passes `ADD_FLAGS`. A flag rename is
+   strictly one edit (`surface.ts`), and the flags reach the domain as values
+   without any default fallback in domain — the layer direction and the
+   single-edit rename promise both hold.

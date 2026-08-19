@@ -8,12 +8,20 @@ const VALID = {
 	where: "27.95, -82.46, Tampa, USA",
 };
 
-function issuesFor(raw: { when?: string; where?: string }): string[] {
+const DEFAULT_LABELS = { when: "--when", where: "--where" };
+
+function issuesFor(
+	raw: { when?: string; where?: string },
+	labels = DEFAULT_LABELS,
+): string[] {
 	try {
-		parseBirthInput({
-			when: raw.when ?? VALID.when,
-			where: raw.where ?? VALID.where,
-		});
+		parseBirthInput(
+			{
+				when: raw.when ?? VALID.when,
+				where: raw.where ?? VALID.where,
+			},
+			labels,
+		);
 		return [];
 	} catch (error) {
 		expect(error).toBeInstanceOf(AxiError);
@@ -23,7 +31,7 @@ function issuesFor(raw: { when?: string; where?: string }): string[] {
 
 describe("parseBirthInput — contract", () => {
 	test("accepts valid raw input and returns the parsed BirthInput", () => {
-		const input = parseBirthInput(VALID);
+		const input = parseBirthInput(VALID, DEFAULT_LABELS);
 		expect(input).toEqual<BirthInput>({
 			birthDateTime: "1990-06-10T14:30-04:00",
 			birthLat: 27.95,
@@ -35,10 +43,13 @@ describe("parseBirthInput — contract", () => {
 	});
 
 	test("accepts Z, explicit +, single-digit fields and a place with commas, canonicalizing the datetime", () => {
-		const input = parseBirthInput({
-			when: "1990-6-10T14:5Z",
-			where: "9.15, -74.75, Magangué, Colombia",
-		});
+		const input = parseBirthInput(
+			{
+				when: "1990-6-10T14:5Z",
+				where: "9.15, -74.75, Magangué, Colombia",
+			},
+			DEFAULT_LABELS,
+		);
 		expect(input.birthDateTime).toBe("1990-06-10T14:05Z");
 		expect(input.birthJdUt).toBe(2448053.0868055555);
 		expect(input.birthLat).toBe(9.15);
@@ -47,10 +58,13 @@ describe("parseBirthInput — contract", () => {
 	});
 
 	test("derives the canonical example's birthJdUt (1981 Magangué)", () => {
-		const input = parseBirthInput({
-			when: "1981-01-26T00:50-05:00",
-			where: "9.15, -74.75, Magangué, Colombia",
-		});
+		const input = parseBirthInput(
+			{
+				when: "1981-01-26T00:50-05:00",
+				where: "9.15, -74.75, Magangué, Colombia",
+			},
+			DEFAULT_LABELS,
+		);
 		expect(input.birthJdUt).toBe(2444630.7430555555);
 	});
 
@@ -122,10 +136,13 @@ describe("parseBirthInput — contract", () => {
 
 	test("error carries the VALIDATION_ERROR code", () => {
 		try {
-			parseBirthInput({
-				when: "1990-06-10T14:30+16:00",
-				where: VALID.where,
-			});
+			parseBirthInput(
+				{
+					when: "1990-06-10T14:30+16:00",
+					where: VALID.where,
+				},
+				DEFAULT_LABELS,
+			);
 			expect.unreachable();
 		} catch (error) {
 			expect((error as AxiError).code).toBe("VALIDATION_ERROR");
@@ -209,8 +226,12 @@ describe("parseBirthInput — flag-agnostic labels", () => {
 		}
 	});
 
-	test("the domain default keeps the historical --when/--where wording", () => {
-		expect(issuesFor({ when: "garbage" })[0]).toContain("--when");
-		expect(issuesFor({ where: "zz" })[0]).toContain("--where");
+	test("custom labels propagate to all cited error rules", () => {
+		const custom = issuesFor(
+			{ when: "garbage", where: "zz" },
+			{ when: "--custom-when", where: "--custom-where" },
+		);
+		expect(custom.join(" ")).toContain("--custom-when");
+		expect(custom.join(" ")).toContain("--custom-where");
 	});
 });

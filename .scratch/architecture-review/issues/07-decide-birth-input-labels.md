@@ -7,8 +7,8 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] One of (a) or (b) is chosen and landed
-- [ ] The docs that promise the single-edit rename state the true behaviour (either strictly true after (a), or amended under (b))
-- [ ] `bun test` and `bun run check` stay green
+- [x] One of (a) or (b) is chosen and landed (chosen: (a) Required labels — `parseBirthInput` requires `labels: BirthInputLabels`, no domain default fallback)
+- [x] The docs that promise the single-edit rename state the true behaviour (strictly true after (a), ADR-0007 updated)
+- [x] `bun test` and `bun run check` stay green

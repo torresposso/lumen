@@ -181,17 +181,18 @@ function parseWhere(
  * the derivation needs never appear in the result — the complete `birth*` set
  * leaves the seam.
  *
- * The caller supplies the flag labels (e.g. `ADD_FLAGS`) so this domain module
- * does not import the CLI vocabulary — the direction is `commands → domain`,
- * not `domain → cli` (ADR-0006). Defaults keep the historical `--when`/`--where`
- * wording for bare domain tests.
+ * Flag names are caller-provided (`labels`), so `commands → domain` holds and
+ * not `domain → cli` (ADR-0006). A flag rename is strictly one edit in the
+ * surface.
  */
+export interface BirthInputLabels {
+	when: string;
+	where: string;
+}
+
 export function parseBirthInput(
 	raw: RawBirthInput,
-	labels: { when: string; where: string } = {
-		when: "--when",
-		where: "--where",
-	},
+	labels: BirthInputLabels,
 ): BirthInput {
 	const issues: string[] = [];
 
