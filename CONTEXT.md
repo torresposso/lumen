@@ -110,8 +110,8 @@ pushed.
   `InMemoryProfileStore`, a thin wrapper over an injected `bun:sqlite`
   `Database` for tests (same interface, no filesystem side effects). The
   command and the home view type against the port and never create a store —
-  the CLI wiring provides one through context, and `requireProfileStore`
-  (`src/core/context.ts`, with `CliContext`) fails loud when context is
+  the CLI wiring provides one through context, and `requireCliContext`
+  (`src/core/store.ts`, with `CliContext`) fails loud when context is
   missing. The adapters own profile identity: `add` generates the profile's
   UUID — the command never supplies one.
 - **TOON** — the AXI structured-output encoding lumen publishes: display

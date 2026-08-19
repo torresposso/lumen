@@ -28,7 +28,7 @@ describe("CaelusEphemeris adapter", () => {
 
 		expect(solar.length).toBeGreaterThan(0);
 		expect(lunar.length).toBeGreaterThan(0);
-		expect(solar[0].tMax).toBeLessThanOrEqual(jdUt);
-		expect(lunar[0].tMax).toBeLessThanOrEqual(jdUt);
+		expect(solar[0]?.tMax).toBeLessThanOrEqual(jdUt);
+		expect(lunar[0]?.tMax).toBeLessThanOrEqual(jdUt);
 	});
 });

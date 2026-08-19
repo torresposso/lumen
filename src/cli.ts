@@ -2,8 +2,8 @@ import { type AxiCliOptions, runAxiCli } from "axi-sdk-js";
 import { chartCommand } from "./commands/chart";
 import { profileCommand } from "./commands/profile";
 import { homeView, profileCommandsHelp } from "./core/cli-surface";
-import { type CliContext, requireProfileStore } from "./core/context";
-import type { ProfileStore } from "./core/store";
+import type { CliContext, ProfileStore } from "./core/store";
+import { requireCliContext } from "./core/store";
 import { SqliteProfileStore } from "./storage/profile-store";
 import { VERSION } from "./version";
 
@@ -37,7 +37,10 @@ export function buildCliOptions(
 			profile: profileCommand,
 			chart: chartCommand,
 		},
-		home: (_args, context) => homeView(requireProfileStore(context)),
+		home: (_args, context) => {
+			const ctx = requireCliContext(context);
+			return homeView(ctx.profiles);
+		},
 	};
 }
 

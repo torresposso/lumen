@@ -153,6 +153,16 @@ describe("SqliteProfileStore", () => {
 		reloaded.close();
 	});
 
+	test("get and remove resolve unambiguous UUID prefixes symmetrically", () => {
+		const { profile } = store.add(newProfile());
+		const prefix = profile.id.slice(0, 8);
+
+		expect(store.get(prefix)?.id).toBe(profile.id);
+		expect(store.remove(prefix)).toBe(true);
+		expect(store.get(prefix)).toBeUndefined();
+		expect(store.list()).toHaveLength(0);
+	});
+
 	test("reopens an existing lumen.db", () => {
 		store.add(newProfile());
 		store.close();

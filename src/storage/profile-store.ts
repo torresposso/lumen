@@ -58,19 +58,28 @@ class ProfileDb implements ProfileStore {
 		return rows.map(toProfile);
 	}
 
-	get(id: string): Profile | undefined {
+	private resolveId(id: string): string | undefined {
 		const exact = this.db
-			.prepare("SELECT * FROM profiles WHERE id = ?")
-			.get(id) as ProfileRow | null;
-		if (exact) return toProfile(exact);
+			.prepare("SELECT id FROM profiles WHERE id = ?")
+			.get(id) as { id: string } | null;
+		if (exact) return exact.id;
 
 		const prefixMatches = this.db
-			.prepare("SELECT * FROM profiles WHERE id LIKE ?")
-			.all(`${id}%`) as ProfileRow[];
+			.prepare("SELECT id FROM profiles WHERE id LIKE ?")
+			.all(`${id}%`) as { id: string }[];
 		if (prefixMatches.length === 1 && prefixMatches[0]) {
-			return toProfile(prefixMatches[0]);
+			return prefixMatches[0].id;
 		}
 		return undefined;
+	}
+
+	get(id: string): Profile | undefined {
+		const resolvedId = this.resolveId(id);
+		if (!resolvedId) return undefined;
+		const row = this.db
+			.prepare("SELECT * FROM profiles WHERE id = ?")
+			.get(resolvedId) as ProfileRow | null;
+		return row ? toProfile(row) : undefined;
 	}
 
 	/**
@@ -121,8 +130,11 @@ class ProfileDb implements ProfileStore {
 	}
 
 	remove(id: string): boolean {
+		const resolvedId = this.resolveId(id);
+		if (!resolvedId) return false;
 		return (
-			this.db.prepare("DELETE FROM profiles WHERE id = ?").run(id).changes > 0
+			this.db.prepare("DELETE FROM profiles WHERE id = ?").run(resolvedId)
+				.changes > 0
 		);
 	}
 }

@@ -8,7 +8,7 @@ import {
 	PROFILE_ARMS,
 	PROFILE_COMMAND,
 } from "../src/core/cli-surface";
-import type { CliContext } from "../src/core/context";
+import type { CliContext } from "../src/core/store";
 import { InMemoryProfileStore } from "../src/storage/profile-store";
 
 let db: Database;

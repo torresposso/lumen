@@ -1,3 +1,4 @@
+import { AxiError } from "axi-sdk-js";
 import type { NewProfile, Profile } from "./model";
 
 export interface AddResult {
@@ -23,4 +24,21 @@ export interface ProfileStore {
 	add(profile: NewProfile): AddResult;
 	/** Removes one profile by UUID; false when unknown. */
 	remove(id: string): boolean;
+}
+
+/** The composition root's context shape, consumed by command arms and home view. */
+export interface CliContext {
+	profiles: ProfileStore;
+}
+
+/**
+ * Asserts that CLI context is present, throwing a loud PROFILE_ERROR if missing.
+ */
+export function requireCliContext(context: CliContext | undefined): CliContext {
+	if (context === undefined) {
+		throw new AxiError("No profile store in context", "PROFILE_ERROR", [
+			"The CLI always provides one — this is a lumen bug",
+		]);
+	}
+	return context;
 }

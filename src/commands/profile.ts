@@ -9,7 +9,7 @@ import {
 	PROFILE_COMMAND,
 	PROFILE_LIST_HINT,
 } from "../core/cli-surface";
-import { type CliContext, requireProfileStore } from "../core/context";
+import type { CliContext } from "../core/store";
 import { createSubcommandGroup } from "../core/subcommand";
 import { toonProfile } from "../core/toon";
 
@@ -85,6 +85,7 @@ export const profileCommand = createSubcommandGroup<CliContext>({
 			spec: ADD_SPEC,
 			usage: profileAddUsage,
 			run: (parsed, context) => {
+				const { profiles } = context;
 				const when = parsed.flags.get(ADD_FLAGS.when) as string;
 				const where = parsed.flags.get(ADD_FLAGS.where) as string;
 				const name = parsed.flags.get(ADD_FLAGS.name) ?? null;
@@ -92,7 +93,7 @@ export const profileCommand = createSubcommandGroup<CliContext>({
 				// One seam: the raw flags in, the complete birth (birthJdUt derived)
 				// out — the store generates the profile's UUID.
 				const birth = parseBirthInput({ when, where });
-				const { profile, created } = requireProfileStore(context).add({
+				const { profile, created } = profiles.add({
 					...birth,
 					name,
 				});
@@ -107,10 +108,11 @@ export const profileCommand = createSubcommandGroup<CliContext>({
 			spec: LIST_SPEC,
 			usage: profileListUsage,
 			run: (_parsed, context) => {
-				const profiles = requireProfileStore(context).list().map(toonProfile);
-				const hasProfiles = profiles.length > 0;
+				const { profiles } = context;
+				const rows = profiles.list().map(toonProfile);
+				const hasProfiles = rows.length > 0;
 				return hasProfiles
-					? { profiles }
+					? { profiles: rows }
 					: { profiles: [], help: [emptyStateHint(hasProfiles)] };
 			},
 		},
@@ -119,8 +121,9 @@ export const profileCommand = createSubcommandGroup<CliContext>({
 			spec: ID_SPEC,
 			usage: profileGetUsage,
 			run: (parsed, context) => {
+				const { profiles } = context;
 				const id = parsed.positionals[0] as string;
-				const profile = requireProfileStore(context).get(id);
+				const profile = profiles.get(id);
 				if (profile === undefined) {
 					throw new AxiError(`Unknown profile: ${id}`, "NOT_FOUND", [
 						PROFILE_LIST_HINT,
@@ -134,8 +137,9 @@ export const profileCommand = createSubcommandGroup<CliContext>({
 			spec: ID_SPEC,
 			usage: profileDeleteUsage,
 			run: (parsed, context) => {
+				const { profiles } = context;
 				const id = parsed.positionals[0] as string;
-				const removed = requireProfileStore(context).remove(id);
+				const removed = profiles.remove(id);
 				if (!removed) {
 					throw new AxiError(`Unknown profile: ${id}`, "NOT_FOUND", [
 						PROFILE_LIST_HINT,

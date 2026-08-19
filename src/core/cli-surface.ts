@@ -56,28 +56,25 @@ export const CHART_ARM_HELP = {
 	natal: "Calculate natal chart (Porphyry / True Node / JWGEA)",
 } as const;
 
+export const COMMAND_ARM_CATALOG = [
+	{ line: PROFILE_ARMS.add, help: PROFILE_ARM_HELP.add },
+	{ line: PROFILE_ARMS.list, help: PROFILE_ARM_HELP.list },
+	{ line: PROFILE_ARMS.get, help: PROFILE_ARM_HELP.get },
+	{ line: PROFILE_ARMS.delete, help: PROFILE_ARM_HELP.delete },
+	{ line: `${CHART_ARMS.natal} <uuid>`, help: CHART_ARM_HELP.natal },
+] as const;
+
 /**
  * The top-level "Commands:" block, derived from the arm catalog.
  */
-export function profileCommandsHelp(): string {
-	const pArms = Object.keys(PROFILE_ARMS) as Array<keyof typeof PROFILE_ARMS>;
-	const cArms = Object.keys(CHART_ARMS) as Array<keyof typeof CHART_ARMS>;
-	const allArmStrings = [
-		...pArms.map((a) => PROFILE_ARMS[a]),
-		...cArms.map((a) => `${CHART_ARMS[a]} <uuid>`),
-	];
-	const width = Math.max(...allArmStrings.map((str) => str.length));
+export function profileCommandsHelp(
+	catalog: readonly { line: string; help: string }[] = COMMAND_ARM_CATALOG,
+): string {
+	const width = Math.max(...catalog.map((entry) => entry.line.length));
 
 	return [
 		"Commands:",
-		...pArms.map(
-			(arm) =>
-				`  ${PROFILE_ARMS[arm].padEnd(width + 1)}${PROFILE_ARM_HELP[arm]}`,
-		),
-		...cArms.map(
-			(arm) =>
-				`  ${(`${CHART_ARMS[arm]} <uuid>`).padEnd(width + 1)}${CHART_ARM_HELP[arm]}`,
-		),
+		...catalog.map((entry) => `  ${entry.line.padEnd(width + 1)}${entry.help}`),
 	].join("\n");
 }
 

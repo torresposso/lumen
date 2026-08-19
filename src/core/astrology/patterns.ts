@@ -37,35 +37,7 @@ export interface AstrologicalSignature {
 	};
 }
 
-export const SIGN_ELEMENTS: Record<string, string> = {
-	Aries: "fire",
-	Leo: "fire",
-	Sagittarius: "fire",
-	Taurus: "earth",
-	Virgo: "earth",
-	Capricorn: "earth",
-	Gemini: "air",
-	Libra: "air",
-	Aquarius: "air",
-	Cancer: "water",
-	Scorpio: "water",
-	Pisces: "water",
-};
-
-export const SIGN_MODALITIES: Record<string, string> = {
-	Aries: "cardinal",
-	Cancer: "cardinal",
-	Libra: "cardinal",
-	Capricorn: "cardinal",
-	Taurus: "fixed",
-	Leo: "fixed",
-	Scorpio: "fixed",
-	Aquarius: "fixed",
-	Gemini: "mutable",
-	Virgo: "mutable",
-	Sagittarius: "mutable",
-	Pisces: "mutable",
-};
+import { isPlanet, SIGN_ELEMENTS, SIGN_MODALITIES } from "./geometry";
 
 export function detectAspectPatterns(
 	bodies: Record<string, { lon: number; sign: string; house: number }>,
@@ -150,9 +122,7 @@ export function computeSignature(
 	const elements = { fire: 0, earth: 0, air: 0, water: 0 };
 	const modalities = { cardinal: 0, fixed: 0, mutable: 0 };
 
-	const planetsOnly = Object.entries(bodies).filter(
-		([id]) => id !== "true_node" && id !== "mean_node" && id !== "chiron",
-	);
+	const planetsOnly = Object.entries(bodies).filter(([id]) => isPlanet(id));
 
 	for (const [_, body] of planetsOnly) {
 		const elem = SIGN_ELEMENTS[body.sign] as keyof typeof elements;

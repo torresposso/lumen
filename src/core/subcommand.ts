@@ -16,10 +16,10 @@ export interface Subcommand<TContext> {
 	spec: ArgsSpec;
 	/** The usage text returned when this arm receives `--help`. */
 	usage: string;
-	/** The arm's behaviour, given the parsed arguments and the CLI context. */
+	/** The arm's behaviour, given the parsed arguments and guaranteed CLI context. */
 	run: (
 		parsed: ParsedArgs,
-		context: TContext | undefined,
+		context: TContext,
 	) => Renderable | Promise<Renderable>;
 }
 
@@ -33,13 +33,13 @@ export interface SubcommandGroupSpec<TContext> {
 	subcommands: Readonly<Record<string, Subcommand<TContext>>>;
 }
 
+import { requireCliContext } from "./store";
+
 /**
  * The subcommand runner — the single seam a command applies to a subcommand's
  * raw arguments. Parses them against the arm's spec via the args contract;
- * `--help` returns the arm's usage without running it; otherwise the arm's
- * `run` receives the parsed arguments and the CLI context. Parse violations
- * propagate as one `VALIDATION_ERROR` citing each rule — the args contract's
- * own contract, preserved unchanged.
+ * `--help` returns the arm's usage without running it; otherwise validates
+ * context and dispatches to the arm's `run`.
  */
 export async function runSubcommand<TContext>(
 	context: TContext | undefined,
@@ -49,7 +49,10 @@ export async function runSubcommand<TContext>(
 ): Promise<Renderable> {
 	const parsed = parseArgs(args, sub.spec, command);
 	if (parsed.help) return sub.usage;
-	return await sub.run(parsed, context);
+	if (context === undefined) {
+		requireCliContext(undefined);
+	}
+	return await sub.run(parsed, context as TContext);
 }
 
 /**

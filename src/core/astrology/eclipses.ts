@@ -1,5 +1,5 @@
 import type { Ephemeris } from "../../adapters/ephemeris";
-import { projectPoint, roundPrecision } from "./soul";
+import { projectPoint, roundPrecision } from "./geometry";
 
 export interface EclipseFact {
 	tMax: number;

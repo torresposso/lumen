@@ -1,8 +1,8 @@
 import { CaelusEphemeris, type Ephemeris } from "../adapters/ephemeris";
 import { computePrenatalEclipses } from "./astrology/eclipses";
+import { computeSolLunaPhase } from "./astrology/geometry";
 import { computeNodalAxisFact } from "./astrology/nodes";
 import { computeSignature, detectAspectPatterns } from "./astrology/patterns";
-import { computeSolLunaPhase } from "./astrology/phases";
 import {
 	computeAspects,
 	computeDeclinationAspects,
@@ -12,23 +12,12 @@ import {
 	projectBodies,
 	projectCusps,
 } from "./astrology/positions";
-import {
-	computeSoulFact,
-	describeEvoCriteria,
-	roundPrecision,
-} from "./astrology/soul";
+import { computeSoulFact, describeEvoCriteria } from "./astrology/soul";
 import type { Profile } from "./model";
+import { type ToonProfile, toonProfile } from "./toon";
 
 export interface NatalChartOutput {
-	birth: {
-		id: string;
-		name: string | null;
-		birthPlace: string;
-		birthDateTime: string;
-		birthLat: number;
-		birthLon: number;
-		birthJdUt: number;
-	};
+	birth: ToonProfile;
 	houseSystem: "porphyry";
 	zodiac: "tropical";
 	bodies: ReturnType<typeof projectBodies>;
@@ -64,10 +53,8 @@ export interface NatalChartOutput {
 	method: string;
 }
 
-export function computeNatalChart(
-	profile: Profile,
-	ephemeris: Ephemeris = new CaelusEphemeris(),
-): NatalChartOutput {
+/** Stage 1: Geometric measurements and ecliptic projections. */
+function computeMeasurements(profile: Profile, ephemeris: Ephemeris) {
 	const rawChart = computeRawChart(
 		profile.birthJdUt,
 		profile.birthLat,
@@ -80,7 +67,26 @@ export function computeNatalChart(
 	const cusps = projectCusps(rawChart.cusps);
 	const aspects = computeAspects(rawChart.bodies);
 	const declinationAspects = computeDeclinationAspects(rawChart.bodies);
+	const houseRulers = computeHouseRulers(cusps);
 
+	return {
+		rawChart,
+		bodies,
+		angles,
+		cusps,
+		aspects,
+		declinationAspects,
+		houseRulers,
+	};
+}
+
+/** Stage 2: Evolutionary mechanics (JWGEA canon). */
+function computeEvolutionaryMechanics(
+	profile: Profile,
+	measurements: ReturnType<typeof computeMeasurements>,
+	ephemeris: Ephemeris,
+) {
+	const { rawChart, bodies } = measurements;
 	const northNodeLon = rawChart.bodies.true_node?.lon;
 	const soul = computeSoulFact(bodies, rawChart.cusps, northNodeLon);
 	const nodal = computeNodalAxisFact(bodies, rawChart.cusps);
@@ -100,7 +106,6 @@ export function computeNatalChart(
 
 	const patterns = detectAspectPatterns(bodies);
 	const signature = computeSignature(bodies);
-	const houseRulers = computeHouseRulers(cusps);
 
 	const eclipseCount =
 		(prenatalEclipses.solar ? 1 : 0) + (prenatalEclipses.lunar ? 1 : 0);
@@ -115,42 +120,58 @@ export function computeNatalChart(
 	};
 
 	return {
-		birth: {
-			id: profile.id,
-			name: profile.name,
-			birthPlace: profile.birthPlace,
-			birthDateTime: profile.birthDateTime,
-			birthLat: roundPrecision(profile.birthLat, 4),
-			birthLon: roundPrecision(profile.birthLon, 4),
-			birthJdUt: roundPrecision(profile.birthJdUt, 6),
-		},
-		houseSystem: "porphyry",
-		zodiac: "tropical",
-		bodies,
-		angles,
-		cusps,
-		aspects,
-		...(declinationAspects.length > 0 ? { declinationAspects } : {}),
-		pluto: soul.pluto,
-		ppp: soul.ppp,
-		...(soul.midpoint ? { midpoint: soul.midpoint } : {}),
-		...(soul.antiMidpoint ? { antiMidpoint: soul.antiMidpoint } : {}),
-		nodalAxis: nodal.nodalAxis,
-		...(phase ? { phase } : {}),
-		dispositorChains: {
-			pluto: soul.dispositorChain,
-			...(nodal.dispositorChains.southNodeRuler
-				? { southNodeRuler: nodal.dispositorChains.southNodeRuler }
-				: {}),
-			...(nodal.dispositorChains.northNodeRuler
-				? { northNodeRuler: nodal.dispositorChains.northNodeRuler }
-				: {}),
-		},
+		soul,
+		nodal,
+		phase,
 		prenatalEclipses,
 		patterns,
 		signature,
-		houseRulers,
 		counts,
+	};
+}
+
+/**
+ * Computes exact natal chart geometry and evolutionary mechanics as a pure function
+ * over a stored Profile (ADR-0008).
+ */
+export function computeNatalChart(
+	profile: Profile,
+	ephemeris: Ephemeris = new CaelusEphemeris(),
+): NatalChartOutput {
+	const measurements = computeMeasurements(profile, ephemeris);
+	const evo = computeEvolutionaryMechanics(profile, measurements, ephemeris);
+
+	return {
+		birth: toonProfile(profile),
+		houseSystem: "porphyry",
+		zodiac: "tropical",
+		bodies: measurements.bodies,
+		angles: measurements.angles,
+		cusps: measurements.cusps,
+		aspects: measurements.aspects,
+		...(measurements.declinationAspects.length > 0
+			? { declinationAspects: measurements.declinationAspects }
+			: {}),
+		pluto: evo.soul.pluto,
+		ppp: evo.soul.ppp,
+		...(evo.soul.midpoint ? { midpoint: evo.soul.midpoint } : {}),
+		...(evo.soul.antiMidpoint ? { antiMidpoint: evo.soul.antiMidpoint } : {}),
+		nodalAxis: evo.nodal.nodalAxis,
+		...(evo.phase ? { phase: evo.phase } : {}),
+		dispositorChains: {
+			pluto: evo.soul.dispositorChain,
+			...(evo.nodal.dispositorChains.southNodeRuler
+				? { southNodeRuler: evo.nodal.dispositorChains.southNodeRuler }
+				: {}),
+			...(evo.nodal.dispositorChains.northNodeRuler
+				? { northNodeRuler: evo.nodal.dispositorChains.northNodeRuler }
+				: {}),
+		},
+		prenatalEclipses: evo.prenatalEclipses,
+		patterns: evo.patterns,
+		signature: evo.signature,
+		houseRulers: measurements.houseRulers,
+		counts: evo.counts,
 		method: describeEvoCriteria(),
 	};
 }

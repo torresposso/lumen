@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { computeSolLunaPhase } from "../../../src/core/astrology/phases";
+import { computeSolLunaPhase } from "../../../src/core/astrology/geometry";
 
 describe("Sol-Luna phase calculation", () => {
 	test("correctly calculates archetypal 8 phases", () => {

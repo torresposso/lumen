@@ -1,6 +1,7 @@
 import {
 	buildDispositorChain,
 	type DispositorStep,
+	matchClosestAspect,
 	NON_PLANETARY_IDS,
 	normalizeLongitude,
 	PLUTO_ASPECTS,
@@ -8,7 +9,7 @@ import {
 	roundPrecision,
 	SIGN_RULERS,
 	SKIPPED_STEPS_ORB,
-} from "./soul";
+} from "./geometry";
 
 export type NodeMotionStatus = "retrograde" | "direct" | "stationary";
 
@@ -56,19 +57,9 @@ function matchClosestNodeAspect(
 ):
 	| { name: string; orb: number; stress: "stressful" | "nonstressful" }
 	| undefined {
-	let diff = Math.abs(lonA - lonB);
-	if (diff > 180) diff = 360 - diff;
-
-	let best:
-		| { name: string; orb: number; stress: "stressful" | "nonstressful" }
-		| undefined;
-	for (const def of PLUTO_ASPECTS) {
-		const orb = Math.abs(diff - def.target);
-		if (orb <= def.orb && (best === undefined || orb < best.orb)) {
-			best = { name: def.name, orb, stress: def.stress };
-		}
-	}
-	return best;
+	const match = matchClosestAspect(lonA, lonB, PLUTO_ASPECTS);
+	if (!match) return undefined;
+	return { name: match.def.name, orb: match.orb, stress: match.def.stress };
 }
 
 export function computeNodeAspects(

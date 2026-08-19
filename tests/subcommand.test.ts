@@ -56,7 +56,7 @@ describe("runSubcommand", () => {
 
 	test("run receives the parsed flags and its result passes through", async () => {
 		const result = await runSubcommand(
-			undefined,
+			{},
 			["--when", "a", "--where=b"],
 			"lumen profile add",
 			{
@@ -72,7 +72,7 @@ describe("runSubcommand", () => {
 	});
 
 	test("a string result passes through", async () => {
-		const result = await runSubcommand(undefined, [], "x", {
+		const result = await runSubcommand({}, [], "x", {
 			spec: { known: new Set(), positionals: 0 },
 			usage: "",
 			run: () => "some text",
@@ -91,7 +91,7 @@ describe("runSubcommand", () => {
 	});
 
 	test("an async arm is awaited", async () => {
-		const result = await runSubcommand(undefined, [], "x", {
+		const result = await runSubcommand({}, [], "x", {
 			spec: { known: new Set(), positionals: 0 },
 			usage: "",
 			run: async () => ({ async: true }),
@@ -139,8 +139,8 @@ describe("createSubcommandGroup", () => {
 	});
 
 	test("dispatches to the named subcommand", async () => {
-		expect(await group(["list"], undefined)).toEqual({ profiles: [] });
-		expect(await group(["get", "abc-123"], undefined)).toEqual({
+		expect(await group(["list"], {})).toEqual({ profiles: [] });
+		expect(await group(["get", "abc-123"], {})).toEqual({
 			id: "abc-123",
 		});
 	});

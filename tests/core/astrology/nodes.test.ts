@@ -22,9 +22,9 @@ describe("Nodal axis astrology calculations", () => {
 
 		const skipped = computeSkippedSteps(bodies, bodies.true_node.lon, 5);
 		expect(skipped.length).toBe(1);
-		expect(skipped[0].body).toBe("mars");
-		expect(skipped[0].aspect).toBe("square");
-		expect(skipped[0].orb).toBe(0);
+		expect(skipped[0]?.body).toBe("mars");
+		expect(skipped[0]?.aspect).toBe("square");
+		expect(skipped[0]?.orb).toBe(0);
 
 		const result = computeNodalAxisFact(bodies, cusps);
 		expect(result.nodalAxis.north.sign).toBe("Aries");

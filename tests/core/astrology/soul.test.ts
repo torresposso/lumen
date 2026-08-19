@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
 import {
-	computePlutoAspects,
 	computeSoulFact,
 	PPP_DEACTIVATION_ORB,
 } from "../../../src/core/astrology/soul";

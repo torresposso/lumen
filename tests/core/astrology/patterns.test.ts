@@ -1,8 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-	computeSignature,
-	detectAspectPatterns,
-} from "../../../src/core/astrology/patterns";
+import { computeSignature } from "../../../src/core/astrology/patterns";
 
 describe("Patterns and Signature calculations", () => {
 	test("calculates quadrant and hemisphere balance", () => {
