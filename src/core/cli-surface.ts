@@ -46,20 +46,37 @@ export const PROFILE_ARM_HELP = {
 	delete: "Remove one profile by UUID",
 } as const;
 
+export const CHART_COMMAND = "lumen chart";
+
+export const CHART_ARMS = {
+	natal: `${CHART_COMMAND} natal`,
+} as const;
+
+export const CHART_ARM_HELP = {
+	natal: "Calculate natal chart (Porphyry / True Node / JWGEA)",
+} as const;
+
 /**
- * The top-level "Commands:" block, derived from the arm catalog — the arm
- * tokens plus the one-liners above. The top-level help in `src/cli.ts` embeds
- * this block, so adding an arm is one catalog row and the top-level help stays
- * in step.
+ * The top-level "Commands:" block, derived from the arm catalog.
  */
 export function profileCommandsHelp(): string {
-	const arms = Object.keys(PROFILE_ARMS) as Array<keyof typeof PROFILE_ARMS>;
-	const width = Math.max(...arms.map((arm) => PROFILE_ARMS[arm].length));
+	const pArms = Object.keys(PROFILE_ARMS) as Array<keyof typeof PROFILE_ARMS>;
+	const cArms = Object.keys(CHART_ARMS) as Array<keyof typeof CHART_ARMS>;
+	const allArmStrings = [
+		...pArms.map((a) => PROFILE_ARMS[a]),
+		...cArms.map((a) => `${CHART_ARMS[a]} <uuid>`),
+	];
+	const width = Math.max(...allArmStrings.map((str) => str.length));
+
 	return [
 		"Commands:",
-		...arms.map(
+		...pArms.map(
 			(arm) =>
 				`  ${PROFILE_ARMS[arm].padEnd(width + 1)}${PROFILE_ARM_HELP[arm]}`,
+		),
+		...cArms.map(
+			(arm) =>
+				`  ${(`${CHART_ARMS[arm]} <uuid>`).padEnd(width + 1)}${CHART_ARM_HELP[arm]}`,
 		),
 	].join("\n");
 }

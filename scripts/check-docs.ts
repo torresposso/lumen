@@ -14,7 +14,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const ROOT = join(import.meta.dir, "..");
-const SPEC = join(ROOT, ".scratch", "lumen-v2", "spec.md");
+const SPEC = join(ROOT, ".scratch", "chart-natal", "spec.md");
 
 const problems: string[] = [];
 function fail(msg: string) {
@@ -87,15 +87,17 @@ function specSrcFiles(): string[] {
 
 function actualFiles(): string[] {
 	const out: string[] = [];
-	for (const dir of readdirSync(join(ROOT, "src"))) {
-		const p = join(ROOT, "src", dir);
-		if (p.endsWith(".ts")) {
-			out.push(dir);
-		} else if (readdirSync(p).some((f) => f.endsWith(".ts"))) {
-			for (const f of readdirSync(p))
-				if (f.endsWith(".ts")) out.push(`${dir}/${f}`);
+	function walk(dir: string, rel: string) {
+		for (const entry of readdirSync(dir, { withFileTypes: true })) {
+			const entryRel = rel ? `${rel}/${entry.name}` : entry.name;
+			if (entry.isDirectory()) {
+				walk(join(dir, entry.name), entryRel);
+			} else if (entry.name.endsWith(".ts")) {
+				out.push(entryRel);
+			}
 		}
 	}
+	walk(join(ROOT, "src"), "");
 	return out.sort();
 }
 

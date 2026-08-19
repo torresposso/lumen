@@ -1,8 +1,7 @@
 # 06 — verification-vectors-with-porphyry
 
 Type: grilling
-
-Blocked by: 02, 03
+Status: resolved
 
 ## Question
 
@@ -20,3 +19,18 @@ Close this ticket when the strategy is decided and written down.
 
 - Engine version: 03 (pin). Output shape: 02.
 - v1 test suite at git `297b08e`: `tests/core/{reading,charts,classical,evolutionary-reading,fact-atoms,evo-atoms,chart-patterns,prenatal-eclipses}.test.ts`, `tests/commands/chart.test.ts`, `tests/cli/natal-intake.test.ts`.
+
+## Answer
+
+Resolved by decision (2026-08-18):
+
+1. **Golden Vector Anchor**:
+   - Primary test anchor: **Tampa Anchor** (`1990-06-10T14:30-04:00`, `27.9506, -82.4572`) matching prototype `prototypes/02-output-structure.md`.
+   - Edge cases: High latitude (e.g. Tromsø 69.6°N / 85°N) ensuring Porphyry house calculation without polar fallbacks; Southern hemisphere; PPP deactivation (Pluto conjunct True Node <= 3°); Skipped steps.
+
+2. **Testing Layers**:
+   - **Adapters (`tests/adapters/ephemeris.test.ts`)**: Caelus integration, Porphyry houses and True Node coordinates.
+   - **Domain Calculations (`tests/core/astrology/*.test.ts`)**: Unit tests for soul (Pluto/PPP/midpoints), nodes (skipped steps, rulers), phases, dispositors, prenatal eclipses, and aspect patterns.
+   - **Assembler (`tests/core/chart.test.ts`)**: Golden vector end-to-end verification of `computeNatalChart`.
+   - **CLI & AXI Standards (`tests/commands/chart.test.ts`, `tests/cli.test.ts`)**: Subcommand execution, TOON rendering, and error handling (`NOT_FOUND`, `VALIDATION_ERROR`).
+

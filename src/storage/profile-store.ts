@@ -59,10 +59,18 @@ class ProfileDb implements ProfileStore {
 	}
 
 	get(id: string): Profile | undefined {
-		const row = this.db
+		const exact = this.db
 			.prepare("SELECT * FROM profiles WHERE id = ?")
 			.get(id) as ProfileRow | null;
-		return row ? toProfile(row) : undefined;
+		if (exact) return toProfile(exact);
+
+		const prefixMatches = this.db
+			.prepare("SELECT * FROM profiles WHERE id LIKE ?")
+			.all(`${id}%`) as ProfileRow[];
+		if (prefixMatches.length === 1 && prefixMatches[0]) {
+			return toProfile(prefixMatches[0]);
+		}
+		return undefined;
 	}
 
 	/**
@@ -147,9 +155,15 @@ export class SqliteProfileStore implements ProfileStore {
 				chmodSync(this.dbPath, 0o600);
 			}
 			const database = new Database(this.dbPath);
+			// Policy: rollback journal (no WAL) regardless of any pre-existing
+			// connection setting on the file.
+			database.exec("PRAGMA journal_mode = DELETE;");
 			ensureSchema(database);
 			this.database = database;
 			this.core = new ProfileDb(database, this.now);
+			// A close() followed by a read re-opens the store; keep it closeable
+			// again so the re-opened handle is not leaked on a later close().
+			this.closed = false;
 		} catch (err) {
 			if (err instanceof AxiError) throw err;
 			throw new AxiError(

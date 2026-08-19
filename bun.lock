@@ -6,6 +6,7 @@
       "name": "lumen",
       "dependencies": {
         "axi-sdk-js": "^0.1.10",
+        "caelus": "0.24.1",
       },
       "devDependencies": {
         "@biomejs/biome": "^2.5.8",
@@ -44,6 +45,8 @@
     "axi-sdk-js": ["axi-sdk-js@0.1.10", "", { "dependencies": { "@toon-format/toon": "^2.1.0" } }, "sha512-mktHOya6qUgqDcMpmj5WsNDzArre15N2qfns8bY98nrHGTSqdBnH2Ok77c2zOA2jYbGHO/BhhVZtDGK/UTO70g=="],
 
     "bun-types": ["bun-types@1.3.14", "", { "dependencies": { "@types/node": "*" } }, "sha512-4N0ig0fEomHt5R0KCFWjovxow98rIoRwKolrYdCcknNwMekCXRnWEUvgu5soYV8QXtVsrUD8B95MBOZGPvr6KQ=="],
+
+    "caelus": ["caelus@0.24.1", "", {}, "sha512-rWt9OK+4AHNcAk5SmSDLFRn5QSbrKtIGtCFRL0fYxRO8Iu/8mvhX0EFgyoe8W+3qbe4kMnzEFR8h3uNlNtpQhw=="],
 
     "typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 

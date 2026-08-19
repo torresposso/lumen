@@ -74,7 +74,7 @@ function parseWhen(rawWhen: string, issues: string[]): ParsedWhen | undefined {
 
 	const offsetMinutes =
 		offsetSuffix === "Z" ? 0 : offsetToMinutes(offsetSuffix, issues);
-	if (offsetMinutes !== undefined && !Number.isNaN(offsetMinutes)) {
+	if (!Number.isNaN(offsetMinutes)) {
 		checkIntRange(
 			issues,
 			offsetMinutes,

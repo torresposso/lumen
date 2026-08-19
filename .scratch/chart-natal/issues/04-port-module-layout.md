@@ -1,8 +1,7 @@
 # 04 — port-module-layout
 
 Type: grilling
-
-Blocked by: 02
+Status: resolved
 
 ## Question
 
@@ -21,3 +20,31 @@ Close this ticket when the target layout is unambiguous enough to implement.
 
 - Output structure: 02 (prototype).
 - v1 code at git `297b08e`; v2 tree on current `main` (`src/**`, `CONTEXT.md`).
+
+## Answer
+
+Resolved by decision (2026-08-18):
+
+1. **Ephemeris Seam (`src/adapters/ephemeris.ts`)**:
+   - `EphemerisGateway` implements an `Ephemeris` interface wrapping `caelus` `Engine.chartAt`.
+   - Allows deterministic offline testing with mocks/stubs without mutating core calculations.
+
+2. **Core Domain Calculations (`src/core/astrology/` & `src/core/chart.ts`)**:
+   - **Deep Entry Point**: `src/core/chart.ts` exposes `computeNatalChart(profile: Profile, ephemeris?: Ephemeris): NatalChartOutput`.
+   - **Submodules** under `src/core/astrology/`:
+     - `positions.ts` (Porphyry house calculation, true node, planet positions, aspects, declination aspects)
+     - `soul.ts` (Pluto, PPP, midpoint/anti-midpoint)
+     - `nodes.ts` (Nodal axis, rulers, placements, skipped steps)
+     - `phases.ts` (Sol-Luna phase)
+     - `dispositors.ts` (Dispositor chains)
+     - `eclipses.ts` (Prenatal solar/lunar eclipses)
+     - `patterns.ts` (Aspect patterns, elemental/modality signature, house rulers)
+   - **What dies**: Projection layer, flat `atoms: string[]` lists, separate evo/interpretation blocks, draconic/journey/karma commands.
+
+3. **TOON Serializer (`src/core/toon.ts`)**:
+   - Helper `formatNatalChartToon(chart: NatalChartOutput): string` ensures deterministic key order and 2-space indentation matching prototype 02.
+
+4. **CLI Command (`src/commands/chart.ts`)**:
+   - Single exported entry point `chartCommand` built via `createSubcommandGroup` for `lumen chart natal <uuid>`.
+   - Wired in `src/cli.ts`.
+

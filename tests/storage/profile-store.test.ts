@@ -160,6 +160,38 @@ describe("SqliteProfileStore", () => {
 		expect(reopened.list()).toHaveLength(1);
 		reopened.close();
 	});
+
+	test("a read after close re-opens and stays closeable (no leaked handle)", () => {
+		store.add(newProfile());
+		store.close();
+		// The read re-opens the store; close() afterwards must actually close
+		// the re-opened handle instead of being a no-op.
+		expect(store.list()).toHaveLength(1);
+		store.close();
+		expect(
+			(store as unknown as { database: Database | null }).database,
+		).toBeNull();
+	});
+
+	test("forces rollback journal even when the file was left in WAL", () => {
+		store.add(newProfile());
+		store.close();
+
+		// Simulate an external tool leaving the file in WAL mode.
+		const external = new Database(dbPath);
+		external.exec("PRAGMA journal_mode = WAL;");
+		external.close();
+
+		const reopened = new SqliteProfileStore(dbPath);
+		reopened.list();
+		const mode = (reopened as unknown as { database: Database | null }).database
+			?.query("PRAGMA journal_mode")
+			.get() as {
+			journal_mode: string;
+		};
+		expect(mode.journal_mode).toBe("delete");
+		reopened.close();
+	});
 });
 
 describe("InMemoryProfileStore — the in-memory adapter", () => {

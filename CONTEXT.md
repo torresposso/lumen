@@ -1,11 +1,11 @@
 # Context — lumen v2
 
-The domain language of lumen v2: a birth-profile manager (AXI CLI). lumen is the
-deterministic interface — it validates, derives the Julian Day and persists; it
-never resolves world facts (the agent resolves geocoding and UTC offset).
-
-The v1 astrology vocabulary (chart, evo, journey, karma, draconic, projection…)
-is gone with the pivot; do not expect it here.
+The domain language of lumen v2: a birth-profile manager and deterministic
+astrological chart engine (AXI CLI). lumen is the deterministic interface — it
+validates, derives the Julian Day, persists birth profiles, and calculates
+exact natal chart geometry and evolutionary mechanics (JWGEA canon) using
+embedded ephemerides (`caelus: 0.24.1`). It never resolves world facts (the agent
+resolves geocoding and UTC offset).
 
 Code and documentation are always written in English — Spanish is reserved for
 conversation between the human and the agent, never for what gets persisted or
@@ -120,3 +120,13 @@ pushed.
   full float64 precision. The published key set derives from the stored
   profile minus its timestamps — never a hand-mirrored duplicate. Policy lives
   in `src/core/toon.ts`.
+- **Natal chart** — the complete astrological chart geometry and evolutionary
+  facts assembled as a pure function (`computeNatalChart`, `src/core/chart.ts`)
+  over a stored `Profile`: measurements (birth echo, bodies, angles, cusps,
+  geometric aspects, declination aspects) followed by flat canon facts (Pluto,
+  PPP, midpoint/anti-midpoint, nodal axis, Sol-Luna phase, dispositor chains,
+  prenatal eclipses, aspect patterns, signature, house rulers, counts, method)
+  published as a single TOON `chart` block (ADR-0008).
+- **Ephemeris seam** — the capability interface `Ephemeris` (`src/adapters/ephemeris.ts`)
+  wrapping Caelus `Engine.chartAt` with fixed Porphyry houses and True North Node.
+

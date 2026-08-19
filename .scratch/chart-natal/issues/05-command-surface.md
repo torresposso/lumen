@@ -1,8 +1,7 @@
 # 05 — chart-natal-command-surface
 
 Type: prototype
-
-Blocked by: 02
+Status: resolved
 
 ## Question
 
@@ -22,3 +21,24 @@ Close this ticket when the surface is prototyped and the user has reacted.
 - v2 CLI machinery: `src/cli.ts`, `src/commands/`, `src/core/{args,subcommand,cli-surface}.ts` on current `main`.
 - Output shape: 02.
 - v1 surface to adapt: `src/commands/chart.ts` at git `297b08e`.
+
+## Answer
+
+Resolved by decision (2026-08-18):
+
+1. **Invocation & Grammar**:
+   - `lumen chart natal <uuid>`
+   - Exactly one positional argument (`uuid`). No inline birth flags (`--when`/`--where` belong exclusively to `lumen profile add`).
+   - Rejection of extra flags or missing arguments via `AxiError` (`VALIDATION_ERROR`).
+
+2. **Subcommand Wiring**:
+   - Implemented via `createSubcommandGroup` in `src/commands/chart.ts`.
+   - Dispatched at root `src/cli.ts` alongside `profileCommand`.
+
+3. **Error Semantics**:
+   - Unknown/missing UUID: `AxiError` with code `NOT_FOUND` and actionable hint `"Run \`lumen profile list\` to view available profiles"`.
+   - Missing required positional: `AxiError` (`VALIDATION_ERROR`).
+
+4. **TOON Output**:
+   - Root response shape `{ chart: NatalChartOutput }` serialized to TOON format matching prototype `02-output-structure.md`.
+

@@ -1,5 +1,6 @@
 import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
+import { AxiError } from "axi-sdk-js";
 import { ensureSchema, SCHEMA_VERSION } from "../../src/storage/schema";
 
 interface MigratedRow {
@@ -181,5 +182,24 @@ describe("ensureSchema — DDL & version migrations", () => {
 		const db = new Database(":memory:");
 		db.exec(`PRAGMA user_version = ${SCHEMA_VERSION + 1};`);
 		expect(() => ensureSchema(db)).toThrow("is newer than supported");
+	});
+
+	test("rejects a version-0 db that already has a profiles table as PROFILE_ERROR", () => {
+		const db = new Database(":memory:");
+		db.exec(`
+			CREATE TABLE profiles (
+				id TEXT PRIMARY KEY
+			);
+			PRAGMA user_version = 0;
+		`);
+		let thrown: unknown;
+		try {
+			ensureSchema(db);
+		} catch (error) {
+			thrown = error;
+		}
+		expect(thrown).toBeInstanceOf(AxiError);
+		expect((thrown as AxiError).code).toBe("PROFILE_ERROR");
+		expect((thrown as Error).message).toMatch(/schema version is 0/);
 	});
 });

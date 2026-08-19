@@ -8,6 +8,22 @@ export const SCHEMA_VERSION = 4;
  * Applies DDL for new databases and sequential migrations across schema versions.
  */
 export function ensureSchema(db: Database): void {
+	try {
+		ensureSchemaInner(db);
+	} catch (err) {
+		if (err instanceof AxiError) throw err;
+		throw new AxiError(
+			`Could not prepare profile store schema: ${err instanceof Error ? err.message : String(err)}`,
+			"PROFILE_ERROR",
+			[
+				"The database may be corrupt or from an incompatible version",
+				"Back up the file and remove it, or migrate it to a supported user_version",
+			],
+		);
+	}
+}
+
+function ensureSchemaInner(db: Database): void {
 	const { user_version } = db.prepare("PRAGMA user_version").get() as {
 		user_version: number;
 	};
@@ -19,6 +35,24 @@ export function ensureSchema(db: Database): void {
 		);
 	}
 	if (user_version < 1) {
+		// A version-0 DB is only treated as a fresh install when the table is
+		// genuinely absent. A pre-existing `profiles` table at version 0 has an
+		// unknown shape — refuse to guess instead of failing on a raw SQL error.
+		const existing = db
+			.prepare(
+				"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'profiles'",
+			)
+			.get();
+		if (existing !== null) {
+			throw new AxiError(
+				"A 'profiles' table already exists but the schema version is 0 (unknown/incomplete schema)",
+				"PROFILE_ERROR",
+				[
+					"Remove the conflicting database file to start clean",
+					"Or migrate it to a supported user_version explicitly",
+				],
+			);
+		}
 		// Fresh install: v4 schema — the flat `birth*` vocabulary. Each birth
 		// field carries its identity in the `birth_` prefix.
 		db.exec(`

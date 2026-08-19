@@ -22,6 +22,7 @@
 		"typescript": "^5"
 	},
 	"dependencies": {
-		"axi-sdk-js": "^0.1.10"
+		"axi-sdk-js": "^0.1.10",
+		"caelus": "0.24.1"
 	}
 }
