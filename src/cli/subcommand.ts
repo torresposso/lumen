@@ -1,6 +1,5 @@
 import type { AxiCliCommand } from "axi-sdk-js";
 import { AxiError } from "axi-sdk-js";
-import { requireCliContext } from "../cli";
 import { type ArgsSpec, type ParsedArgs, parseArgs, wantsHelp } from "./args";
 
 /** What the runner may return: the same shapes an AXI command may render (string or structured output). */
@@ -63,9 +62,11 @@ export async function runSubcommand<TContext>(
 	const parsed = parseArgs(args, sub.spec, command);
 	if (parsed.help) return sub.usage;
 	if (context === undefined) {
-		requireCliContext(undefined);
+		throw new AxiError("No context provided", "CONTEXT_ERROR", [
+			"The CLI always provides one — this is a lumen bug",
+		]);
 	}
-	return await sub.run(parsed, context as TContext);
+	return await sub.run(parsed, context);
 }
 
 /**

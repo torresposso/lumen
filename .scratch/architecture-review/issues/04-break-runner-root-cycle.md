@@ -4,9 +4,9 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Running a subcommand with no context still fails loud with code CONTEXT_ERROR and the same suggestion
-- [ ] The runner module imports nothing by value from the composition root; the root⇄runner cycle is gone
-- [ ] `requireCliContext` remains in the root for the home handler (its behaviour unchanged)
-- [ ] Existing CONTEXT_ERROR assertions in the CLI tests pass; `bun test` and `bun run check` stay green
+- [x] Running a subcommand with no context still fails loud with code CONTEXT_ERROR and the same suggestion
+- [x] The runner module imports nothing by value from the composition root; the root⇄runner cycle is gone
+- [x] `requireCliContext` remains in the root for the home handler (its behaviour unchanged)
+- [x] Existing CONTEXT_ERROR assertions in the CLI tests pass; `bun test` and `bun run check` stay green
