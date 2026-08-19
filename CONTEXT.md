@@ -135,7 +135,17 @@ pushed.
   wrapping ephemerides (Caelus `Engine.chartAt`, `findAspects`, `declinationAspects`, `outOfBounds`, `returns`,
   `progressedLongitude`, `pheno`, eclipse finders in prod, `InMemoryEphemeris` in tests) with fixed
   Porphyry houses, True North Node, injected through the CLI Context (ADR-0011, ADR-0012, ADR-0013, ADR-0016, ADR-0017).
-
-
-
-
+- **Pluto Polarity Point (PPP)** — the point exactly 180° opposite Pluto on the ecliptic,
+  representing the evolutionary axis of conscious choice; it is active unless deactivated
+  by Pluto conjunct the True North Node within the deactivation orb (<= 3°).
+- **Nodal Axis & Skipped Steps** — the True North Node (`true_node`) and its opposite
+  South Node defining the karmic trajectory; any planetary body squaring the nodal axis
+  (within 5° orb) is identified as a *Skipped Step* (unresolved evolutionary lessons).
+- **Dispositor Chain** — the directed path of planetary rulerships starting from a body
+  or nodal ruler through sign rulers up to a maximum depth or final dispositor / mutual reception.
+- **Prenatal Eclipses** — the astronomical solar and lunar eclipses immediately preceding
+  the birth instant (`birthJdUt`), projected onto the natal house cusps.
+- **Aspect Stress** — the JWGEA classification of planetary aspects into stressful
+  (evolutionary tension/friction: conjunction, square, opposition, semisquare, sesquiquadrate,
+  quincunx) and nonstressful (integration/flow: trine, sextile, semisextile, septile,
+  quintile, biquintile).
