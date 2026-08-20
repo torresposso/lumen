@@ -162,11 +162,17 @@ pushed.
   target instant (`--when`, optional `--where` for local transit angles) projected against
   a stored natal profile (`lumen chart transits <uuid> --when ...`), calculating transiting
   bodies, house placements in the natal chart, inter-chart aspects (tight canon orbs,
-  applying/separating status), and JWGEA evolutionary triggers (transits activating natal Pluto,
+  applying/separating status against static natal points with `speed = 0`), and JWGEA evolutionary triggers (transits activating natal Pluto,
   PPP, Nodal Axis, and Skipped Steps).
 - **Progressions chart engine** — the calculation of secondary-progressed planetary positions
   ("day-for-a-year" symbolic motion) at a target instant (`lumen chart progressions <uuid> --when ...`),
   deriving the Progressed Sol-Luna Phase (28-year evolutionary cycle), progressed planet positions,
-  house placements in the natal chart, and exact progressed-to-natal aspect contacts.
+  house placements in the natal chart, and exact progressed-to-natal aspect contacts (evaluated against static natal points).
+- **Evolutionary Synthesis engine** — the multi-layer synthesis orchestrator (`lumen chart synthesis <uuid> --when ... [--where ...]`)
+  and atomic `--interpret` flags combining the 3-Layer Soul Stack (Layer 1: Karmic Root, Layer 2:
+  Internal Soul Clock, Layer 3: Cosmic Triggers) and deriving Layer 4 `evolutionaryDynamics` (the
+  cross-layer activation vectors mapping active transits directly to natal wounds, skipped steps,
+  and their canonical `resolutionNode`).
+
 
 
