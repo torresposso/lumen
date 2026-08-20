@@ -11,7 +11,7 @@ export function extractNatalPoints(
 	const points: Record<string, NatalPointReference> = {};
 
 	for (const [bodyId, body] of Object.entries(natalChart.bodies)) {
-		points[bodyId] = { lon: body.lon, speed: body.speed };
+		points[bodyId] = { lon: body.lon, speed: 0 };
 	}
 
 	points.asc = { lon: natalChart.angles.asc.lon, speed: 0 };
@@ -20,7 +20,7 @@ export function extractNatalPoints(
 	points.eastPoint = { lon: natalChart.angles.eastPoint.lon, speed: 0 };
 	points.pluto = {
 		lon: natalChart.pluto.lon,
-		speed: natalChart.bodies.pluto?.speed ?? 0,
+		speed: 0,
 	};
 
 	if (natalChart.ppp.active) {
