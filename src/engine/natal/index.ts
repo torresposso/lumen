@@ -1,5 +1,5 @@
 import type { BodyId, Chart, Position } from "caelus";
-import { CaelusEphemeris, type Ephemeris } from "../../adapters/ephemeris";
+import type { Ephemeris } from "../../adapters/ephemeris";
 import type { Profile } from "../../domain/model";
 import { toonProfile } from "../../domain/toon";
 import { projectPoint, roundPrecision } from "../shared/geometry";
@@ -118,7 +118,7 @@ function computeHouseRulers(cusps: CuspProjection[]): HouseRulerRow[] {
 
 function computeAspects(
 	rawBodies: Chart["bodies"],
-	ephemeris: Ephemeris = new CaelusEphemeris(),
+	ephemeris: Ephemeris,
 ): AspectProjection[] {
 	const bodyMap: Record<string, Position> = {};
 	for (const [id, body] of Object.entries(rawBodies)) {
@@ -148,7 +148,7 @@ function computeAspects(
 
 export function projectEclipticGeometry(
 	rawChart: Chart,
-	ephemeris: Ephemeris = new CaelusEphemeris(),
+	ephemeris: Ephemeris,
 ): EclipticGeometryProjection {
 	const cusps = projectCusps(rawChart.cusps);
 	const bodies = projectBodies(
@@ -307,7 +307,7 @@ function synthesizeEvolutionaryCanon(
  */
 export function computeNatalChart(
 	profile: Profile,
-	ephemeris: Ephemeris = new CaelusEphemeris(),
+	ephemeris: Ephemeris,
 ): NatalChartOutput {
 	const measurements = computeMeasurements(profile, ephemeris);
 	const evo = synthesizeEvolutionaryCanon(profile, measurements, ephemeris);

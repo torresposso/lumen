@@ -1,8 +1,10 @@
 import { describe, expect, test } from "bun:test";
+import { CaelusEphemeris } from "../../src/adapters/ephemeris";
 import type { Profile } from "../../src/domain/model";
 import { computeNatalChart } from "../../src/engine/natal/index";
 
 describe("computeNatalChart — Golden Vector (Tampa Anchor)", () => {
+	const ephemeris = new CaelusEphemeris();
 	const tampaProfile: Profile = {
 		id: "4f3a9c2e-8b71-4d0a-9c5e-000000000000",
 		name: null,
@@ -16,7 +18,7 @@ describe("computeNatalChart — Golden Vector (Tampa Anchor)", () => {
 	};
 
 	test("computes exact single-block chart structure matching prototype 02", () => {
-		const chart = computeNatalChart(tampaProfile);
+		const chart = computeNatalChart(tampaProfile, ephemeris);
 
 		expect(chart.houseSystem).toBe("porphyry");
 		expect(chart.zodiac).toBe("tropical");
