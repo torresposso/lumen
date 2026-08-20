@@ -52,7 +52,6 @@ describe("transits evolutionary triggers (JWGEA)", () => {
 		},
 	};
 
-
 	it("identifies triggers for Pluto, PPP, Nodal Axis, Skipped Steps, and Dispositors", () => {
 		const aspects: TransitAspect[] = [
 			{

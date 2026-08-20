@@ -14,6 +14,7 @@ const ROOT = join(import.meta.dir, "..");
 const SPEC_PATHS = [
 	join(ROOT, ".scratch", "chart-natal", "spec.md"),
 	join(ROOT, ".scratch", "chart-transits", "spec.md"),
+	join(ROOT, ".scratch", "chart-progressions", "spec.md"),
 ].filter((p) => existsSync(p));
 
 if (SPEC_PATHS.length === 0) {

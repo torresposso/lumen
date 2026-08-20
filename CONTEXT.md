@@ -164,4 +164,9 @@ pushed.
   bodies, house placements in the natal chart, inter-chart aspects (tight canon orbs,
   applying/separating status), and JWGEA evolutionary triggers (transits activating natal Pluto,
   PPP, Nodal Axis, and Skipped Steps).
+- **Progressions chart engine** — the calculation of secondary-progressed planetary positions
+  ("day-for-a-year" symbolic motion) at a target instant (`lumen chart progressions <uuid> --when ...`),
+  deriving the Progressed Sol-Luna Phase (28-year evolutionary cycle), progressed planet positions,
+  house placements in the natal chart, and exact progressed-to-natal aspect contacts.
+
 

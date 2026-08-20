@@ -7,6 +7,7 @@ import {
 	CHART_ARMS,
 	CHART_COMMAND,
 	PROFILE_LIST_HINT,
+	PROGRESSION_FLAGS,
 	TRANSIT_FLAGS,
 } from "../cli/surface";
 import {
@@ -14,11 +15,13 @@ import {
 	parseTransitInput,
 } from "../domain/transit-input";
 import { computeNatalChart } from "../engine/natal/index";
+import { computeProgressedChart } from "../engine/progressions/index";
 import { computeTransitChart } from "../engine/transits/index";
 
 const chartUsage = [
 	CHART_ARMS.natal,
 	CHART_ARMS.transits,
+	CHART_ARMS.progressions,
 	"",
 	"Calculate astrological charts.",
 ].join("\n");
@@ -33,6 +36,12 @@ const chartTransitsUsage = [
 	CHART_ARMS.transits,
 	"",
 	"Calculates planetary transits and JWGEA evolutionary triggers over a natal chart.",
+].join("\n");
+
+const chartProgressionsUsage = [
+	CHART_ARMS.progressions,
+	"",
+	"Calculates secondary progressions and the 28-year Sol-Luna phase cycle over a natal chart.",
 ].join("\n");
 
 const NATAL_SPEC: ArgsSpec = {
@@ -87,6 +96,34 @@ export const chartCommand = createSubcommandGroup<CliContext>({
 
 				const transits = computeTransitChart(profile, targetInput, ephemeris);
 				return { transits };
+			},
+		},
+		progressions: {
+			spec: CHART_TRANSITS_SPEC,
+			summary: CHART_ARM_HELP.progressions,
+			line: CHART_ARMS.progressions,
+			usage: chartProgressionsUsage,
+			run: (parsed, context) => {
+				const { profiles, ephemeris } = context;
+				const id = parsed.positionals[0] as string;
+				const profile = profiles.get(id);
+				if (!profile) {
+					throw new AxiError(`Profile not found: ${id}`, "NOT_FOUND", [
+						PROFILE_LIST_HINT,
+					]);
+				}
+
+				const targetInput = parseTransitInput(parsed.flags, {
+					when: PROGRESSION_FLAGS.when,
+					where: "--where",
+				});
+
+				const progressions = computeProgressedChart(
+					profile,
+					targetInput,
+					ephemeris,
+				);
+				return { progressions };
 			},
 		},
 	},

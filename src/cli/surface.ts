@@ -30,6 +30,7 @@ export const PROFILE_ARMS = {
 export const CHART_ARMS = {
 	natal: `${CHART_COMMAND} natal <uuid>`,
 	transits: `${CHART_COMMAND} transits <uuid> --when "YYYY-MM-DDTHH:MM±HH:MM" [--where "lat, lon, Place"]`,
+	progressions: `${CHART_COMMAND} progressions <uuid> --when "YYYY-MM-DDTHH:MM±HH:MM"`,
 } as const;
 
 export const ADD_FLAGS = {
@@ -41,6 +42,10 @@ export const ADD_FLAGS = {
 export const TRANSIT_FLAGS = {
 	when: "--when",
 	where: "--where",
+} as const;
+
+export const PROGRESSION_FLAGS = {
+	when: "--when",
 } as const;
 
 /** The canonical `add` example — the single source for every usage and empty-state reference. */
@@ -63,6 +68,8 @@ export const PROFILE_ARM_HELP = {
 export const CHART_ARM_HELP = {
 	natal: "Calculate natal chart (Porphyry / True Node / JWGEA)",
 	transits: "Calculate planetary transits and JWGEA evolutionary triggers",
+	progressions:
+		"Calculate secondary progressions and the 28-year Sol-Luna phase cycle",
 } as const;
 
 /**
