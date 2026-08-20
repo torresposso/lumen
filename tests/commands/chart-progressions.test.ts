@@ -34,7 +34,15 @@ describe("chartCommand — lumen chart progressions <uuid>", () => {
 		const res = (await chartCommand(
 			["progressions", profile.id, "--when", "2026-08-20T12:00-05:00"],
 			ctx,
-		)) as any;
+		)) as {
+			progressions: {
+				target: { ageYears: number };
+				solLunaPhase: { phase: string };
+				progressedBodies: { sun: unknown; moon: unknown };
+				aspectsToNatal: unknown;
+				evolutionaryTriggers: unknown;
+			};
+		};
 
 		expect(res.progressions).toBeDefined();
 		expect(res.progressions.target.ageYears).toBeCloseTo(45.56, 1);
@@ -47,11 +55,67 @@ describe("chartCommand — lumen chart progressions <uuid>", () => {
 		expect(res.progressions.evolutionaryTriggers).toBeDefined();
 	});
 
+	it("computes progressionsInterpretation when --interpret flag is provided", async () => {
+		const ctx = createCtx();
+		const profile = ctx.profiles.list()[0] as Profile;
+
+		const res = (await chartCommand(
+			[
+				"progressions",
+				profile.id,
+				"--when",
+				"2026-08-20T12:00-05:00",
+				"--interpret",
+			],
+			ctx,
+		)) as {
+			progressionsInterpretation: {
+				target: { dateTime: string; jdUt: number; ageYears: number };
+				natal: { id: string };
+				solLunaPhase: {
+					phaseNumber: number;
+					phaseName: string;
+					archetype: string;
+					sunMoonAngle: number;
+					isWaxing: boolean;
+					description: string;
+				};
+				progressedSun: { sign: string; house: number; degree: number };
+				progressedMoon: { sign: string; house: number; degree: number };
+				progressedTriggers: Array<{
+					progressedBody: string;
+					natalPoint: string;
+					aspect: string;
+					orb: number;
+				}>;
+			};
+		};
+
+		expect(res.progressionsInterpretation).toBeDefined();
+		expect(res.progressionsInterpretation.natal.id).toBe(profile.id);
+		expect(res.progressionsInterpretation.target.dateTime).toBe(
+			"2026-08-20T12:00-05:00",
+		);
+		expect(
+			res.progressionsInterpretation.solLunaPhase.phaseNumber,
+		).toBeGreaterThanOrEqual(1);
+		expect(res.progressionsInterpretation.progressedSun.sign).toBeDefined();
+		expect(res.progressionsInterpretation.progressedMoon.sign).toBeDefined();
+		expect(
+			Array.isArray(res.progressionsInterpretation.progressedTriggers),
+		).toBe(true);
+	});
+
 	it("throws NOT_FOUND for unknown uuid", async () => {
 		const ctx = createCtx();
 		expect(
 			chartCommand(
-				["progressions", "non-existent-uuid", "--when", "2026-08-20T12:00Z"],
+				[
+					"progressions",
+					"non-existent-uuid",
+					"--when",
+					"2026-08-20T12:00-05:00",
+				],
 				ctx,
 			),
 		).rejects.toThrow(AxiError);

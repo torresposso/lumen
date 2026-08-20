@@ -1,3 +1,4 @@
+import type { ToonProfile } from "../../domain/toon";
 import type { AngleProjection, CuspProjection } from "../natal/types";
 import type { AspectStress } from "../shared/aspects";
 
@@ -77,4 +78,29 @@ export interface TransitChartOutput {
 	evolutionaryTriggers: TransitEvolutionaryTriggers;
 	outOfBounds: string[];
 	method: string;
+}
+
+export interface TransitsInterpretationOutput {
+	transitsInterpretation: {
+		target: {
+			dateTime: string;
+			jdUt: number;
+			coordinates?: { lat: number; lon: number; place?: string };
+		};
+		natal: ToonProfile;
+		activeTriggers: Array<{
+			transitingBody: string;
+			natalPoint: string;
+			aspect: string;
+			orb: number;
+			isApplying: boolean;
+			transitingHouse: number;
+			natalHouseRuled?: number;
+		}>;
+		outOfBoundsTransits: Array<{
+			planet: string;
+			declination: number;
+			status: "out_of_bounds_north" | "out_of_bounds_south";
+		}>;
+	};
 }

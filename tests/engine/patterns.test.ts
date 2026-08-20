@@ -93,7 +93,7 @@ describe("Patterns and Signature calculations", () => {
 						dignities: [],
 					},
 				},
-			} as any,
+			} as never,
 		});
 
 		const chart = computeNatalChart(baseProfile, ephemeris);

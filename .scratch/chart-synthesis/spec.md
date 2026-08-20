@@ -184,3 +184,45 @@ lumen chart synthesis <uuid> --when "YYYY-MM-DDTHH:MM±HH:MM" [--where "lat, lon
    Transits forming major aspects (conjunction, square, opposition, trine, sextile) to natal Pluto, PPP, North Node, or South Node within tight JWGEA orbs ($\le 3^\circ$ for transits).
 3. **Phase Context Guidance**:
    The 28-year Progressed Sol-Luna Phase provides the evolutionary background coloring the current era (e.g. *Balsamic / Phase 8: Karma culmination, distillation, and release before the upcoming new cycle*).
+
+## 8. Source Layout
+
+```
+bin/lumen.ts
+src/cli.ts
+src/version.ts
+src/commands/profile.ts
+src/commands/chart.ts
+src/cli/args.ts
+src/cli/surface.ts
+src/cli/subcommand.ts
+src/domain/model.ts
+src/domain/store.ts
+src/domain/datetime.ts
+src/domain/birth-input.ts
+src/domain/transit-input.ts
+src/domain/toon.ts
+src/engine/shared/geometry.ts
+src/engine/shared/rulers.ts
+src/engine/shared/aspects.ts
+src/engine/shared/natal-points.ts
+src/engine/natal/types.ts
+src/engine/natal/pluto-polarity.ts
+src/engine/natal/nodal.ts
+src/engine/natal/soul-lots.ts
+src/engine/natal/phases.ts
+src/engine/natal/eclipses.ts
+src/engine/natal/patterns.ts
+src/engine/natal/index.ts
+src/engine/transits/types.ts
+src/engine/transits/triggers.ts
+src/engine/transits/aspects.ts
+src/engine/transits/index.ts
+src/engine/progressions/types.ts
+src/engine/progressions/index.ts
+src/engine/synthesis/types.ts
+src/engine/synthesis/index.ts
+src/storage/schema.ts
+src/storage/profile-store.ts
+src/adapters/ephemeris.ts
+```

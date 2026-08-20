@@ -3,7 +3,7 @@ import { AxiError } from "axi-sdk-js";
 import { type ArgsSpec, type ParsedArgs, parseArgs, wantsHelp } from "./args";
 
 /** What the runner may return: the same shapes an AXI command may render (string or structured output). */
-export type Renderable = string | Record<string, unknown>;
+export type Renderable = string | Record<string, unknown> | object;
 
 export interface CommandArmDescription {
 	line: string;
@@ -97,7 +97,12 @@ export function createSubcommandGroup<TContext>(
 		if (Object.hasOwn(group.subcommands, subName)) {
 			const arm = group.subcommands[subName];
 			if (arm !== undefined) {
-				return runSubcommand(context, rest, `${group.name} ${subName}`, arm);
+				return (await runSubcommand(
+					context,
+					rest,
+					`${group.name} ${subName}`,
+					arm,
+				)) as unknown as Record<string, unknown>;
 			}
 		}
 

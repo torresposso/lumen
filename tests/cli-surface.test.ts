@@ -12,6 +12,7 @@ import {
 	PROFILE_ARMS,
 	PROFILE_COMMAND,
 	PROFILE_LIST_HINT,
+	SYNTHESIS_FLAGS,
 } from "../src/cli/surface";
 
 import type { NewProfile } from "../src/domain/model";
@@ -48,6 +49,8 @@ describe("command surface", () => {
 		expect(ADD_FLAGS.when).toBe("--when");
 		expect(ADD_FLAGS.where).toBe("--where");
 		expect(ADD_FLAGS.name).toBe("--name");
+		expect(SYNTHESIS_FLAGS.when).toBe("--when");
+		expect(SYNTHESIS_FLAGS.where).toBe("--where");
 	});
 
 	test("exposes the command and arm tokens", () => {
@@ -58,6 +61,9 @@ describe("command surface", () => {
 		expect(PROFILE_ARMS.delete).toBe("lumen profile delete");
 		expect(CHART_COMMAND).toBe("lumen chart");
 		expect(CHART_ARMS.natal).toBe("lumen chart natal <uuid>");
+		expect(CHART_ARMS.synthesis).toBe(
+			'lumen chart synthesis <uuid> --when "YYYY-MM-DDTHH:MM±HH:MM" [--where "lat, lon, Place"]',
+		);
 	});
 
 	test("the canonical example matches the spec §3 example verbatim", () => {

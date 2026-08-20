@@ -1,10 +1,15 @@
 import {
 	antiscion,
 	contraAntiscion,
+	fmtLon,
 	houseOf,
 	midpointLon,
 	SIGNS,
 } from "caelus";
+
+export function formatEclipticDegree(lon: number): string {
+	return fmtLon(lon).trim();
+}
 
 export interface ProjectedEclipticPoint {
 	lon: number;

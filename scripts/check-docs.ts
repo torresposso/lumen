@@ -15,6 +15,7 @@ const SPEC_PATHS = [
 	join(ROOT, ".scratch", "chart-natal", "spec.md"),
 	join(ROOT, ".scratch", "chart-transits", "spec.md"),
 	join(ROOT, ".scratch", "chart-progressions", "spec.md"),
+	join(ROOT, ".scratch", "chart-synthesis", "spec.md"),
 ].filter((p) => existsSync(p));
 
 if (SPEC_PATHS.length === 0) {
@@ -124,24 +125,26 @@ function surfaceVocabulary() {
 		);
 	}
 
-	const flagsBlock = src.match(/ADD_FLAGS\s*=\s*{([\s\S]*?)}/)?.[1];
-	if (flagsBlock === undefined) {
-		fail("src/cli/surface.ts does not declare ADD_FLAGS");
-		return;
+	const allFlags = new Set<string>();
+	for (const match of src.matchAll(
+		/export const \w+_FLAGS\s*=\s*{([\s\S]*?)}/g,
+	)) {
+		const flagsBlock = match[1] ?? "";
+		for (const m of flagsBlock.matchAll(/["'](--[\w-]+)["']/g)) {
+			if (m[1]) allFlags.add(m[1]);
+		}
 	}
-	const flags = [...flagsBlock.matchAll(/["'](--[\w-]+)["']/g)]
-		.map((m) => m[1] ?? "")
-		.filter((s) => s.length > 0);
+
 	const specFlagSet = new Set(specFlags());
-	for (const f of flags)
+	for (const f of allFlags)
 		if (!specFlagSet.has(f))
 			fail(
-				`spec.md §3 does not list flag '${f}' (declared in ADD_FLAGS). Update spec.md §3.`,
+				`spec.md §3 does not list flag '${f}' (declared in surface.ts flags). Update spec.md §3.`,
 			);
 	for (const f of specFlagSet)
-		if (!flags.includes(f))
+		if (!allFlags.has(f))
 			fail(
-				`surface.ts ADD_FLAGS does not declare '${f}' (listed in spec.md §3). Update src/cli/surface.ts.`,
+				`surface.ts flags do not declare '${f}' (listed in spec.md §3). Update src/cli/surface.ts.`,
 			);
 }
 

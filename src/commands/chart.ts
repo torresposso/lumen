@@ -6,20 +6,33 @@ import {
 	CHART_ARM_HELP,
 	CHART_ARMS,
 	CHART_COMMAND,
+	INTERPRET_FLAGS,
 	PROFILE_LIST_HINT,
 	PROGRESSION_FLAGS,
+	SYNTHESIS_FLAGS,
 	TRANSIT_FLAGS,
 } from "../cli/surface";
 import { parseTransitInput } from "../domain/transit-input";
 
-import { computeNatalChart } from "../engine/natal/index";
-import { computeProgressedChart } from "../engine/progressions/index";
-import { computeTransitChart } from "../engine/transits/index";
+import {
+	computeNatalChart,
+	extractNatalInterpretation,
+} from "../engine/natal/index";
+import {
+	computeProgressedChart,
+	extractProgressionsInterpretation,
+} from "../engine/progressions/index";
+import { computeEvolutionarySynthesis } from "../engine/synthesis/index";
+import {
+	computeTransitChart,
+	extractTransitsInterpretation,
+} from "../engine/transits/index";
 
 const chartUsage = [
 	CHART_ARMS.natal,
 	CHART_ARMS.transits,
 	CHART_ARMS.progressions,
+	CHART_ARMS.synthesis,
 	"",
 	"Calculate astrological charts.",
 ].join("\n");
@@ -42,15 +55,27 @@ const chartProgressionsUsage = [
 	"Calculates secondary progressions and the 28-year Sol-Luna phase cycle over a natal chart.",
 ].join("\n");
 
+const chartSynthesisUsage = [
+	CHART_ARMS.synthesis,
+	"",
+	"Calculates unified 3-layer evolutionary synthesis and cross-dynamics over a natal chart.",
+].join("\n");
+
 const NATAL_SPEC: ArgsSpec = {
-	known: new Set(),
+	known: new Set([INTERPRET_FLAGS.interpret]),
+	booleanFlags: new Set([INTERPRET_FLAGS.interpret]),
 	positionals: 1,
 	positionalName: "profile id",
 	positionalHint: "Use the UUID printed by `lumen profile add`",
 };
 
 const TRANSITS_SPEC: ArgsSpec = {
-	known: new Set([TRANSIT_FLAGS.when, TRANSIT_FLAGS.where]),
+	known: new Set([
+		TRANSIT_FLAGS.when,
+		TRANSIT_FLAGS.where,
+		INTERPRET_FLAGS.interpret,
+	]),
+	booleanFlags: new Set([INTERPRET_FLAGS.interpret]),
 	required: new Set([TRANSIT_FLAGS.when]),
 	positionals: 1,
 	positionalName: "profile id",
@@ -62,13 +87,26 @@ const TRANSITS_SPEC: ArgsSpec = {
 };
 
 const PROGRESSIONS_SPEC: ArgsSpec = {
-	known: new Set([PROGRESSION_FLAGS.when]),
+	known: new Set([PROGRESSION_FLAGS.when, INTERPRET_FLAGS.interpret]),
+	booleanFlags: new Set([INTERPRET_FLAGS.interpret]),
 	required: new Set([PROGRESSION_FLAGS.when]),
 	positionals: 1,
 	positionalName: "profile id",
 	positionalHint: "Use the UUID printed by `lumen profile add`",
 	rules: {
 		[PROGRESSION_FLAGS.when]: { trim: true, nonEmpty: true },
+	},
+};
+
+const SYNTHESIS_SPEC: ArgsSpec = {
+	known: new Set([SYNTHESIS_FLAGS.when, SYNTHESIS_FLAGS.where]),
+	required: new Set([SYNTHESIS_FLAGS.when]),
+	positionals: 1,
+	positionalName: "profile id",
+	positionalHint: "Use the UUID printed by `lumen profile add`",
+	rules: {
+		[SYNTHESIS_FLAGS.when]: { trim: true, nonEmpty: true },
+		[SYNTHESIS_FLAGS.where]: { trim: true, nonEmpty: true },
 	},
 };
 
@@ -92,6 +130,9 @@ export const chartCommand = createSubcommandGroup<CliContext>({
 				}
 
 				const chart = computeNatalChart(profile, ephemeris);
+				if (parsed.flags.get(INTERPRET_FLAGS.interpret) === "true") {
+					return extractNatalInterpretation(chart);
+				}
 				return { chart };
 			},
 		},
@@ -116,6 +157,9 @@ export const chartCommand = createSubcommandGroup<CliContext>({
 				});
 
 				const transits = computeTransitChart(profile, targetInput, ephemeris);
+				if (parsed.flags.get(INTERPRET_FLAGS.interpret) === "true") {
+					return extractTransitsInterpretation(transits);
+				}
 				return { transits };
 			},
 		},
@@ -143,7 +187,33 @@ export const chartCommand = createSubcommandGroup<CliContext>({
 					targetInput,
 					ephemeris,
 				);
+				if (parsed.flags.get(INTERPRET_FLAGS.interpret) === "true") {
+					return extractProgressionsInterpretation(progressions);
+				}
 				return { progressions };
+			},
+		},
+		synthesis: {
+			spec: SYNTHESIS_SPEC,
+			summary: CHART_ARM_HELP.synthesis,
+			line: CHART_ARMS.synthesis,
+			usage: chartSynthesisUsage,
+			run: (parsed, context) => {
+				const { profiles, ephemeris } = context;
+				const id = parsed.positionals[0] as string;
+				const profile = profiles.get(id);
+				if (!profile) {
+					throw new AxiError(`Profile not found: ${id}`, "NOT_FOUND", [
+						PROFILE_LIST_HINT,
+					]);
+				}
+
+				const targetInput = parseTransitInput(parsed.flags, {
+					when: SYNTHESIS_FLAGS.when,
+					where: SYNTHESIS_FLAGS.where,
+				});
+
+				return computeEvolutionarySynthesis(profile, targetInput, ephemeris);
 			},
 		},
 	},

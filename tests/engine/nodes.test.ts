@@ -82,7 +82,7 @@ describe("Nodal axis astrology calculations (JWGEA canon)", () => {
 						dignities: [],
 					},
 				},
-			} as any,
+			} as never,
 		});
 
 		const chart = computeNatalChart(baseProfile, ephemeris);

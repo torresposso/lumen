@@ -9,7 +9,13 @@ import { projectPoint, roundPrecision, signOf } from "../shared/geometry";
 import { extractNatalPoints } from "../shared/natal-points";
 import { computeTransitAspects } from "./aspects";
 import { computeEvolutionaryTriggers } from "./triggers";
-import type { TransitBody, TransitChartOutput } from "./types";
+import type {
+	TransitBody,
+	TransitChartOutput,
+	TransitsInterpretationOutput,
+} from "./types";
+
+export type { TransitChartOutput, TransitsInterpretationOutput } from "./types";
 
 export function computeTransitChart(
 	natalProfile: Profile,
@@ -147,5 +153,64 @@ export function computeTransitChart(
 		outOfBounds,
 		method:
 			"JWGEA Transit Engine (Porphyry cusps / True Node / Tight Evolutionary Orbs)",
+	};
+}
+
+/**
+ * Extracts active triggers and out-of-bounds pressure from a computed transits chart.
+ */
+export function extractTransitsInterpretation(
+	transits: TransitChartOutput,
+): TransitsInterpretationOutput {
+	const activeTriggers = transits.aspectsToNatal.map((asp) => {
+		const tBody = transits.transitingBodies[asp.transitBody];
+		return {
+			transitingBody: asp.transitBody,
+			natalPoint: asp.natalPoint,
+			aspect: asp.aspect,
+			orb: asp.orb,
+			isApplying: asp.isApplying,
+			transitingHouse: tBody?.natalHouse ?? 1,
+		};
+	});
+
+	const outOfBoundsTransits = Object.values(transits.transitingBodies)
+		.filter((b) => b.outOfBounds)
+		.map((b) => ({
+			planet: b.name,
+			declination: b.dec,
+			status: (b.dec >= 0 ? "out_of_bounds_north" : "out_of_bounds_south") as
+				| "out_of_bounds_north"
+				| "out_of_bounds_south",
+		}));
+
+	const coordinates =
+		transits.target.lat !== undefined && transits.target.lon !== undefined
+			? {
+					lat: transits.target.lat,
+					lon: transits.target.lon,
+					place: transits.target.place,
+				}
+			: undefined;
+
+	return {
+		transitsInterpretation: {
+			target: {
+				dateTime: transits.target.dateTime,
+				jdUt: transits.target.jdUt,
+				...(coordinates ? { coordinates } : {}),
+			},
+			natal: {
+				id: transits.natal.id,
+				name: transits.natal.name ?? null,
+				birthPlace: transits.natal.birthPlace,
+				birthDateTime: transits.natal.birthDateTime,
+				birthLat: transits.natal.birthLat,
+				birthLon: transits.natal.birthLon,
+				birthJdUt: transits.natal.birthJdUt,
+			},
+			activeTriggers,
+			outOfBoundsTransits,
+		},
 	};
 }

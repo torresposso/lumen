@@ -10,6 +10,8 @@ export interface ArgsSpec {
 	positionals?: 0 | 1;
 	/** What the positional is called in errors, e.g. "profile id". Defaults to "argument". */
 	positionalName?: string;
+	/** Flags whose presence indicates true without taking a value argument (e.g. `--interpret`). */
+	booleanFlags?: ReadonlySet<string>;
 	/** Suggestion attached when a required positional is missing. */
 	positionalHint?: string;
 	/** Per-flag value normalization applied after the syntax pass. */
@@ -86,8 +88,15 @@ export function parseArgs(
 			issues.push(`Unknown flag: ${flag}`);
 			continue;
 		}
+		const isBool = spec.booleanFlags?.has(flag);
 		let value: string;
-		if (eq !== -1) {
+		if (isBool) {
+			if (eq !== -1) {
+				issues.push(`Flag ${flag} does not take a value`);
+				continue;
+			}
+			value = "true";
+		} else if (eq !== -1) {
 			value = arg.slice(eq + 1);
 		} else {
 			const next = args[i + 1];

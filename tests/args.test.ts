@@ -157,6 +157,33 @@ describe("parseArgs", () => {
 			expect((error as Error).message).toContain("Unknown flag: --bogus");
 		}
 	});
+
+	test("parses boolean flags without values", () => {
+		const spec: ArgsSpec = {
+			known: new Set(["--interpret", "--when"]),
+			booleanFlags: new Set(["--interpret"]),
+			positionals: 1,
+		};
+		const parsed = parseArgs(
+			["uuid-123", "--interpret", "--when", "2026-08-20T12:00Z"],
+			spec,
+			"lumen chart natal",
+		);
+		expect(parsed.flags.get("--interpret")).toBe("true");
+		expect(parsed.flags.get("--when")).toBe("2026-08-20T12:00Z");
+		expect(parsed.positionals).toEqual(["uuid-123"]);
+	});
+
+	test("rejects boolean flags passed with inline value (=value)", () => {
+		const spec: ArgsSpec = {
+			known: new Set(["--interpret"]),
+			booleanFlags: new Set(["--interpret"]),
+			positionals: 0,
+		};
+		expect(() =>
+			parseArgs(["--interpret=true"], spec, "lumen chart natal"),
+		).toThrow(/does not take a value/);
+	});
 });
 
 describe("parseArgs value rules", () => {

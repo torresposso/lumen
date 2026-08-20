@@ -82,7 +82,7 @@ describe("Sol-Luna phase calculation", () => {
 						dignities: [],
 					},
 				},
-			} as any,
+			} as never,
 		});
 		return computeNatalChart(baseProfile, ephemeris);
 	}

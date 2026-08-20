@@ -2,7 +2,11 @@ import type { BodyId, Chart, Position } from "caelus";
 import type { Ephemeris } from "../../adapters/ephemeris";
 import type { Profile } from "../../domain/model";
 import { toonProfile } from "../../domain/toon";
-import { projectPoint, roundPrecision } from "../shared/geometry";
+import {
+	formatEclipticDegree,
+	projectPoint,
+	roundPrecision,
+} from "../shared/geometry";
 import { SIGN_RULERS } from "../shared/rulers";
 import { computePrenatalEclipses } from "./eclipses";
 import { computeNodalAxisFact } from "./nodal";
@@ -22,11 +26,16 @@ import type {
 	EclipticGeometryProjection,
 	HouseRulerRow,
 	NatalChartOutput,
+	NatalInterpretationOutput,
 } from "./types";
 
 export { computeSolLunaPhase, type SolLunaPhaseName } from "./phases";
 export { computeSoulLots } from "./soul-lots";
-export type { NatalChartOutput, SoulLotsProjection } from "./types";
+export type {
+	NatalChartOutput,
+	NatalInterpretationOutput,
+	SoulLotsProjection,
+} from "./types";
 
 const DEFAULT_BODIES: BodyId[] = [
 	"sun",
@@ -345,5 +354,141 @@ export function computeNatalChart(
 		houseRulers: measurements.houseRulers,
 		counts: evo.counts,
 		method: evo.method,
+	};
+}
+
+/**
+ * Extracts the evolutionary karmic root and core interpretative blocks from a computed natal chart.
+ */
+export function extractNatalInterpretation(
+	chart: NatalChartOutput,
+): NatalInterpretationOutput {
+	const pluto = chart.pluto;
+	const ppp = chart.ppp;
+	const north = chart.nodalAxis.north;
+	const south = chart.nodalAxis.south;
+
+	// Nodal rulers locations
+	const northRuler = north.ruler ?? "unknown";
+	const southRuler = south.ruler ?? "unknown";
+	const northRulerBody = chart.bodies[northRuler];
+	const southRulerBody = chart.bodies[southRuler];
+
+	const northRulerLocation = {
+		sign: northRulerBody?.sign ?? north.rulerPlacement?.sign ?? "unknown",
+		house: northRulerBody?.house ?? north.rulerPlacement?.house ?? 1,
+	};
+	const southRulerLocation = {
+		sign: southRulerBody?.sign ?? south.rulerPlacement?.sign ?? "unknown",
+		house: southRulerBody?.house ?? south.rulerPlacement?.house ?? 1,
+	};
+
+	// Skipped steps
+	const skippedSteps = chart.nodalAxis.skippedSteps.map((step) => {
+		const stepBody = chart.bodies[step.body];
+		return {
+			planet: step.body,
+			sign: stepBody?.sign ?? "unknown",
+			house: stepBody?.house ?? 1,
+			squareToNode: "both" as const,
+			resolutionNode: step.resolutionNode,
+		};
+	});
+
+	// Dispositor dynamics
+	const finalDispositors: string[] = [];
+	const dominantLoop: string[] = [];
+	for (const chain of Object.values(chart.dispositorChains)) {
+		if (!chain) continue;
+		if (chain.terminalType === "final_dispositor") {
+			for (const b of chain.terminalBodies) {
+				if (!finalDispositors.includes(b)) {
+					finalDispositors.push(b);
+				}
+			}
+		} else if (
+			chain.terminalType === "loop" ||
+			chain.terminalType === "mutual_reception"
+		) {
+			for (const b of chain.terminalBodies) {
+				if (!dominantLoop.includes(b)) {
+					dominantLoop.push(b);
+				}
+			}
+		}
+	}
+
+	// Prenatal eclipses
+	const prenatalEclipses = {
+		solar: {
+			sign: chart.prenatalEclipses.solar?.sign ?? "unknown",
+			house: chart.prenatalEclipses.solar?.house ?? 1,
+			formatted:
+				chart.prenatalEclipses.solar?.lon !== undefined
+					? formatEclipticDegree(chart.prenatalEclipses.solar.lon)
+					: "unknown",
+		},
+		lunar: {
+			sign: chart.prenatalEclipses.lunar?.sign ?? "unknown",
+			house: chart.prenatalEclipses.lunar?.house ?? 1,
+			formatted:
+				chart.prenatalEclipses.lunar?.lon !== undefined
+					? formatEclipticDegree(chart.prenatalEclipses.lunar.lon)
+					: "unknown",
+		},
+	};
+
+	// Soul lots
+	const soulLots = {
+		lotOfFortune: {
+			sign: chart.lots.fortune.sign,
+			house: chart.lots.fortune.house,
+			formatted: formatEclipticDegree(chart.lots.fortune.lon),
+		},
+		lotOfSpirit: {
+			sign: chart.lots.spirit.sign,
+			house: chart.lots.spirit.house,
+			formatted: formatEclipticDegree(chart.lots.spirit.lon),
+		},
+	};
+
+	return {
+		natalInterpretation: {
+			profile: chart.birth,
+			karmicRoot: {
+				pluto: {
+					sign: pluto.sign,
+					house: pluto.house,
+					degree: pluto.signDeg,
+					isRetrograde: pluto.retrograde,
+					polarityPoint: {
+						sign: ppp.sign,
+						house: ppp.house,
+						degree: ppp.signDeg,
+					},
+				},
+				nodalAxis: {
+					northNode: {
+						sign: north.sign,
+						house: north.house,
+						ruler: northRuler,
+						rulerLocation: northRulerLocation,
+					},
+					southNode: {
+						sign: south.sign,
+						house: south.house,
+						ruler: southRuler,
+						rulerLocation: southRulerLocation,
+					},
+				},
+				skippedSteps,
+				dispositorDynamics: {
+					dominantLoop,
+					finalDispositors,
+				},
+				prenatalEclipses,
+				soulLots,
+			},
+		},
 	};
 }

@@ -1,3 +1,4 @@
+import type { ToonProfile } from "../../domain/toon";
 import type { AspectStress } from "../shared/aspects";
 
 export interface ProgressedTargetOutput {
@@ -67,4 +68,32 @@ export interface ProgressedChartOutput {
 	aspectsToNatal: ProgressedAspect[];
 	evolutionaryTriggers: ProgressedEvolutionaryTriggers;
 	method: string;
+}
+
+export interface ProgressionsInterpretationOutput {
+	progressionsInterpretation: {
+		target: {
+			dateTime: string;
+			jdUt: number;
+			ageYears: number;
+			progressedJdUt: number;
+		};
+		natal: ToonProfile;
+		solLunaPhase: {
+			phaseNumber: number;
+			phaseName: string;
+			archetype: string;
+			sunMoonAngle: number;
+			isWaxing: boolean;
+			description: string;
+		};
+		progressedSun: { sign: string; house: number; degree: number };
+		progressedMoon: { sign: string; house: number; degree: number };
+		progressedTriggers: Array<{
+			progressedBody: string;
+			natalPoint: string;
+			aspect: string;
+			orb: number;
+		}>;
+	};
 }

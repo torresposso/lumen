@@ -34,7 +34,15 @@ describe("chartCommand — lumen chart transits <uuid>", () => {
 		const res = (await chartCommand(
 			["transits", profile.id, "--when", "2026-08-20T12:00Z"],
 			ctx,
-		)) as any;
+		)) as {
+			transits: {
+				natal: { id: string };
+				target: { dateTime: string };
+				transitingBodies: { pluto: unknown };
+				aspectsToNatal: unknown;
+				evolutionaryTriggers: unknown;
+			};
+		};
 
 		expect(res.transits).toBeDefined();
 		expect(res.transits.natal.id).toBe(profile.id);
@@ -59,13 +67,57 @@ describe("chartCommand — lumen chart transits <uuid>", () => {
 				"40.7128, -74.0060, New York, NY",
 			],
 			ctx,
-		)) as any;
+		)) as {
+			transits: {
+				transitAngles?: { asc: unknown };
+				transitCusps?: unknown[];
+				houseSystem?: string;
+			};
+		};
 
 		expect(res.transits.transitAngles).toBeDefined();
 		expect(res.transits.transitAngles?.asc).toBeDefined();
 		expect(res.transits.transitCusps).toBeDefined();
 		expect(res.transits.transitCusps?.length).toBe(12);
 		expect(res.transits.houseSystem).toBe("porphyry");
+	});
+
+	it("computes transitsInterpretation when --interpret flag is provided", async () => {
+		const ctx = createCtx();
+		const profile = ctx.profiles.list()[0] as Profile;
+
+		const res = (await chartCommand(
+			["transits", profile.id, "--when", "2026-08-20T12:00Z", "--interpret"],
+			ctx,
+		)) as {
+			transitsInterpretation: {
+				target: { dateTime: string; jdUt: number };
+				natal: { id: string };
+				activeTriggers: Array<{
+					transitingBody: string;
+					natalPoint: string;
+					aspect: string;
+					orb: number;
+					isApplying: boolean;
+					transitingHouse: number;
+				}>;
+				outOfBoundsTransits: Array<{
+					planet: string;
+					declination: number;
+					status: string;
+				}>;
+			};
+		};
+
+		expect(res.transitsInterpretation).toBeDefined();
+		expect(res.transitsInterpretation.natal.id).toBe(profile.id);
+		expect(res.transitsInterpretation.target.dateTime).toBe(
+			"2026-08-20T12:00Z",
+		);
+		expect(Array.isArray(res.transitsInterpretation.activeTriggers)).toBe(true);
+		expect(Array.isArray(res.transitsInterpretation.outOfBoundsTransits)).toBe(
+			true,
+		);
 	});
 
 	it("throws NOT_FOUND for unknown uuid", async () => {

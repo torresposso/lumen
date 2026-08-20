@@ -31,6 +31,7 @@ export const CHART_ARMS = {
 	natal: `${CHART_COMMAND} natal <uuid>`,
 	transits: `${CHART_COMMAND} transits <uuid> --when "YYYY-MM-DDTHH:MM±HH:MM" [--where "lat, lon, Place"]`,
 	progressions: `${CHART_COMMAND} progressions <uuid> --when "YYYY-MM-DDTHH:MM±HH:MM"`,
+	synthesis: `${CHART_COMMAND} synthesis <uuid> --when "YYYY-MM-DDTHH:MM±HH:MM" [--where "lat, lon, Place"]`,
 } as const;
 
 export const ADD_FLAGS = {
@@ -46,6 +47,15 @@ export const TRANSIT_FLAGS = {
 
 export const PROGRESSION_FLAGS = {
 	when: "--when",
+} as const;
+
+export const SYNTHESIS_FLAGS = {
+	when: "--when",
+	where: "--where",
+} as const;
+
+export const INTERPRET_FLAGS = {
+	interpret: "--interpret",
 } as const;
 
 /** The canonical `add` example — the single source for every usage and empty-state reference. */
@@ -70,6 +80,8 @@ export const CHART_ARM_HELP = {
 	transits: "Calculate planetary transits and JWGEA evolutionary triggers",
 	progressions:
 		"Calculate secondary progressions and the 28-year Sol-Luna phase cycle",
+	synthesis:
+		"Calculate unified 3-layer evolutionary synthesis and cross-dynamics",
 } as const;
 
 /**

@@ -278,3 +278,51 @@ export interface NatalChartOutput {
 	};
 	method: string;
 }
+
+export interface NatalInterpretationOutput {
+	natalInterpretation: {
+		profile: ToonProfile;
+		karmicRoot: {
+			pluto: {
+				sign: string;
+				house: number;
+				degree: number;
+				isRetrograde: boolean;
+				polarityPoint: { sign: string; house: number; degree: number };
+			};
+			nodalAxis: {
+				northNode: {
+					sign: string;
+					house: number;
+					ruler: string;
+					rulerLocation: { sign: string; house: number };
+				};
+				southNode: {
+					sign: string;
+					house: number;
+					ruler: string;
+					rulerLocation: { sign: string; house: number };
+				};
+			};
+			skippedSteps: Array<{
+				planet: string;
+				sign: string;
+				house: number;
+				squareToNode: "north" | "south" | "both";
+				resolutionNode: "north" | "south";
+			}>;
+			dispositorDynamics: {
+				dominantLoop: string[];
+				finalDispositors: string[];
+			};
+			prenatalEclipses: {
+				solar: { sign: string; house: number; formatted: string };
+				lunar: { sign: string; house: number; formatted: string };
+			};
+			soulLots: {
+				lotOfFortune: { sign: string; house: number; formatted: string };
+				lotOfSpirit: { sign: string; house: number; formatted: string };
+			};
+		};
+	};
+}

@@ -59,7 +59,7 @@ describe("Soul astrology calculations (JWGEA canon)", () => {
 						dignities: [],
 					},
 				},
-			} as any,
+			} as never,
 		});
 
 		const chart = computeNatalChart(baseProfile, ephemeris);
@@ -109,7 +109,7 @@ describe("Soul astrology calculations (JWGEA canon)", () => {
 						dignities: [],
 					},
 				},
-			} as any,
+			} as never,
 		});
 
 		const chart = computeNatalChart(baseProfile, ephemeris);
@@ -131,7 +131,7 @@ describe("Soul astrology calculations (JWGEA canon)", () => {
 				sun: { lon: 90, house: 10 },
 				moon: { lon: 120, house: 11 },
 			},
-		} as any;
+		} as never;
 
 		const diurnalLots = computeSoulLots(diurnalChart, cusps);
 		expect(diurnalLots.isDay).toBe(true);
@@ -155,7 +155,7 @@ describe("Soul astrology calculations (JWGEA canon)", () => {
 				sun: { lon: 90, house: 4 },
 				moon: { lon: 120, house: 5 },
 			},
-		} as any;
+		} as never;
 
 		const nocturnalLots = computeSoulLots(nocturnalChart, cusps);
 		expect(nocturnalLots.isDay).toBe(false);
@@ -211,7 +211,7 @@ describe("Soul astrology calculations (JWGEA canon)", () => {
 						dignities: [],
 					},
 				},
-			} as any,
+			} as never,
 		});
 
 		const chart = computeNatalChart(baseProfile, ephemeris);
@@ -234,7 +234,7 @@ describe("Soul astrology calculations (JWGEA canon)", () => {
 		const ephemeris = new InMemoryEphemeris({
 			solarEclipses: (jdStart: number, jdEnd: number) => {
 				if (jdStart <= eclipseJd && jdEnd >= eclipseJd) {
-					return [{ tMax: eclipseJd, type: "total" } as any];
+					return [{ tMax: eclipseJd, type: "total" }] as never;
 				}
 				return [];
 			},
@@ -281,7 +281,7 @@ describe("Soul astrology calculations (JWGEA canon)", () => {
 				},
 				cusps: [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330],
 				angles: { asc: 0, mc: 90, vertex: 180, eastPoint: 270 },
-			} as any,
+			} as never,
 		});
 
 		const cusps = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];

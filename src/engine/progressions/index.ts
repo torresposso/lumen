@@ -3,7 +3,7 @@ import type { Ephemeris } from "../../adapters/ephemeris";
 import type { Profile } from "../../domain/model";
 import type { TransitTargetInput } from "../../domain/transit-input";
 import { computeNatalChart } from "../natal/index";
-import { computeSolLunaPhase } from "../natal/phases";
+import { computeSolLunaPhase, getSolLunaPhaseDetails } from "../natal/phases";
 import { matchClosestAspect, type StressedAspectDef } from "../shared/aspects";
 import { projectPoint, roundPrecision, signOf } from "../shared/geometry";
 import { extractNatalPoints } from "../shared/natal-points";
@@ -12,6 +12,12 @@ import type {
 	ProgressedBody,
 	ProgressedChartOutput,
 	ProgressedSkippedStepActivation,
+	ProgressionsInterpretationOutput,
+} from "./types";
+
+export type {
+	ProgressedChartOutput,
+	ProgressionsInterpretationOutput,
 } from "./types";
 
 export const TROPICAL_YEAR = 365.24219;
@@ -181,5 +187,69 @@ export function computeProgressedChart(
 		},
 		method:
 			"JWGEA Secondary Progressions (Day-for-a-Year, Tropical year 365.24219d, 1° max orbs)",
+	};
+}
+
+/**
+ * Extracts the 28-year Sol-Luna evolutionary season, archetype phase, and progressed triggers.
+ */
+export function extractProgressionsInterpretation(
+	progressions: ProgressedChartOutput,
+): ProgressionsInterpretationOutput {
+	const progSun = progressions.progressedBodies.sun;
+	const progMoon = progressions.progressedBodies.moon;
+
+	const sunLon = progSun?.lon ?? 0;
+	const moonLon = progMoon?.lon ?? 0;
+	const phaseDetails = getSolLunaPhaseDetails(sunLon, moonLon);
+
+	const progressedSun = {
+		sign: progSun?.sign ?? "unknown",
+		house: progSun?.natalHouse ?? 1,
+		degree: progSun?.signDeg ?? 0,
+	};
+
+	const progressedMoon = {
+		sign: progMoon?.sign ?? "unknown",
+		house: progMoon?.natalHouse ?? 1,
+		degree: progMoon?.signDeg ?? 0,
+	};
+
+	const progressedTriggers = progressions.aspectsToNatal.map((asp) => ({
+		progressedBody: asp.progressedBody,
+		natalPoint: asp.natalPoint,
+		aspect: asp.aspect,
+		orb: asp.orb,
+	}));
+
+	return {
+		progressionsInterpretation: {
+			target: {
+				dateTime: progressions.target.dateTime,
+				jdUt: progressions.target.jdUt,
+				ageYears: progressions.target.ageYears,
+				progressedJdUt: progressions.target.progressedJdUt,
+			},
+			natal: {
+				id: progressions.natal.id,
+				name: progressions.natal.name ?? null,
+				birthPlace: progressions.natal.birthPlace,
+				birthDateTime: progressions.natal.birthDateTime,
+				birthLat: progressions.natal.birthLat,
+				birthLon: progressions.natal.birthLon,
+				birthJdUt: progressions.natal.birthJdUt,
+			},
+			solLunaPhase: {
+				phaseNumber: phaseDetails.phaseNumber,
+				phaseName: phaseDetails.phaseName,
+				archetype: phaseDetails.archetype,
+				sunMoonAngle: phaseDetails.sunMoonAngle,
+				isWaxing: phaseDetails.isWaxing,
+				description: phaseDetails.description,
+			},
+			progressedSun,
+			progressedMoon,
+			progressedTriggers,
+		},
 	};
 }
