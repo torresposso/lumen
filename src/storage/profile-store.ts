@@ -186,7 +186,15 @@ class ProfileDb implements ProfileStore {
 				);
 
 			if (result.changes > 0) {
-				return { profile: this.get(id) as Profile, created: true };
+				const inserted = this.get(id);
+				if (!inserted) {
+					throw new AxiError(
+						"Inserted profile not found after insert",
+						"PROFILE_ERROR",
+						["The database may be corrupt"],
+					);
+				}
+				return { profile: inserted, created: true };
 			}
 
 			// Duplicate birth — return the existing profile, unchanged.

@@ -44,6 +44,7 @@ export interface NatalChartOutput {
   phase?: string;
   dispositorChains: DispositorChains;
   prenatalEclipses: PrenatalEclipses;
+  lots: SoulLotsProjection;
   patterns: AspectPattern[];
   signature: AstrologicalSignature;
   houseRulers: HouseRuler[];
@@ -101,6 +102,8 @@ src/engine/shared/aspects.ts
 src/engine/natal/types.ts
 src/engine/natal/pluto-polarity.ts
 src/engine/natal/nodal.ts
+src/engine/natal/soul-lots.ts
+src/engine/natal/phases.ts
 src/engine/natal/eclipses.ts
 src/engine/natal/patterns.ts
 src/engine/natal/index.ts

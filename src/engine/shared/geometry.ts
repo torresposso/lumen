@@ -1,4 +1,10 @@
-import { houseOf, midpointLon, SIGNS } from "caelus";
+import {
+	antiscion,
+	contraAntiscion,
+	houseOf,
+	midpointLon,
+	SIGNS,
+} from "caelus";
 
 export interface ProjectedEclipticPoint {
 	lon: number;
@@ -67,5 +73,21 @@ export function computeMidpoints(
 	return {
 		near: projectPoint(nearLon, cusps),
 		anti: projectPoint(farLon, cusps),
+	};
+}
+
+export function computeShadowAntiscia(
+	lon: number,
+	cusps?: number[],
+): {
+	antiscion: ProjectedEclipticPoint;
+	contraAntiscion: ProjectedEclipticPoint;
+} {
+	const ant = antiscion(lon);
+	const contra = contraAntiscion(lon);
+
+	return {
+		antiscion: projectPoint(ant, cusps),
+		contraAntiscion: projectPoint(contra, cusps),
 	};
 }

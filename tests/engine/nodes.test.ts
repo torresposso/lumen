@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { InMemoryEphemeris } from "../../src/adapters/ephemeris";
 import type { Profile } from "../../src/domain/model";
 import { computeNatalChart } from "../../src/engine/natal/index";
+import { buildDispositorChain } from "../../src/engine/shared/rulers";
 
 describe("Nodal axis astrology calculations (JWGEA canon)", () => {
 	const baseProfile: Profile = {
@@ -96,5 +97,25 @@ describe("Nodal axis astrology calculations (JWGEA canon)", () => {
 		expect(chart.nodalAxis.north.ruler).toBe("mars");
 		expect(chart.nodalAxis.south.ruler).toBe("venus");
 		expect(chart.nodalAxis.motion).toBe("retrograde");
+	});
+
+	test("buildDispositorChain resolves deep 9-10 step chain without premature truncation", () => {
+		const bodies: Record<string, { sign: string }> = {
+			mars: { sign: "Taurus" }, // ruler: venus
+			venus: { sign: "Gemini" }, // ruler: mercury
+			mercury: { sign: "Cancer" }, // ruler: moon
+			moon: { sign: "Leo" }, // ruler: sun
+			sun: { sign: "Sagittarius" }, // ruler: jupiter
+			jupiter: { sign: "Capricorn" }, // ruler: saturn
+			saturn: { sign: "Aquarius" }, // ruler: uranus
+			uranus: { sign: "Pisces" }, // ruler: neptune
+			neptune: { sign: "Scorpio" }, // ruler: pluto
+			pluto: { sign: "Scorpio" }, // ruler: pluto (final dispositor)
+		};
+
+		const chain = buildDispositorChain(bodies, "mars");
+		expect(chain.terminalType).toBe("final_dispositor");
+		expect(chain.terminalBodies).toEqual(["pluto"]);
+		expect(chain.steps.length).toBe(10);
 	});
 });

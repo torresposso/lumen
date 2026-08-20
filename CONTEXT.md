@@ -123,7 +123,7 @@ pushed.
 - **Natal chart engine** — the complete astrological chart geometry and evolutionary
   facts assembled as a pure function (`computeNatalChart`, `src/engine/natal/index.ts`)
   over a stored `Profile` and `Ephemeris` port, backed by the modular technique package
-  (`src/engine/natal/` with `pluto-polarity.ts`, `nodal.ts`, `eclipses.ts`, `patterns.ts`, and shared primitives
+  (`src/engine/natal/` with `pluto-polarity.ts`, `nodal.ts`, `soul-lots.ts`, `phases.ts`, `eclipses.ts`, `patterns.ts`, and shared primitives
   in `src/engine/shared/` for geometry, aspects, and rulerships, delegating base geometry, aspects, and
   ephemerides to the Ephemeris port) published as a single TOON `chart` block
   (ADR-0008, ADR-0009, ADR-0010, ADR-0011, ADR-0012, ADR-0013, ADR-0015, ADR-0016, ADR-0017).
@@ -149,9 +149,11 @@ pushed.
   the birth instant (`birthJdUt`), projected onto the natal house cusps.
 - **True Lilith** — the osculating lunar apogee (`true_lilith`) calculated from the
   lunar Chebyshev series, representing the primordial instinct, repressed trauma, and raw soul truth.
-- **Soul Lots (Fortune & Spirit)** — the Hermetic lots of physical incarnation (`fortune`,
-  Asc + Moon - Sun by day) and volitional soul purpose / *daimon* (`spirit`, Asc + Sun - Moon by day),
-  projected onto natal houses according to chart sect (diurnal vs nocturnal) (ADR-0018).
+- **Soul Lots (Hermetic Lots)** — the seven Hermetic lots of Hellenistic / Evolutionary soul mechanics
+  (`fortune`, `spirit`, `eros`, `necessity`, `courage`, `victory`, `nemesis`),
+  projected onto natal houses according to chart sect (diurnal vs nocturnal) (ADR-0018, ADR-0019).
+- **Shadow Antiscia** — the solstitial (`antiscion`) and equinoctial (`contraAntiscion`) shadow reflection points
+  calculated for Pluto, the Pluto Polarity Point (PPP), and the Nodal Axis (ADR-0019).
 - **Aspect Stress** — the JWGEA classification of planetary aspects into stressful
   (evolutionary tension/friction: conjunction, square, opposition, semisquare, sesquiquadrate,
   quincunx) and nonstressful (integration/flow: trine, sextile, semisextile, septile,

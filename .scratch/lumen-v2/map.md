@@ -1,5 +1,10 @@
 # Lumen v2 — Map
 
+> **HISTORICAL / SUPERSEDED ARTIFACT**:
+> This effort map documents the initial 2026-08-18 profile-only pivot.
+> Astrological natal chart calculations were subsequently reintroduced under [`.scratch/chart-natal/`](../chart-natal/).
+> See [`CONTEXT.md`](../../CONTEXT.md) and [ADRs 0008–0019](../../docs/adr/) for current decisions.
+
 Effort: redesign of the project from scratch with a pivot to a birth-profile manager (AXI CLI).
 
 ## Destination

@@ -1,5 +1,11 @@
 # Spec — Lumen v2
 
+> **HISTORICAL / SUPERSEDED ARTIFACT**:
+> This specification documents the initial 2026-08-18 profile-only pivot.
+> Astrological natal chart capabilities and `caelus` ephemerides were subsequently
+> reintroduced under [`.scratch/chart-natal/spec.md`](../chart-natal/spec.md) and ADRs 0008–0019.
+> Active canonical contract is defined in [`.scratch/chart-natal/spec.md`](../chart-natal/spec.md) and [`CONTEXT.md`](../../CONTEXT.md).
+>
 > Deliverable of the wayfinder effort `.scratch/lumen-v2/` — **destination reached, 2026-08-18**.
 > All 5 decisions are closed (see `map.md` → Decisions so far). **Hand-off executed and effort closed 2026-08-18**: the rebuild is live on `main` (commits `c491ae3`, `a81f964`, `006f5d4`) with `bun test` 51/0 and `bun run check` green.
 

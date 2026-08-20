@@ -1,10 +1,8 @@
-import {
-	evaluateAspectsAgainstPoint,
-	type StressedAspectDef,
-} from "../shared/aspects";
+import { EVO_ASPECTS, evaluateAspectsAgainstPoint } from "../shared/aspects";
 import {
 	angularDistance,
 	computeMidpoints,
+	computeShadowAntiscia,
 	normalizeLongitude,
 	projectPoint,
 	roundPrecision,
@@ -17,20 +15,7 @@ import type {
 	ProjectedEclipticPoint,
 } from "./types";
 
-export const PLUTO_ASPECTS: StressedAspectDef[] = [
-	{ name: "conjunction", target: 0, orb: 10, stress: "stressful" },
-	{ name: "semisextile", target: 30, orb: 3, stress: "nonstressful" },
-	{ name: "semisquare", target: 45, orb: 3, stress: "stressful" },
-	{ name: "septile", target: 360 / 7, orb: 2, stress: "nonstressful" },
-	{ name: "sextile", target: 60, orb: 6, stress: "nonstressful" },
-	{ name: "quintile", target: 72, orb: 2, stress: "nonstressful" },
-	{ name: "square", target: 90, orb: 8, stress: "stressful" },
-	{ name: "trine", target: 120, orb: 8, stress: "nonstressful" },
-	{ name: "sesquiquadrate", target: 135, orb: 3, stress: "stressful" },
-	{ name: "biquintile", target: 144, orb: 2, stress: "nonstressful" },
-	{ name: "quincunx", target: 150, orb: 3, stress: "stressful" },
-	{ name: "opposition", target: 180, orb: 10, stress: "stressful" },
-];
+export const PLUTO_ASPECTS = EVO_ASPECTS;
 
 export const PPP_MAJOR_ASPECTS = [
 	{ name: "conjunction", target: 0, orb: 5 },
@@ -105,6 +90,9 @@ export function computePlutoPolarityFact(
 		antiMidpoint = mid.anti;
 	}
 
+	const plutoAntiscia = computeShadowAntiscia(pluto.lon, cusps);
+	const pppAntiscia = computeShadowAntiscia(pppLon, cusps);
+
 	return {
 		pluto: {
 			sign: pluto.sign,
@@ -115,6 +103,7 @@ export function computePlutoPolarityFact(
 			stressfulCount,
 			nonstressfulCount,
 			aspects,
+			antiscia: plutoAntiscia,
 		},
 		ppp: {
 			sign: pppProjected.sign,
@@ -131,6 +120,7 @@ export function computePlutoPolarityFact(
 						reason: `pluto conjunct north node (separation ${roundPrecision(separation ?? 0, 2)}° <= ${PPP_DEACTIVATION_ORB}°)`,
 					}),
 			aspects: pppAspects,
+			antiscia: pppAntiscia,
 		},
 		midpoint,
 		antiMidpoint,

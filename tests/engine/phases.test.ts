@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { InMemoryEphemeris } from "../../src/adapters/ephemeris";
 import type { Profile } from "../../src/domain/model";
 import { computeNatalChart } from "../../src/engine/natal/index";
+import { computeSolLunaPhase } from "../../src/engine/natal/phases";
 
 describe("Sol-Luna phase calculation", () => {
 	const baseProfile: Profile = {
@@ -95,5 +96,13 @@ describe("Sol-Luna phase calculation", () => {
 		expect(chartWithSunMoon(0, 240).phase).toBe("Disseminating");
 		expect(chartWithSunMoon(0, 290).phase).toBe("Last Quarter");
 		expect(chartWithSunMoon(0, 340).phase).toBe("Balsamic");
+	});
+
+	test("computeSolLunaPhase direct unit calculation", () => {
+		expect(computeSolLunaPhase(0, 0)).toBe("New");
+		expect(computeSolLunaPhase(0, 44.9)).toBe("New");
+		expect(computeSolLunaPhase(0, 45.1)).toBe("Crescent");
+		expect(computeSolLunaPhase(100, 280)).toBe("Full");
+		expect(computeSolLunaPhase(350, 10)).toBe("New");
 	});
 });

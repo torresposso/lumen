@@ -33,7 +33,7 @@ export interface DispositorChainOutput {
 export function buildDispositorChain(
 	bodies: Record<string, { sign: string }>,
 	startBodyId: string,
-	maxDepth = 8,
+	maxDepth = 12,
 ): DispositorChainOutput {
 	const steps: DispositorStep[] = [];
 	let currentId = startBodyId;

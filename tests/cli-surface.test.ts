@@ -14,7 +14,6 @@ import {
 	PROFILE_LIST_HINT,
 } from "../src/cli/surface";
 
-
 import type { NewProfile } from "../src/domain/model";
 import { InMemoryProfileStore } from "../src/storage/profile-store";
 

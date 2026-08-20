@@ -139,6 +139,11 @@ export interface AstrologicalSignature {
 	};
 }
 
+export interface ShadowAntisciaProjection {
+	antiscion: ProjectedEclipticPoint;
+	contraAntiscion: ProjectedEclipticPoint;
+}
+
 export interface SoulPlutoFact {
 	sign: string;
 	lon: number;
@@ -148,6 +153,7 @@ export interface SoulPlutoFact {
 	stressfulCount: number;
 	nonstressfulCount: number;
 	aspects: PlutoAspectProjection[];
+	antiscia?: ShadowAntisciaProjection;
 }
 
 export interface PPPFact {
@@ -159,6 +165,7 @@ export interface PPPFact {
 	separation?: number;
 	reason?: string;
 	aspects: PPPAspectProjection[];
+	antiscia?: ShadowAntisciaProjection;
 }
 
 export interface PlutoPolarityOutput {
@@ -187,6 +194,7 @@ export interface NodalPointFact {
 	ruler?: string;
 	rulerPlacement?: NodalRulerPlacement;
 	aspects: NodeAspectProjection[];
+	antiscia?: ShadowAntisciaProjection;
 }
 
 export interface NodalAxisFact {
@@ -224,6 +232,11 @@ export interface AspectPattern {
 export interface SoulLotsProjection {
 	fortune: ProjectedEclipticPoint;
 	spirit: ProjectedEclipticPoint;
+	eros: ProjectedEclipticPoint;
+	necessity: ProjectedEclipticPoint;
+	courage: ProjectedEclipticPoint;
+	victory: ProjectedEclipticPoint;
+	nemesis: ProjectedEclipticPoint;
 	isDay: boolean;
 }
 

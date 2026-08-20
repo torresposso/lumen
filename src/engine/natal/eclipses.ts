@@ -9,7 +9,7 @@ export function computePrenatalEclipses(
 	birthLon: number,
 	cusps: number[],
 ): PrenatalEclipsesFact {
-	const jdStart = birthJdUt - 180;
+	const jdStart = birthJdUt - 220;
 	const jdEnd = birthJdUt;
 	const sEclipses = ephemeris.solarEclipses(jdStart, jdEnd);
 	const lEclipses = ephemeris.lunarEclipses(jdStart, jdEnd);

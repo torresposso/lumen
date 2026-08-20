@@ -1,13 +1,13 @@
-import { evaluateAspectsAgainstPoint } from "../shared/aspects";
+import { EVO_ASPECTS, evaluateAspectsAgainstPoint } from "../shared/aspects";
 import {
+	computeShadowAntiscia,
 	normalizeLongitude,
 	projectPoint,
 	roundPrecision,
 } from "../shared/geometry";
 import { buildDispositorChain, SIGN_RULERS } from "../shared/rulers";
-import { PLUTO_ASPECTS } from "./pluto-polarity";
 import type {
-	DispositorStep,
+	DispositorChainOutput,
 	NodalAxisFact,
 	NodalRulerPlacement,
 	NodeAspectProjection,
@@ -21,7 +21,7 @@ export function evaluateNodeAspects(
 	bodies: Record<string, { lon: number }>,
 	nodeLon: number,
 ): NodeAspectProjection[] {
-	return evaluateAspectsAgainstPoint(bodies, { lon: nodeLon }, PLUTO_ASPECTS, {
+	return evaluateAspectsAgainstPoint(bodies, { lon: nodeLon }, EVO_ASPECTS, {
 		excludeNonPlanetary: true,
 		precision: 4,
 	}).map((a) => ({
@@ -37,7 +37,6 @@ export function detectSkippedSteps(
 	northNodeLon: number,
 	orbLimit = SKIPPED_STEPS_ORB,
 ): SkippedStepProjection[] {
-	const southNodeLon = normalizeLongitude(northNodeLon + 180);
 	return evaluateAspectsAgainstPoint(
 		bodies,
 		{ lon: northNodeLon, excludeId: "pluto" },
@@ -135,6 +134,9 @@ export function computeNodalAxisFact(
 		? buildDispositorChain(bodies, northRulerId)
 		: undefined;
 
+	const northAntiscia = computeShadowAntiscia(northNode.lon, cusps);
+	const southAntiscia = computeShadowAntiscia(southNodeLon, cusps);
+
 	return {
 		nodalAxis: {
 			north: {
@@ -145,6 +147,7 @@ export function computeNodalAxisFact(
 				ruler: northRulerId,
 				rulerPlacement: northRulerPlacement,
 				aspects: northAspects,
+				antiscia: northAntiscia,
 			},
 			south: {
 				sign: southNodeProjected.sign,
@@ -154,6 +157,7 @@ export function computeNodalAxisFact(
 				ruler: southRulerId,
 				rulerPlacement: southRulerPlacement,
 				aspects: southAspects,
+				antiscia: southAntiscia,
 			},
 			motion,
 			skippedSteps,

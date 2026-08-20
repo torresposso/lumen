@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
 	CaelusEphemeris,
 	InMemoryEphemeris,
+	type Position,
 } from "../../src/adapters/ephemeris";
 
 describe("CaelusEphemeris adapter", () => {
@@ -71,9 +72,7 @@ describe("CaelusEphemeris adapter", () => {
 	test("computes longitudinal aspects between bodies", () => {
 		const jdUt = 2448053.270833;
 		const chart = ephemeris.chartAt(jdUt, 27.9506, -82.4572);
-		const aspects = ephemeris.aspects(
-			chart.bodies as Record<string, { lon: number; lat: number }>,
-		);
+		const aspects = ephemeris.aspects(chart.bodies as Record<string, Position>);
 		expect(Array.isArray(aspects)).toBe(true);
 		expect(aspects.length).toBeGreaterThan(0);
 		expect(aspects[0]?.aspect).toBeDefined();

@@ -1,6 +1,5 @@
 import type {
 	Aspect,
-	AspectKind,
 	AspectPhase,
 	BodyId,
 	Chart,
@@ -26,7 +25,6 @@ import { embeddedData } from "caelus/data-embedded";
 
 export type {
 	Aspect,
-	AspectKind,
 	AspectPhase,
 	BodyId,
 	Chart,
@@ -196,6 +194,7 @@ export class InMemoryEphemeris implements Ephemeris {
 		}
 
 		return {
+			jdUt,
 			julianDay: jdUt,
 			siderealTime: 0,
 			armc: 0,

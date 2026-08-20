@@ -1,13 +1,8 @@
 import type { BodyId, Chart, Position } from "caelus";
-import { lotFortune, lotSpirit } from "caelus";
 import { CaelusEphemeris, type Ephemeris } from "../../adapters/ephemeris";
 import type { Profile } from "../../domain/model";
 import { toonProfile } from "../../domain/toon";
-import {
-	angularDistanceDirect,
-	projectPoint,
-	roundPrecision,
-} from "../shared/geometry";
+import { projectPoint, roundPrecision } from "../shared/geometry";
 import { SIGN_RULERS } from "../shared/rulers";
 import { computePrenatalEclipses } from "./eclipses";
 import { computeNodalAxisFact } from "./nodal";
@@ -15,7 +10,9 @@ import {
 	calculateAstrologicalSignature,
 	detectAspectPatterns,
 } from "./patterns";
+import { computeSolLunaPhase } from "./phases";
 import { computePlutoPolarityFact } from "./pluto-polarity";
+import { computeSoulLots } from "./soul-lots";
 import type {
 	AngleProjection,
 	AspectProjection,
@@ -25,9 +22,10 @@ import type {
 	EclipticGeometryProjection,
 	HouseRulerRow,
 	NatalChartOutput,
-	SoulLotsProjection,
 } from "./types";
 
+export { computeSolLunaPhase, type SolLunaPhaseName } from "./phases";
+export { computeSoulLots } from "./soul-lots";
 export type { NatalChartOutput, SoulLotsProjection } from "./types";
 
 const DEFAULT_BODIES: BodyId[] = [
@@ -45,54 +43,6 @@ const DEFAULT_BODIES: BodyId[] = [
 	"true_node",
 	"true_lilith",
 ];
-
-export type SolLunaPhaseName =
-	| "New"
-	| "Crescent"
-	| "First Quarter"
-	| "Gibbous"
-	| "Full"
-	| "Disseminating"
-	| "Last Quarter"
-	| "Balsamic";
-
-const PHASES: readonly { name: SolLunaPhaseName; max: number }[] = [
-	{ name: "New", max: 45 },
-	{ name: "Crescent", max: 90 },
-	{ name: "First Quarter", max: 135 },
-	{ name: "Gibbous", max: 180 },
-	{ name: "Full", max: 225 },
-	{ name: "Disseminating", max: 270 },
-	{ name: "Last Quarter", max: 315 },
-	{ name: "Balsamic", max: 360 },
-];
-
-function computeSolLunaPhase(sunLon: number, moonLon: number): string {
-	const angle = roundPrecision(angularDistanceDirect(sunLon, moonLon), 4);
-	const phase = PHASES.find((p) => angle < p.max) ?? PHASES[PHASES.length - 1];
-	return phase ? phase.name : "Balsamic";
-}
-
-export function computeSoulLots(
-	rawChart: Chart,
-	cusps: number[],
-): SoulLotsProjection {
-	const asc = typeof rawChart.angles.asc === "number" ? rawChart.angles.asc : rawChart.angles.asc.lon;
-	const sun = rawChart.bodies.sun?.lon ?? 0;
-	const moon = rawChart.bodies.moon?.lon ?? 0;
-	const sunHouse = rawChart.bodies.sun?.house;
-	// Diurnal when Sun is in upper hemisphere (houses 7, 8, 9, 10, 11, 12)
-	const isDay = sunHouse !== undefined ? sunHouse >= 7 && sunHouse <= 12 : true;
-
-	const fortuneLon = lotFortune(asc, sun, moon, isDay);
-	const spiritLon = lotSpirit(asc, sun, moon, isDay);
-
-	return {
-		fortune: projectPoint(fortuneLon, cusps, 4),
-		spirit: projectPoint(spiritLon, cusps, 4),
-		isDay,
-	};
-}
 
 function projectBodies(
 	rawBodies: Chart["bodies"],

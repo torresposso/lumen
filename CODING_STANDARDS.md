@@ -60,16 +60,18 @@ Already enforced, not reviewable:
    canonical add example, the arm help catalog and the shared hints — plus
    the derived top-level "Commands:" block (`formatCommandsHelp`) and the
    shared empty-state rule (`emptyStateHint`). The **home view** — the profile
-   count + empty-state hint a bare invocation publishes — lives in its own
-   module (`src/cli/home.ts`, `homeView`): vocabulary vs view is a separate
-   concern, so a host that only renders the surface has nothing to do with the
-   store. The args spec, usage text, top-level help and birth-input messages
-   reference / interpolate the tokens instead of re-typing them, so a
-   vocabulary rename is one edit and an added arm is one catalog row
-   (ADR-0006; ADR-0007).
-7. **Pure kernels don't validate or do I/O.** `src/domain/jd.ts` is arithmetic
-   only — no range checks, no imports beyond plain math. Validation belongs to
-   the calling contract; I/O belongs to the storage layer.
+   count + empty-state hint a bare invocation publishes — lives directly in the
+   command surface (`src/cli/surface.ts`, `homeView`, ADR-0014): vocabulary and
+   bare invocation presentation live beside each other, so a host composing options
+   queries the store through context. The args spec, usage text, top-level help and
+   birth-input messages reference / interpolate the tokens instead of re-typing them,
+   so a vocabulary rename is one edit and an added arm is one catalog row
+   (ADR-0006; ADR-0007; ADR-0014).
+7. **Pure kernels don't validate or do I/O.** Meeus Julian Day arithmetic and
+   astrological calculations are pure math — no range checks, no imports beyond
+   plain math or ephemeris primitives. Validation belongs to the calling contract
+   (`src/domain/birth-input.ts`); I/O belongs to the storage layer and capability
+   adapters (ADR-0014).
 8. **No speculative generality.** Abstract, parameterize or add hooks only when
    the spec needs it. Keep modules small and deep: a narrow interface hiding
    real behaviour beats broad one.

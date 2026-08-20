@@ -25,6 +25,27 @@ export const NON_PLANETARY_IDS = new Set([
 	"true_lilith",
 ]);
 
+/**
+ * The canonical 12-aspect system and orbs used in Jeffrey Wolf Green Evolutionary
+ * Astrology (JWGEA) for Pluto and the Lunar Nodes, classified by stress polarity.
+ */
+export const EVO_ASPECTS: readonly StressedAspectDef[] = [
+	{ name: "conjunction", target: 0, orb: 10, stress: "stressful" },
+	{ name: "semisextile", target: 30, orb: 3, stress: "nonstressful" },
+	{ name: "semisquare", target: 45, orb: 3, stress: "stressful" },
+	{ name: "septile", target: 360 / 7, orb: 2, stress: "nonstressful" },
+	{ name: "sextile", target: 60, orb: 6, stress: "nonstressful" },
+	{ name: "quintile", target: 72, orb: 2, stress: "nonstressful" },
+	{ name: "square", target: 90, orb: 8, stress: "stressful" },
+	{ name: "trine", target: 120, orb: 8, stress: "nonstressful" },
+	{ name: "sesquiquadrate", target: 135, orb: 3, stress: "stressful" },
+	{ name: "biquintile", target: 144, orb: 2, stress: "nonstressful" },
+	{ name: "quincunx", target: 150, orb: 3, stress: "stressful" },
+	{ name: "opposition", target: 180, orb: 10, stress: "stressful" },
+] as const;
+
+export const JWGEA_ASPECTS = EVO_ASPECTS;
+
 export function matchClosestAspect<
 	T extends { name: string; target: number; orb: number },
 >(

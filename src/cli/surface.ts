@@ -7,8 +7,8 @@
  * reference these tokens; none re-types a literal, so a command, arm or flag
  * rename is one edit in this module. The command surface holds the *names*
  * and the *presentation* rules; the contracts hold the *meanings* (ADR-0006).
- * The **home view** (`homeView` in `src/cli/home.ts`) composes the profile
- * count plus the empty-state hint a bare invocation publishes.
+ * The **home view** (`homeView` below) composes the profile
+ * count plus the empty-state hint a bare invocation publishes (ADR-0014).
  */
 
 import type { ProfileStore } from "../domain/store";
