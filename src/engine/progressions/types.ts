@@ -46,11 +46,16 @@ export interface ProgressedAspect {
 	stress: AspectStress;
 }
 
+export interface ProgressedSkippedStepActivation extends ProgressedAspect {
+	skippedStepBody: string;
+	resolutionNode: "north" | "south";
+}
+
 export interface ProgressedEvolutionaryTriggers {
 	plutoContacts: ProgressedAspect[];
 	pppContacts: ProgressedAspect[];
 	nodalContacts: ProgressedAspect[];
-	skippedStepActivations: ProgressedAspect[];
+	skippedStepActivations: ProgressedSkippedStepActivation[];
 }
 
 export interface ProgressedChartOutput {

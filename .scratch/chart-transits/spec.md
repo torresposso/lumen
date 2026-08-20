@@ -1,15 +1,15 @@
 # Spec — Chart Transits (Lumen v2)
 
 > Deliverable of the feature effort `.scratch/chart-transits/`.
-> Implementation of the transits chart calculation and JWGEA evolutionary triggers over stored birth profiles.
+> Implementation of Planetary Transits and JWGEA evolutionary triggers over stored birth profiles.
 
 ## 1. Product
 
-`lumen chart transits <uuid> --when "YYYY-MM-DDTHH:MM±HH:MM" [--where "lat, lon, Place"]` reads a v2 birth profile by UUID from the local profile store and calculates planetary transits at the target instant, their geometric and aspect relationships to the natal chart, and JWGEA evolutionary trigger mechanics using exact `caelus: "0.24.1"` ephemerides.
+`lumen chart transits <uuid> --when "YYYY-MM-DDTHH:MM±HH:MM" [--where "lat, lon, Place"]` reads a v2 birth profile by UUID from the local profile store and calculates planetary transits, house placements in the natal chart, local transit angles/cusps (if `--where` is given), inter-chart aspects (strict canonical orbs, applying/separating status), and JWGEA evolutionary triggers (contacts to natal Pluto, PPP, Nodal Axis, and Skipped Steps) using exact `caelus: "0.24.1"` ephemerides.
 
 The calculation is deterministic:
 - `--when` is required: ISO 8601 datetime with explicit UTC offset (`YYYY-MM-DDTHH:MM±HH:MM` or `…Z`).
-- `--where` is optional: if provided (`"lat, lon, Place"`), local transit houses and angles (Ascendant, Midheaven, Vertex, East Point) are computed; if omitted, only transiting celestial bodies and their projections onto the natal chart are computed.
+- `--where` is optional: `"lat, lon, Place"`. When omitted, `transitAngles`, `transitCusps`, and `localHouse` in `transitingBodies` are `null`.
 
 ## 2. Output Data Model
 
@@ -20,9 +20,9 @@ export interface TransitChartOutput {
   target: {
     dateTime: string;
     jdUt: number;
-    place?: string;
-    lat?: number;
-    lon?: number;
+    place?: string | null;
+    lat?: number | null;
+    lon?: number | null;
   };
   natal: {
     id: string;
@@ -34,38 +34,27 @@ export interface TransitChartOutput {
     birthJdUt: number;
   };
   zodiac: "tropical";
-  houseSystem?: "porphyry";
+  houseSystem?: "porphyry" | null;
   transitingBodies: Record<string, TransitBody>;
-  transitAngles?: {
-    asc: AnglePoint;
-    mc: AnglePoint;
-    vertex: AnglePoint;
-    eastPoint: AnglePoint;
-  };
-  transitCusps?: HouseCusp[];
+  transitAngles?: TransitAngleProjections | null;
+  transitCusps?: TransitCuspProjection[] | null;
   aspectsToNatal: TransitAspect[];
-  evolutionaryTriggers: {
-    plutoContacts: TransitAspect[];
-    pppContacts: TransitAspect[];
-    nodalContacts: TransitAspect[];
-    skippedStepActivations: SkippedStepTransitActivation[];
-    dispositorActivations: TransitAspect[];
-  };
+  evolutionaryTriggers: TransitEvolutionaryTriggers;
   outOfBounds: string[];
   method: string;
 }
 
 export interface TransitBody {
   name: string;
-  longitude: number;
-  latitude: number;
-  declination: number;
+  lon: number;
+  lat: number;
+  dec: number;
   speed: number;
-  isRetrograde: boolean;
+  retrograde: boolean;
   sign: string;
-  degreeInSign: number;
+  signDeg: number;
   natalHouse: number;
-  localHouse?: number;
+  localHouse?: number | null;
   outOfBounds: boolean;
 }
 
@@ -78,15 +67,6 @@ export interface TransitAspect {
   isApplying: boolean;
   stress: "stressful" | "nonstressful";
 }
-
-export interface SkippedStepTransitActivation {
-  transitBody: string;
-  skippedStepBody: string;
-  aspect: string;
-  orb: number;
-  isApplying: boolean;
-  resolutionNode: "north" | "south";
-}
 ```
 
 ## 3. CLI Contract
@@ -98,12 +78,13 @@ lumen profile get <uuid>
 lumen profile delete <uuid>
 lumen chart natal <uuid>
 lumen chart transits <uuid> --when "YYYY-MM-DDTHH:MM±HH:MM" [--where "lat, lon, Place"]
+lumen chart progressions <uuid> --when "YYYY-MM-DDTHH:MM±HH:MM"
 ```
 
 Rules:
 - Accepts exactly one positional UUID (or unique prefix).
 - Requires `--when` (fails with `VALIDATION_ERROR` if missing or malformed).
-- Accepts optional `--where "lat, lon, Place"`.
+- Accepts optional `--where` (fails with `VALIDATION_ERROR` if malformed coordinates).
 - Returns AXI `NOT_FOUND` if the UUID does not match any profile.
 - Output is rendered deterministically in TOON format with 2-space indentation.
 
@@ -111,21 +92,21 @@ Rules:
 
 - **Ephemerides**: Exact `caelus: "0.24.1"`.
 - **Zodiac**: Tropical.
-- **Houses**: Porphyry for local transit angles if `--where` provided.
-- **Node**: True North Node (`true_node`).
+- **Houses**: Porphyry for local transit houses (when `--where` is given) and natal house projections.
 - **Transit Orbs**: Strict canonical evolutionary orbs:
   - Luminares and inner planets (Sun through Mars): 1.5° max orb.
   - Social and transpersonal planets (Jupiter through Pluto, True Node, True Lilith): 2.5° max orb.
-- **Applying vs Separating**: Determined by relative longitudinal speed between transiting body and natal point.
+- **Aspect State**: Applying vs separating dynamically determined via celestial speeds.
 - **Evolutionary Triggers**:
-  - Transits aspecting Natal Pluto and Natal PPP.
-  - Transits aspecting Natal Nodal Axis.
-  - Transits aspecting Natal Skipped Step bodies (including resolution node).
-  - Transits aspecting Natal Final Dispositors or Mutual Reception participants.
+  - `plutoContacts`: Aspects to natal Pluto.
+  - `pppContacts`: Aspects to natal Pluto Polarity Point (if active).
+  - `nodalContacts`: Aspects to natal North Node and South Node.
+  - `skippedStepActivations`: Aspects activating natal skipped steps, including `resolutionNode`.
+  - `dispositorActivations`: Aspects to final dispositors or mutual reception bodies.
 
 ## 5. Ephemeris Seam
 
-Uses `EphemerisGateway` (`src/adapters/ephemeris.ts`) wrapping Caelus `Engine.chartAt`, `findAspects`, and `outOfBounds`.
+Uses `EphemerisGateway` (`src/adapters/ephemeris.ts`) wrapping Caelus `Engine.chartAt`.
 
 ## 8. Source Layout
 
@@ -140,12 +121,14 @@ src/cli/surface.ts
 src/cli/subcommand.ts
 src/domain/model.ts
 src/domain/store.ts
+src/domain/datetime.ts
 src/domain/birth-input.ts
 src/domain/transit-input.ts
 src/domain/toon.ts
 src/engine/shared/geometry.ts
 src/engine/shared/rulers.ts
 src/engine/shared/aspects.ts
+src/engine/shared/natal-points.ts
 src/engine/natal/types.ts
 src/engine/natal/pluto-polarity.ts
 src/engine/natal/nodal.ts
@@ -158,6 +141,8 @@ src/engine/transits/types.ts
 src/engine/transits/triggers.ts
 src/engine/transits/aspects.ts
 src/engine/transits/index.ts
+src/engine/progressions/types.ts
+src/engine/progressions/index.ts
 src/storage/schema.ts
 src/storage/profile-store.ts
 src/adapters/ephemeris.ts

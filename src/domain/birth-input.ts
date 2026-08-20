@@ -1,60 +1,29 @@
 import { AxiError } from "axi-sdk-js";
+import {
+	checkIntRange,
+	daysInMonth,
+	julianDayUt,
+	type LocalTime,
+	MAX_OFFSET_MINUTES,
+	MAX_YEAR,
+	MIN_OFFSET_MINUTES,
+	MIN_YEAR,
+	NUMBER_RE,
+	offsetToMinutes,
+	pad2,
+} from "./datetime";
 import { type BirthInput, MAX_LAT, MAX_LON, MIN_LAT, MIN_LON } from "./model";
 
-export const MIN_YEAR = 1800;
-export const MAX_YEAR = 2100;
-export const MIN_OFFSET_MINUTES = -840;
-export const MAX_OFFSET_MINUTES = 840;
-
-/**
- * Transient broken-down local wall-clock reading derived internally from `--when`.
- */
-export interface LocalTime {
-	year: number;
-	month: number;
-	day: number;
-	hour: number;
-	minute: number;
-}
-
-export function isLeapYear(year: number): boolean {
-	return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
-}
-
-export function daysInMonth(year: number, month: number): number {
-	switch (month) {
-		case 2:
-			return isLeapYear(year) ? 29 : 28;
-		case 4:
-		case 6:
-		case 9:
-		case 11:
-			return 30;
-		default:
-			return 31;
-	}
-}
-
-/**
- * Julian Day (UT) from local wall-clock time and a fixed UTC offset — Meeus,
- * "Astronomical Algorithms" (2nd ed., 1998), ch. 7. Pure arithmetic, no
- * timezone database.
- */
-export function julianDayUt(local: LocalTime, offsetMinutes: number): number {
-	const utDay =
-		local.day + (local.hour + local.minute / 60 - offsetMinutes / 60) / 24;
-	const y = local.month <= 2 ? local.year - 1 : local.year;
-	const m = local.month <= 2 ? local.month + 12 : local.month;
-	const a = Math.floor(y / 100);
-	const b = 2 - a + Math.floor(a / 4);
-	return (
-		Math.floor(365.25 * (y + 4716)) +
-		Math.floor(30.6001 * (m + 1)) +
-		utDay +
-		b -
-		1524.5
-	);
-}
+export {
+	daysInMonth,
+	isLeapYear,
+	julianDayUt,
+	type LocalTime,
+	MAX_OFFSET_MINUTES,
+	MAX_YEAR,
+	MIN_OFFSET_MINUTES,
+	MIN_YEAR,
+} from "./datetime";
 
 /** The raw `--when` / `--where` strings as received by `profile add`. */
 export interface RawBirthInput {
@@ -62,13 +31,13 @@ export interface RawBirthInput {
 	where: string;
 }
 
-interface ParsedWhen {
+export interface ParsedWhen {
 	canonicalDateTime: string;
 	local: LocalTime;
 	offsetMinutes: number;
 }
 
-interface ParsedWhere {
+export interface ParsedWhere {
 	birthLat: number;
 	birthLon: number;
 	birthPlace: string;
@@ -77,18 +46,11 @@ interface ParsedWhere {
 const DATETIME_RE =
 	/^(\d{4})-(\d{1,2})-(\d{1,2})T(\d{1,2}):(\d{1,2})(Z|[+-]\d{2}:\d{2})$/;
 
-const NUMBER_RE = /^[+-]?\d+(?:\.\d+)?$/;
-
-function pad2(value: number): string {
-	return String(value).padStart(2, "0");
-}
-
-function parseWhen(
-	rawWhen: string,
+export function parseWhen(
+	when: string,
 	issues: string[],
 	labels: { when: string },
 ): ParsedWhen | undefined {
-	const when = rawWhen.trim();
 	const match = DATETIME_RE.exec(when);
 	if (match === null) {
 		issues.push(
@@ -134,7 +96,7 @@ function parseWhen(
 	return { canonicalDateTime, local, offsetMinutes: offsetMinutes ?? 0 };
 }
 
-function parseWhere(
+export function parseWhere(
 	rawWhere: string,
 	issues: string[],
 	labels: { where: string },
@@ -211,29 +173,6 @@ function parseWhere(
 	return { birthLat, birthLon, birthPlace };
 }
 
-/**
- * The birth-input contract — the single seam lumen applies to the raw strings
- * of `profile add`. `--when` is an ISO 8601 datetime *with* a UTC offset
- * (`YYYY-MM-DDTHH:MM±HH:MM` or `…Z`) — the offset is never a separate flag.
- * `--where` bundles the coordinates and the human-readable place:
- * `"lat, lon, Place"` (the place itself may contain commas, e.g.
- * `"9.15, -74.75, Magangué, Colombia"`), which yields `birthLat`/`birthLon`/
- * `birthPlace`.
- *
- * Parses the formats, validates the semantic ranges and derives `birthJdUt`
- * (Meeus ch. 7, via `julianDayUt`) in one pass, accumulating every *checkable*
- * violation: a field whose format does not parse cannot be range-checked (e.g.
- * `--when "garbage"`), but the other fields still are. On any violation throws
- * one `AxiError` with all cited rules as suggestions, so an agent caller gets
- * the whole contract verdict in one round-trip. Presence of the flags
- * themselves is the command's concern. The transient `local`/`offsetMinutes`
- * the derivation needs never appear in the result — the complete `birth*` set
- * leaves the seam.
- *
- * Flag names are caller-provided (`labels`), so `commands → domain` holds and
- * not `domain → cli` (ADR-0006). A flag rename is strictly one edit in the
- * surface.
- */
 export interface BirthInputLabels {
 	when: string;
 	where: string;
@@ -263,41 +202,4 @@ export function parseBirthInput(
 		birthLon: parsedWhere.birthLon,
 		birthPlace: parsedWhere.birthPlace,
 	};
-}
-
-/** `Z` → 0; `±HH:MM` → signed minutes; `NaN` when malformed (contributes an issue). */
-function offsetToMinutes(
-	suffix: string,
-	issues: string[],
-	labels: { when: string },
-): number {
-	const sign = suffix.startsWith("-") ? -1 : 1;
-	const [hh, mm] = suffix
-		.slice(1)
-		.split(":")
-		.map((p) => Number(p));
-	if (
-		hh === undefined ||
-		mm === undefined ||
-		!Number.isInteger(hh) ||
-		!Number.isInteger(mm) ||
-		mm < 0 ||
-		mm > 59
-	) {
-		issues.push(`${labels.when} offset must be ±HH:MM, e.g. "-05:00" or "Z"`);
-		return NaN;
-	}
-	return sign * (hh * 60 + mm);
-}
-
-function checkIntRange(
-	issues: string[],
-	value: number,
-	min: number,
-	max: number,
-	label: string,
-): void {
-	if (!Number.isInteger(value) || value < min || value > max) {
-		issues.push(`${label} must be an integer ${min}..${max}`);
-	}
 }

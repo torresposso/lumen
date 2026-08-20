@@ -10,10 +10,8 @@ import {
 	PROGRESSION_FLAGS,
 	TRANSIT_FLAGS,
 } from "../cli/surface";
-import {
-	CHART_TRANSITS_SPEC,
-	parseTransitInput,
-} from "../domain/transit-input";
+import { parseTransitInput } from "../domain/transit-input";
+
 import { computeNatalChart } from "../engine/natal/index";
 import { computeProgressedChart } from "../engine/progressions/index";
 import { computeTransitChart } from "../engine/transits/index";
@@ -51,6 +49,29 @@ const NATAL_SPEC: ArgsSpec = {
 	positionalHint: "Use the UUID printed by `lumen profile add`",
 };
 
+const TRANSITS_SPEC: ArgsSpec = {
+	known: new Set([TRANSIT_FLAGS.when, TRANSIT_FLAGS.where]),
+	required: new Set([TRANSIT_FLAGS.when]),
+	positionals: 1,
+	positionalName: "profile id",
+	positionalHint: "Use the UUID printed by `lumen profile add`",
+	rules: {
+		[TRANSIT_FLAGS.when]: { trim: true, nonEmpty: true },
+		[TRANSIT_FLAGS.where]: { trim: true, nonEmpty: true },
+	},
+};
+
+const PROGRESSIONS_SPEC: ArgsSpec = {
+	known: new Set([PROGRESSION_FLAGS.when]),
+	required: new Set([PROGRESSION_FLAGS.when]),
+	positionals: 1,
+	positionalName: "profile id",
+	positionalHint: "Use the UUID printed by `lumen profile add`",
+	rules: {
+		[PROGRESSION_FLAGS.when]: { trim: true, nonEmpty: true },
+	},
+};
+
 export const chartCommand = createSubcommandGroup<CliContext>({
 	name: CHART_COMMAND,
 	usage: chartUsage,
@@ -75,7 +96,7 @@ export const chartCommand = createSubcommandGroup<CliContext>({
 			},
 		},
 		transits: {
-			spec: CHART_TRANSITS_SPEC,
+			spec: TRANSITS_SPEC,
 			summary: CHART_ARM_HELP.transits,
 			line: CHART_ARMS.transits,
 			usage: chartTransitsUsage,
@@ -99,7 +120,7 @@ export const chartCommand = createSubcommandGroup<CliContext>({
 			},
 		},
 		progressions: {
-			spec: CHART_TRANSITS_SPEC,
+			spec: PROGRESSIONS_SPEC,
 			summary: CHART_ARM_HELP.progressions,
 			line: CHART_ARMS.progressions,
 			usage: chartProgressionsUsage,
@@ -115,7 +136,6 @@ export const chartCommand = createSubcommandGroup<CliContext>({
 
 				const targetInput = parseTransitInput(parsed.flags, {
 					when: PROGRESSION_FLAGS.when,
-					where: "--where",
 				});
 
 				const progressions = computeProgressedChart(

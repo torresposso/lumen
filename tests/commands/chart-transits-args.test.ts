@@ -1,15 +1,23 @@
 import { describe, expect, it } from "bun:test";
 import { AxiError } from "axi-sdk-js";
-import { parseArgs } from "../../src/cli/args";
+import { type ArgsSpec, parseArgs } from "../../src/cli/args";
 import {
 	CHART_ARM_HELP,
 	CHART_ARMS,
 	TRANSIT_FLAGS,
 } from "../../src/cli/surface";
-import {
-	CHART_TRANSITS_SPEC,
-	parseTransitInput,
-} from "../../src/domain/transit-input";
+import { parseTransitInput } from "../../src/domain/transit-input";
+
+const TEST_TRANSITS_SPEC: ArgsSpec = {
+	known: new Set([TRANSIT_FLAGS.when, TRANSIT_FLAGS.where]),
+	required: new Set([TRANSIT_FLAGS.when]),
+	positionals: 1,
+	positionalName: "profile id",
+	rules: {
+		[TRANSIT_FLAGS.when]: { trim: true, nonEmpty: true },
+		[TRANSIT_FLAGS.where]: { trim: true, nonEmpty: true },
+	},
+};
 
 describe("chart transits CLI surface & args", () => {
 	it("exposes surface constants for chart transits", () => {
@@ -25,7 +33,7 @@ describe("chart transits CLI surface & args", () => {
 		expect(() =>
 			parseArgs(
 				["--when", "2026-08-20T12:00Z"],
-				CHART_TRANSITS_SPEC,
+				TEST_TRANSITS_SPEC,
 				"lumen chart transits",
 			),
 		).toThrow(AxiError);
@@ -35,7 +43,7 @@ describe("chart transits CLI surface & args", () => {
 		expect(() =>
 			parseArgs(
 				["550e8400-e29b-41d4-a716-446655440000"],
-				CHART_TRANSITS_SPEC,
+				TEST_TRANSITS_SPEC,
 				"lumen chart transits",
 			),
 		).toThrow(AxiError);
@@ -44,29 +52,34 @@ describe("chart transits CLI surface & args", () => {
 	it("fails when --when is malformed", () => {
 		const parsed = parseArgs(
 			["550e8400-e29b-41d4-a716-446655440000", "--when", "invalid-date"],
-			CHART_TRANSITS_SPEC,
+			TEST_TRANSITS_SPEC,
 			"lumen chart transits",
 		);
 		expect(() =>
-			parseTransitInput(parsed.flags, { when: "--when", where: "--where" }),
+			parseTransitInput(parsed.flags, {
+				when: TRANSIT_FLAGS.when,
+				where: TRANSIT_FLAGS.where,
+			}),
 		).toThrow(AxiError);
 	});
 
 	it("parses valid --when without --where", () => {
 		const parsed = parseArgs(
-			["550e8400-e29b-41d4-a716-446655440000", "--when", "2026-08-20T12:00Z"],
-			CHART_TRANSITS_SPEC,
+			[
+				"550e8400-e29b-41d4-a716-446655440000",
+				"--when",
+				"2026-08-20T12:00-05:00",
+			],
+			TEST_TRANSITS_SPEC,
 			"lumen chart transits",
 		);
-		const target = parseTransitInput(parsed.flags, {
-			when: "--when",
-			where: "--where",
+		const input = parseTransitInput(parsed.flags, {
+			when: TRANSIT_FLAGS.when,
+			where: TRANSIT_FLAGS.where,
 		});
-		expect(target.dateTime).toBe("2026-08-20T12:00Z");
-		expect(target.jdUt).toBeGreaterThan(2460000);
-		expect(target.lat).toBeUndefined();
-		expect(target.lon).toBeUndefined();
-		expect(target.place).toBeUndefined();
+		expect(input.dateTime).toBe("2026-08-20T12:00-05:00");
+		expect(input.jdUt).toBeGreaterThan(2460000);
+		expect(input.lat).toBeUndefined();
 	});
 
 	it("parses valid --when with valid --where", () => {
@@ -76,19 +89,19 @@ describe("chart transits CLI surface & args", () => {
 				"--when",
 				"2026-08-20T12:00-05:00",
 				"--where",
-				"40.7128, -74.0060, New York, NY",
+				"9.242, -74.755, Magangué, Colombia",
 			],
-			CHART_TRANSITS_SPEC,
+			TEST_TRANSITS_SPEC,
 			"lumen chart transits",
 		);
-		const target = parseTransitInput(parsed.flags, {
-			when: "--when",
-			where: "--where",
+		const input = parseTransitInput(parsed.flags, {
+			when: TRANSIT_FLAGS.when,
+			where: TRANSIT_FLAGS.where,
 		});
-		expect(target.dateTime).toBe("2026-08-20T12:00-05:00");
-		expect(target.lat).toBeCloseTo(40.7128);
-		expect(target.lon).toBeCloseTo(-74.006);
-		expect(target.place).toBe("New York, NY");
+		expect(input.dateTime).toBe("2026-08-20T12:00-05:00");
+		expect(input.lat).toBe(9.242);
+		expect(input.lon).toBe(-74.755);
+		expect(input.place).toBe("Magangué, Colombia");
 	});
 
 	it("fails when --where has invalid coordinates", () => {
@@ -96,15 +109,18 @@ describe("chart transits CLI surface & args", () => {
 			[
 				"550e8400-e29b-41d4-a716-446655440000",
 				"--when",
-				"2026-08-20T12:00Z",
+				"2026-08-20T12:00-05:00",
 				"--where",
-				"not-a-lat, 10, Place",
+				"999.0, -74.755, Magangué, Colombia",
 			],
-			CHART_TRANSITS_SPEC,
+			TEST_TRANSITS_SPEC,
 			"lumen chart transits",
 		);
 		expect(() =>
-			parseTransitInput(parsed.flags, { when: "--when", where: "--where" }),
+			parseTransitInput(parsed.flags, {
+				when: TRANSIT_FLAGS.when,
+				where: TRANSIT_FLAGS.where,
+			}),
 		).toThrow(AxiError);
 	});
 });

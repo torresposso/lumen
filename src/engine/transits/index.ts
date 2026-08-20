@@ -1,10 +1,12 @@
 import type { BodyId } from "caelus";
 import type { Ephemeris } from "../../adapters/ephemeris";
-
 import type { Profile } from "../../domain/model";
 import type { TransitTargetInput } from "../../domain/transit-input";
 import { computeNatalChart } from "../natal/index";
+import type { AngleProjection, CuspProjection } from "../natal/types";
+
 import { projectPoint, roundPrecision, signOf } from "../shared/geometry";
+import { extractNatalPoints } from "../shared/natal-points";
 import { computeTransitAspects } from "./aspects";
 import { computeEvolutionaryTriggers } from "./triggers";
 import type { TransitBody, TransitChartOutput } from "./types";
@@ -14,37 +16,34 @@ export function computeTransitChart(
 	target: TransitTargetInput,
 	ephemeris: Ephemeris,
 ): TransitChartOutput {
-	// 1. Calculate the base natal chart to get natal bodies, cusps, skipped steps, etc.
 	const natalChart = computeNatalChart(natalProfile, ephemeris);
+	const targetJd = target.jdUt;
 
-	// 2. Calculate transit chart bodies and houses (if target coords exist)
-	const targetLat = target.lat ?? 0;
-	const targetLon = target.lon ?? 0;
-	const tChart = ephemeris.chartAt(target.jdUt, targetLat, targetLon);
+	const evalLat = target.lat ?? natalProfile.birthLat;
+	const evalLon = target.lon ?? natalProfile.birthLon;
 
-	const natalCusps = natalChart.cusps.map((c) => c.lon);
-	const transitCusps =
-		target.lat !== undefined && target.lon !== undefined
-			? tChart.cusps
-			: undefined;
+	const tChart = ephemeris.chartAt(targetJd, evalLat, evalLon);
+
+	let transitCusps: number[] | undefined;
+	if (target.lat !== undefined && target.lon !== undefined && tChart.cusps) {
+		transitCusps = tChart.cusps;
+	}
 
 	const transitingBodies: Record<string, TransitBody> = {};
-	const outOfBounds: string[] = [];
+	const natalCusps = natalChart.cusps.map((c) => c.lon);
 
 	for (const [bodyId, body] of Object.entries(tChart.bodies)) {
 		if (!body) continue;
-		const isOob = ephemeris.outOfBounds(bodyId as BodyId, target.jdUt);
-		if (isOob) {
-			outOfBounds.push(bodyId);
-		}
-
+		const isOob = ephemeris.outOfBounds(bodyId as BodyId, targetJd);
 		const normLon = ((body.lon % 360) + 360) % 360;
 		const sign = signOf(normLon);
 		const signDeg = roundPrecision(normLon % 30, 4);
-		const natalProj = projectPoint(body.lon, natalCusps);
-		const localProj = transitCusps
-			? projectPoint(body.lon, transitCusps)
-			: undefined;
+
+		const natalHouseProj = projectPoint(body.lon, natalCusps);
+		let localHouseProj: { house: number } | undefined;
+		if (transitCusps) {
+			localHouseProj = projectPoint(body.lon, transitCusps);
+		}
 
 		transitingBodies[bodyId] = {
 			name: bodyId,
@@ -55,47 +54,38 @@ export function computeTransitChart(
 			dec: roundPrecision(body.dec, 4),
 			speed: roundPrecision(body.speed, 6),
 			retrograde: body.speed < 0,
-			natalHouse: natalProj.house,
-			localHouse: localProj?.house,
+			natalHouse: natalHouseProj.house,
+			localHouse: localHouseProj?.house,
 			outOfBounds: isOob,
 		};
 	}
 
-	// 3. Compile natal points for aspect calculation (bodies + angles + PPP + Lilith)
-	const natalPoints: Record<string, { lon: number; speed?: number }> = {};
-	for (const [bId, b] of Object.entries(natalChart.bodies)) {
-		natalPoints[bId] = { lon: b.lon, speed: b.speed };
-	}
-	natalPoints.asc = { lon: natalChart.angles.asc.lon, speed: 0 };
-	natalPoints.mc = { lon: natalChart.angles.mc.lon, speed: 0 };
-	natalPoints.vertex = { lon: natalChart.angles.vertex.lon, speed: 0 };
-	natalPoints.eastPoint = { lon: natalChart.angles.eastPoint.lon, speed: 0 };
-	natalPoints.pluto = {
-		lon: natalChart.pluto.lon,
-		speed: natalChart.bodies.pluto?.speed,
-	};
-	if (natalChart.ppp.active) {
-		natalPoints.ppp = { lon: natalChart.ppp.lon, speed: 0 };
-	}
-	if (natalChart.nodalAxis.south) {
-		natalPoints.south_node = {
-			lon: natalChart.nodalAxis.south.lon,
-			speed: natalChart.bodies.true_node?.speed,
-		};
-	}
+	// Natal points dictionary via shared helper
+	const natalPoints = extractNatalPoints(natalChart);
 
-	// 4. Compute inter-chart aspects
+	// Compute inter-chart aspects
 	const aspectsToNatal = computeTransitAspects(transitingBodies, natalPoints);
 
-	// 5. Compute evolutionary triggers
+	// Compute evolutionary triggers
 	const evolutionaryTriggers = computeEvolutionaryTriggers(
 		aspectsToNatal,
 		natalChart,
 	);
 
-	// 6. Assemble local transit angles & cusps if target coordinates provided
-	let transitAngles: TransitChartOutput["transitAngles"];
-	let transitCuspsOutput: TransitChartOutput["transitCusps"];
+	// Out of bounds transiting bodies
+	const outOfBounds = Object.entries(transitingBodies)
+		.filter(([_, b]) => b.outOfBounds)
+		.map(([name]) => name);
+
+	let transitAngles:
+		| {
+				asc: AngleProjection;
+				mc: AngleProjection;
+				vertex: AngleProjection;
+				eastPoint: AngleProjection;
+		  }
+		| undefined;
+	let transitCuspsOutput: CuspProjection[] | undefined;
 
 	if (target.lat !== undefined && target.lon !== undefined && tChart.angles) {
 		const angles = tChart.angles;

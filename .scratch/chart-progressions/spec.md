@@ -44,20 +44,20 @@ export interface ProgressedChartOutput {
     plutoContacts: ProgressedAspect[];
     pppContacts: ProgressedAspect[];
     nodalContacts: ProgressedAspect[];
-    skippedStepActivations: ProgressedAspect[];
+    skippedStepActivations: ProgressedSkippedStepActivation[];
   };
   method: string;
 }
 
 export interface ProgressedBody {
   name: string;
-  longitude: number;
-  latitude: number;
-  declination: number;
+  lon: number;
+  lat: number;
+  dec: number;
   speed: number;
-  isRetrograde: boolean;
+  retrograde: boolean;
   sign: string;
-  degreeInSign: number;
+  signDeg: number;
   natalHouse: number;
   outOfBounds: boolean;
 }
@@ -70,6 +70,11 @@ export interface ProgressedAspect {
   maxOrb: number;
   isApplying: boolean;
   stress: "stressful" | "nonstressful";
+}
+
+export interface ProgressedSkippedStepActivation extends ProgressedAspect {
+  skippedStepBody: string;
+  resolutionNode: "north" | "south";
 }
 ```
 
@@ -116,12 +121,14 @@ src/cli/surface.ts
 src/cli/subcommand.ts
 src/domain/model.ts
 src/domain/store.ts
+src/domain/datetime.ts
 src/domain/birth-input.ts
 src/domain/transit-input.ts
 src/domain/toon.ts
 src/engine/shared/geometry.ts
 src/engine/shared/rulers.ts
 src/engine/shared/aspects.ts
+src/engine/shared/natal-points.ts
 src/engine/natal/types.ts
 src/engine/natal/pluto-polarity.ts
 src/engine/natal/nodal.ts

@@ -1,4 +1,4 @@
-import type { BodyId } from "caelus";
+import { aspectPhase, type BodyId } from "caelus";
 import type { Ephemeris } from "../../adapters/ephemeris";
 import type { Profile } from "../../domain/model";
 import type { TransitTargetInput } from "../../domain/transit-input";
@@ -6,10 +6,12 @@ import { computeNatalChart } from "../natal/index";
 import { computeSolLunaPhase } from "../natal/phases";
 import { matchClosestAspect, type StressedAspectDef } from "../shared/aspects";
 import { projectPoint, roundPrecision, signOf } from "../shared/geometry";
+import { extractNatalPoints } from "../shared/natal-points";
 import type {
 	ProgressedAspect,
 	ProgressedBody,
 	ProgressedChartOutput,
+	ProgressedSkippedStepActivation,
 } from "./types";
 
 export const TROPICAL_YEAR = 365.24219;
@@ -81,20 +83,8 @@ export function computeProgressedChart(
 			? (((progMoon.lon - progSun.lon) % 360) + 360) % 360
 			: 0;
 
-	// Natal points dictionary
-	const natalPoints: Record<string, { lon: number }> = {};
-	for (const [bId, b] of Object.entries(natalChart.bodies)) {
-		natalPoints[bId] = { lon: b.lon };
-	}
-	natalPoints.asc = { lon: natalChart.angles.asc.lon };
-	natalPoints.mc = { lon: natalChart.angles.mc.lon };
-	natalPoints.pluto = { lon: natalChart.pluto.lon };
-	if (natalChart.ppp.active) {
-		natalPoints.ppp = { lon: natalChart.ppp.lon };
-	}
-	if (natalChart.nodalAxis.south) {
-		natalPoints.south_node = { lon: natalChart.nodalAxis.south.lon };
-	}
+	// Natal points dictionary via shared helper
+	const natalPoints = extractNatalPoints(natalChart);
 
 	// Aspects from Progressed Planets to Natal Points (max orb 1.0°)
 	const aspectsToNatal: ProgressedAspect[] = [];
@@ -106,13 +96,20 @@ export function computeProgressedChart(
 				PROGRESSED_ASPECT_DEFS,
 			);
 			if (match) {
+				const phase = aspectPhase(
+					pBody.lon,
+					pBody.speed,
+					nPoint.lon,
+					nPoint.speed ?? 0,
+					match.def.target,
+				);
 				aspectsToNatal.push({
 					progressedBody: pName,
 					natalPoint: nName,
 					aspect: match.def.name,
 					orb: roundPrecision(match.orb, 4),
 					maxOrb: match.def.orb,
-					isApplying: true,
+					isApplying: phase === "applying",
 					stress: match.def.stress,
 				});
 			}
@@ -134,13 +131,23 @@ export function computeProgressedChart(
 			a.natalPoint.toLowerCase() === "true_node" ||
 			a.natalPoint.toLowerCase() === "south_node",
 	);
+
 	const skippedSteps = natalChart.nodalAxis.skippedSteps ?? [];
-	const skippedStepNames = new Set(
-		skippedSteps.map((s) => s.body.toLowerCase()),
+	const skippedStepsMap = new Map(
+		skippedSteps.map((s) => [s.body.toLowerCase(), s.resolutionNode]),
 	);
-	const skippedStepActivations = aspectsToNatal.filter((a) =>
-		skippedStepNames.has(a.natalPoint.toLowerCase()),
-	);
+
+	const skippedStepActivations: ProgressedSkippedStepActivation[] = [];
+	for (const aspect of aspectsToNatal) {
+		const targetLower = aspect.natalPoint.toLowerCase();
+		if (skippedStepsMap.has(targetLower)) {
+			skippedStepActivations.push({
+				...aspect,
+				skippedStepBody: targetLower,
+				resolutionNode: skippedStepsMap.get(targetLower) ?? "north",
+			});
+		}
+	}
 
 	return {
 		target: {
