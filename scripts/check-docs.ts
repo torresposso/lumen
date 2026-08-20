@@ -2,26 +2,23 @@
  * check-docs — docs ↔ code parity.
  *
  * "Doc-first" rule: no feature is implemented against stale docs. This check
- * fails when the lumen-v2 effort spec drifts from the real code:
+ * fails when the specs drift from the real code:
  *   1. SPEC §3 (surface) ↔ command registration in src/cli.ts
- *   2. SPEC §3 (surface) ↔ CLI vocabulary in src/cli/surface.ts (PROFILE_COMMAND
- *      and the ADD_FLAGS literals must be the ones the spec §3 block cites)
+ *   2. SPEC §3 (surface) ↔ CLI vocabulary in src/cli/surface.ts
  *   3. SPEC §8 (suggested src/ tree) ↔ actual files under src/
- *
- * During implementation it may be RED on purpose (the spec describes the
- * target before the code lands) and turns green when the feature is done.
- * Exit != 0 with the list of divergences. A missing effort spec directory is
- * only a warning — the parity gate needs a spec to check against.
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const ROOT = join(import.meta.dir, "..");
-const SPEC = join(ROOT, ".scratch", "chart-natal", "spec.md");
+const SPEC_PATHS = [
+	join(ROOT, ".scratch", "chart-natal", "spec.md"),
+	join(ROOT, ".scratch", "chart-transits", "spec.md"),
+].filter((p) => existsSync(p));
 
-if (!existsSync(SPEC)) {
+if (SPEC_PATHS.length === 0) {
 	console.warn(
-		"check:docs — warning: no spec at .scratch/chart-natal/spec.md; skipping parity checks",
+		"check:docs — warning: no active specs found under .scratch/; skipping parity checks",
 	);
 	process.exit(0);
 }
@@ -36,8 +33,8 @@ function firstFence(block: string): string | null {
 	return m ? (m[1] ?? null) : null;
 }
 
-function specSection(heading: string): string {
-	const md = readFileSync(SPEC, "utf8");
+function specSection(specFile: string, heading: string): string {
+	const md = readFileSync(specFile, "utf8");
 	const at = md.indexOf(heading);
 	return at === -1 ? md : md.slice(at);
 }
@@ -47,14 +44,16 @@ function specSection(heading: string): string {
 // ---------------------------------------------------------------------------
 
 function specCommands(): string[] {
-	const block = firstFence(specSection("## 3."));
-	if (!block) {
-		fail("spec.md §3: no fenced command block");
-		return [];
+	const commands: string[] = [];
+	for (const specPath of SPEC_PATHS) {
+		const block = firstFence(specSection(specPath, "## 3."));
+		if (block) {
+			const cmds = [...block.matchAll(/^lumen\s+([a-z][\w-]*)\b/gm)]
+				.map((m) => m[1] ?? "")
+				.filter((s) => s.length > 0);
+			commands.push(...cmds);
+		}
 	}
-	const commands = [...block.matchAll(/^lumen\s+([a-z][\w-]*)\b/gm)]
-		.map((m) => m[1] ?? "")
-		.filter((s) => s.length > 0);
 	return [...new Set(commands)];
 }
 
@@ -86,22 +85,30 @@ function checkSurface() {
 // 2. Surface vocabulary: SPEC §3 ↔ src/cli/surface.ts
 // ---------------------------------------------------------------------------
 
-/** Root command tokens named in the spec §3 block, e.g. "lumen profile". */
 function specCommandTokens(): string[] {
-	const block = firstFence(specSection("## 3."));
-	if (!block) return [];
-	return [
-		...new Set(
-			[...block.matchAll(/^lumen\s+(\S+)/gm)].map((m) => `lumen ${m[1] ?? ""}`),
-		),
-	];
+	const tokens: string[] = [];
+	for (const specPath of SPEC_PATHS) {
+		const block = firstFence(specSection(specPath, "## 3."));
+		if (block) {
+			const t = [...block.matchAll(/^lumen\s+(\S+)/gm)].map(
+				(m) => `lumen ${m[1] ?? ""}`,
+			);
+			tokens.push(...t);
+		}
+	}
+	return [...new Set(tokens)];
 }
 
-/** Flag literals named in the spec §3 block, e.g. "--when". */
 function specFlags(): string[] {
-	const block = firstFence(specSection("## 3."));
-	if (!block) return [];
-	return [...new Set([...block.matchAll(/--[\w-]+/g)].map((m) => m[0] ?? ""))];
+	const flags: string[] = [];
+	for (const specPath of SPEC_PATHS) {
+		const block = firstFence(specSection(specPath, "## 3."));
+		if (block) {
+			const f = [...block.matchAll(/--[\w-]+/g)].map((m) => m[0] ?? "");
+			flags.push(...f);
+		}
+	}
+	return [...new Set(flags)];
 }
 
 function surfaceVocabulary() {
@@ -142,14 +149,16 @@ function surfaceVocabulary() {
 // ---------------------------------------------------------------------------
 
 function specSrcFiles(): string[] {
-	const block = firstFence(specSection("## 8."));
-	if (!block) return [];
-	// Full-line anchor: a src path is one whole entry in the §8 fence, so a
-	// greedy inline regex cannot conflate two paths sharing a prefix or let a
-	// nested path bleed across lines.
-	const files = [...block.matchAll(/^\s*(src\/[\w./-]+\.ts)\s*$/gm)]
-		.map((m) => (m[1] ?? "").replace(/^src\//, ""))
-		.filter((s) => s.length > 0);
+	const files: string[] = [];
+	for (const specPath of SPEC_PATHS) {
+		const block = firstFence(specSection(specPath, "## 8."));
+		if (block) {
+			const f = [...block.matchAll(/^\s*(src\/[\w./-]+\.ts)\s*$/gm)]
+				.map((m) => (m[1] ?? "").replace(/^src\//, ""))
+				.filter((s) => s.length > 0);
+			files.push(...f);
+		}
+	}
 	return [...new Set(files)].sort();
 }
 

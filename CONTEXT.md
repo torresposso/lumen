@@ -158,3 +158,10 @@ pushed.
   (evolutionary tension/friction: conjunction, square, opposition, semisquare, sesquiquadrate,
   quincunx) and nonstressful (integration/flow: trine, sextile, semisextile, septile,
   quintile, biquintile).
+- **Transits chart engine** — the calculation of planetary positions at a specific
+  target instant (`--when`, optional `--where` for local transit angles) projected against
+  a stored natal profile (`lumen chart transits <uuid> --when ...`), calculating transiting
+  bodies, house placements in the natal chart, inter-chart aspects (tight canon orbs,
+  applying/separating status), and JWGEA evolutionary triggers (transits activating natal Pluto,
+  PPP, Nodal Axis, and Skipped Steps).
+
