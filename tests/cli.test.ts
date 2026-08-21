@@ -46,7 +46,7 @@ const ADD_ARGS = [
 type AddResult = {
 	status: string;
 	id: string;
-	name: string | null;
+	name: string;
 	birthPlace: string;
 	birthDateTime: string;
 	birthLat: number;
@@ -106,13 +106,23 @@ describe("profileCommand", () => {
 					"1990-06-10T14:30+15:00",
 					"--where",
 					"27.95, -82.46, Tampa, USA",
+					"--name",
+					"erik",
 				],
 				ctx(),
 			),
 		).rejects.toThrow(/Invalid birth input/);
 		await expect(
 			profileCommand(
-				["add", "--when", "1990-13-01T00:00-05:00", "--where", "0, 0, x"],
+				[
+					"add",
+					"--when",
+					"1990-13-01T00:00-05:00",
+					"--where",
+					"0, 0, x",
+					"--name",
+					"erik",
+				],
 				ctx(),
 			),
 		).rejects.toThrow(/Invalid birth input/);
@@ -124,6 +134,8 @@ describe("profileCommand", () => {
 			"not-a-date",
 			"--where",
 			"0, 0, x",
+			"--name",
+			"erik",
 		]);
 		expect(when.join(" ")).toContain("--when");
 
@@ -132,6 +144,8 @@ describe("profileCommand", () => {
 			"1990-06-10T14:30+05:99",
 			"--where",
 			"0, 0, x",
+			"--name",
+			"erik",
 		]);
 		expect(offset.join(" ")).toContain("--when offset");
 
@@ -140,6 +154,8 @@ describe("profileCommand", () => {
 			"1990-06-10T14:30-05:00",
 			"--where",
 			"zz",
+			"--name",
+			"erik",
 		]);
 		expect(where.join(" ")).toContain("--where");
 
@@ -170,12 +186,15 @@ describe("profileCommand", () => {
 		expect(listed.profiles[0]?.id).toBeDefined();
 	});
 
-	test("get returns a profile and NOT_FOUND for a missing uuid", async () => {
+	test("get returns a profile and NOT_FOUND for a missing name", async () => {
 		const added = (await profileCommand(
 			["add", ...ADD_ARGS],
 			ctx(),
 		)) as AddResult;
-		const shown = (await profileCommand(["get", added.id], ctx())) as AddResult;
+		const shown = (await profileCommand(
+			["get", added.name],
+			ctx(),
+		)) as AddResult;
 		expect(shown.id).toBe(added.id);
 
 		await expect(
@@ -190,13 +209,13 @@ describe("profileCommand", () => {
 			["add", ...ADD_ARGS],
 			ctx(),
 		)) as AddResult;
-		const removed = (await profileCommand(["delete", added.id], ctx())) as {
+		const removed = (await profileCommand(["delete", added.name], ctx())) as {
 			status: string;
 		};
 		expect(removed.status).toBe("deleted");
 
 		await expect(
-			profileCommand(["delete", added.id], ctx()),
+			profileCommand(["delete", added.name], ctx()),
 		).rejects.toMatchObject({
 			code: "NOT_FOUND",
 		});

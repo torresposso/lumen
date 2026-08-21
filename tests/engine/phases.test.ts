@@ -88,14 +88,20 @@ describe("Sol-Luna phase calculation", () => {
 	}
 
 	test("correctly calculates archetypal 8 phases", () => {
-		expect(chartWithSunMoon(0, 10).phase).toBe("New");
-		expect(chartWithSunMoon(0, 60).phase).toBe("Crescent");
-		expect(chartWithSunMoon(0, 100).phase).toBe("First Quarter");
-		expect(chartWithSunMoon(0, 150).phase).toBe("Gibbous");
-		expect(chartWithSunMoon(0, 190).phase).toBe("Full");
-		expect(chartWithSunMoon(0, 240).phase).toBe("Disseminating");
-		expect(chartWithSunMoon(0, 290).phase).toBe("Last Quarter");
-		expect(chartWithSunMoon(0, 340).phase).toBe("Balsamic");
+		expect(chartWithSunMoon(0, 10).meta.solLunaPhase.name).toBe("New");
+		expect(chartWithSunMoon(0, 60).meta.solLunaPhase.name).toBe("Crescent");
+		expect(chartWithSunMoon(0, 100).meta.solLunaPhase.name).toBe(
+			"First Quarter",
+		);
+		expect(chartWithSunMoon(0, 150).meta.solLunaPhase.name).toBe("Gibbous");
+		expect(chartWithSunMoon(0, 190).meta.solLunaPhase.name).toBe("Full");
+		expect(chartWithSunMoon(0, 240).meta.solLunaPhase.name).toBe(
+			"Disseminating",
+		);
+		expect(chartWithSunMoon(0, 290).meta.solLunaPhase.name).toBe(
+			"Last Quarter",
+		);
+		expect(chartWithSunMoon(0, 340).meta.solLunaPhase.name).toBe("Balsamic");
 	});
 
 	test("computeSolLunaPhase direct unit calculation", () => {

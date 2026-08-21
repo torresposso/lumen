@@ -5,7 +5,7 @@ import { ensureSchema, SCHEMA_VERSION } from "../../src/storage/schema";
 
 interface MigratedRow {
 	id: string;
-	name: string | null;
+	name: string;
 	birth_place: string;
 	birth_date_time: string;
 	birth_lat: number;

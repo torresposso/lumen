@@ -5,7 +5,7 @@
 
 ## 1. Product
 
-`lumen chart transits <uuid> --when "YYYY-MM-DDTHH:MM±HH:MM" [--where "lat, lon, Place"]` reads a v2 birth profile by UUID from the local profile store and calculates planetary transits, house placements in the natal chart, local transit angles/cusps (if `--where` is given), inter-chart aspects (strict canonical orbs, applying/separating status), and JWGEA evolutionary triggers (contacts to natal Pluto, PPP, Nodal Axis, and Skipped Steps) using exact `caelus: "0.24.1"` ephemerides.
+`lumen chart transits <name> --when "YYYY-MM-DDTHH:MM±HH:MM" [--where "lat, lon, Place"]` reads a v2 birth profile by its unique name from the local profile store and calculates planetary transits, house placements in the natal chart, local transit angles/cusps (if `--where` is given), inter-chart aspects (strict canonical orbs, applying/separating status), and JWGEA evolutionary triggers (contacts to natal Pluto, PPP, Nodal Axis, and Skipped Steps) using exact `caelus: "0.24.1"` ephemerides.
 
 The calculation is deterministic:
 - `--when` is required: ISO 8601 datetime with explicit UTC offset (`YYYY-MM-DDTHH:MM±HH:MM` or `…Z`).
@@ -20,42 +20,49 @@ export interface TransitChartOutput {
   target: {
     dateTime: string;
     jdUt: number;
-    place?: string | null;
-    lat?: number | null;
-    lon?: number | null;
+    place?: string;
+    lat?: number;
+    lon?: number;
   };
-  natal: {
+  birth: {
     id: string;
-    name?: string | null;
+    name: string;
     birthPlace: string;
     birthDateTime: string;
     birthLat: number;
     birthLon: number;
     birthJdUt: number;
   };
-  zodiac: "tropical";
-  houseSystem?: "porphyry" | null;
-  transitingBodies: Record<string, TransitBody>;
-  transitAngles?: TransitAngleProjections | null;
-  transitCusps?: TransitCuspProjection[] | null;
+  meta: {
+    houseSystem?: "porphyry";
+    zodiac: "tropical";
+    ephemeris: string;
+  };
+  transitingBodies: Record<string, {
+    sign: string;
+    signDeg: number;
+    natalHouse: number;
+    localHouse?: number;
+    retrograde: boolean;
+    speed: number;
+    dec: number;
+    outOfBounds: boolean;
+  }>;
+  transitAngles?: {
+    asc: { sign: string; signDeg: number };
+    mc: { sign: string; signDeg: number };
+    vertex: { sign: string; signDeg: number };
+    eastPoint: { sign: string; signDeg: number };
+  };
+  transitCusps?: Array<{
+    house: number;
+    sign: string;
+    signDeg: number;
+    ruler: string;
+  }>;
   aspectsToNatal: TransitAspect[];
   evolutionaryTriggers: TransitEvolutionaryTriggers;
   outOfBounds: string[];
-  method: string;
-}
-
-export interface TransitBody {
-  name: string;
-  lon: number;
-  lat: number;
-  dec: number;
-  speed: number;
-  retrograde: boolean;
-  sign: string;
-  signDeg: number;
-  natalHouse: number;
-  localHouse?: number | null;
-  outOfBounds: boolean;
 }
 
 export interface TransitAspect {
@@ -63,29 +70,47 @@ export interface TransitAspect {
   natalPoint: string;
   aspect: string;
   orb: number;
-  maxOrb: number;
   isApplying: boolean;
   stress: "stressful" | "nonstressful";
+  transitingNatalHouse: number;
+}
+
+export interface SkippedStepTransitActivation {
+  transitBody: string;
+  skippedStepBody: string;
+  aspect: string;
+  orb: number;
+  isApplying: boolean;
+  resolutionNode: "north" | "south";
+  transitingNatalHouse: number;
+}
+
+export interface TransitEvolutionaryTriggers {
+  plutoContacts: TransitAspect[];
+  pppContacts: TransitAspect[];
+  nodalContacts: TransitAspect[];
+  skippedStepActivations: SkippedStepTransitActivation[];
+  dispositorActivations: TransitAspect[];
 }
 ```
 
 ## 3. CLI Contract
 
 ```
-lumen profile add --when "YYYY-MM-DDTHH:MM±HH:MM" --where "lat, lon, Place" [--name <slug>]
+lumen profile add --when "YYYY-MM-DDTHH:MM±HH:MM" --where "lat, lon, Place" --name <slug>
 lumen profile list
-lumen profile get <uuid>
-lumen profile delete <uuid>
-lumen chart natal <uuid>
-lumen chart transits <uuid> --when "YYYY-MM-DDTHH:MM±HH:MM" [--where "lat, lon, Place"]
-lumen chart progressions <uuid> --when "YYYY-MM-DDTHH:MM±HH:MM"
+lumen profile get <name>
+lumen profile delete <name>
+lumen chart natal <name>
+lumen chart transits <name> --when "YYYY-MM-DDTHH:MM±HH:MM" [--where "lat, lon, Place"]
+lumen chart progressions <name> --when "YYYY-MM-DDTHH:MM±HH:MM"
 ```
 
 Rules:
-- Accepts exactly one positional UUID (or unique prefix).
+- Accepts exactly one positional name (the unique `name` supplied to `lumen profile add`).
 - Requires `--when` (fails with `VALIDATION_ERROR` if missing or malformed).
 - Accepts optional `--where` (fails with `VALIDATION_ERROR` if malformed coordinates).
-- Returns AXI `NOT_FOUND` if the UUID does not match any profile.
+- Returns AXI `NOT_FOUND` if the name does not match any profile.
 - Output is rendered deterministically in TOON format with 2-space indentation.
 
 ## 4. Astrological Calculation Canon

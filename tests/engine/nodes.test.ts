@@ -86,17 +86,17 @@ describe("Nodal axis astrology calculations (JWGEA canon)", () => {
 		});
 
 		const chart = computeNatalChart(baseProfile, ephemeris);
-		expect(chart.nodalAxis.skippedSteps.length).toBe(1);
-		expect(chart.nodalAxis.skippedSteps[0]?.body).toBe("mars");
-		expect(chart.nodalAxis.skippedSteps[0]?.aspect).toBe("square");
-		expect(chart.nodalAxis.skippedSteps[0]?.orb).toBe(0);
-		expect(chart.nodalAxis.skippedSteps[0]?.resolutionNode).toBe("south");
+		expect(chart.evolutionary.skippedSteps.length).toBe(1);
+		expect(chart.evolutionary.skippedSteps[0]?.body).toBe("mars");
+		expect(chart.evolutionary.skippedSteps[0]?.aspect).toBe("square");
+		expect(chart.evolutionary.skippedSteps[0]?.orb).toBe(0);
+		expect(chart.evolutionary.skippedSteps[0]?.resolutionNode).toBe("south");
 
-		expect(chart.nodalAxis.north.sign).toBe("Aries");
-		expect(chart.nodalAxis.south.sign).toBe("Libra");
-		expect(chart.nodalAxis.north.ruler).toBe("mars");
-		expect(chart.nodalAxis.south.ruler).toBe("venus");
-		expect(chart.nodalAxis.motion).toBe("retrograde");
+		expect(chart.evolutionary.nodalAxis.north.sign).toBe("Aries");
+		expect(chart.evolutionary.nodalAxis.south.sign).toBe("Libra");
+		expect(chart.evolutionary.nodalAxis.north.ruler).toBe("mars");
+		expect(chart.evolutionary.nodalAxis.south.ruler).toBe("venus");
+		expect(chart.evolutionary.nodalAxis.motion).toBe("retrograde");
 	});
 
 	test("buildDispositorChain resolves deep 9-10 step chain without premature truncation", () => {

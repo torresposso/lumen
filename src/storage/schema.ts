@@ -1,7 +1,7 @@
 import type { Database } from "bun:sqlite";
 import { AxiError } from "axi-sdk-js";
 
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 /**
  * Ensures the database schema is up-to-date.
@@ -69,6 +69,28 @@ function validateSchema(db: Database): void {
 	}
 }
 
+/**
+ * Asserts the v5 name index exists — called after the v4→v5 transform creates
+ * it, so a v4 db missing it (corruption) is still caught here.
+ */
+function validateNameIndex(db: Database): void {
+	const nameIdx = db
+		.prepare(
+			"SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_profiles_name'",
+		)
+		.get();
+	if (!nameIdx) {
+		throw new AxiError(
+			"Profile store is missing required index 'idx_profiles_name'",
+			"PROFILE_ERROR",
+			[
+				"The database file may be corrupt or from an older migration",
+				"Back up the file and remove it to start clean",
+			],
+		);
+	}
+}
+
 function ensureSchemaInner(db: Database): void {
 	const { user_version } = db.prepare("PRAGMA user_version").get() as {
 		user_version: number;
@@ -104,6 +126,7 @@ function ensureSchemaInner(db: Database): void {
 	// Already at target version — validate invariants (F4: malformed v4 with missing columns/index).
 	if (user_version === SCHEMA_VERSION) {
 		validateSchema(db);
+		validateNameIndex(db);
 		return;
 	}
 
@@ -132,6 +155,10 @@ function ensureSchemaInner(db: Database): void {
 			db.exec(`
 			CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_birth
 			ON profiles (birth_jd_ut, birth_lat, birth_lon)
+		`);
+			db.exec(`
+			CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_name
+			ON profiles (name)
 		`);
 		}
 		if (user_version === 1) {
@@ -166,27 +193,47 @@ function ensureSchemaInner(db: Database): void {
 				db.exec(`ALTER TABLE profiles DROP COLUMN ${col}`);
 			}
 		}
-		if (user_version >= 1 && user_version < SCHEMA_VERSION) {
-			// Any pre-v4 db (v1/v2 converge to the v3 column set above) → v4: the
-			// flat `birth_*` names. The unique birth index follows the renames.
+		if (user_version >= 1 && user_version < 4) {
+			// Any pre-v4 db (v1/v2/v3) → v4: the flat `birth_*` names. The unique
+			// birth index follows the renames. A v4 db already has these names,
+			// so it is excluded (otherwise the renames would fail on missing
+			// `birthplace`/`when` columns).
 			db.exec(`ALTER TABLE profiles RENAME COLUMN birthplace TO birth_place`);
 			db.exec(`ALTER TABLE profiles RENAME COLUMN "when" TO birth_date_time`);
 			db.exec(`ALTER TABLE profiles RENAME COLUMN lat TO birth_lat`);
 			db.exec(`ALTER TABLE profiles RENAME COLUMN lon TO birth_lon`);
 			db.exec(`ALTER TABLE profiles RENAME COLUMN jd_ut TO birth_jd_ut`);
 		}
-		// Ensure the birth identity index exists even if the pre-v4 db never had it (v1/v2).
-		db.exec(`
-			CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_birth
-			ON profiles (birth_jd_ut, birth_lat, birth_lon)
-		`);
+		// Ensure the birth identity index exists for pre-v4 dbs (v1/v2/v3 may
+		// lack it). A v4 db already has it — do NOT recreate it here, or a v4 db
+		// missing the index would be silently "repaired" instead of rejected.
+		if (user_version < 4) {
+			db.exec(`
+				CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_birth
+				ON profiles (birth_jd_ut, birth_lat, birth_lon)
+			`);
+		}
+
+		// Validate the v4-shaped columns + birth index BEFORE the v5 additive
+		// transform (F3/F4): a v4 db missing a column or the birth index is
+		// rejected with a precise PROFILE_ERROR and the transaction rolls back.
+		validateSchema(db);
+
+		// v4 → v5: the name becomes the required, unique CLI lookup key. Backfill
+		// any NULL/empty name with the row's id (preserving uniqueness across
+		// older databases), then add the unique name index and bump the version.
 		if (user_version < SCHEMA_VERSION) {
+			db.exec(`UPDATE profiles SET name = id WHERE name IS NULL OR name = ''`);
+			db.exec(`
+				CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_name
+				ON profiles (name)
+			`);
 			db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
 		}
 
 		// Post-migration invariant check inside the transaction (F3/F4) —
-		// ensures required columns and index exist before committing.
-		validateSchema(db);
+		// ensures the v5 name index exists before committing.
+		validateNameIndex(db);
 
 		db.exec("COMMIT");
 		inTx = false;

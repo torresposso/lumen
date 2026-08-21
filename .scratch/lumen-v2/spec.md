@@ -38,10 +38,10 @@ UTC offset are not stored separately — they arrive and are stored as the singl
 ## 3. CLI contract
 
 ```
-lumen profile add --when "YYYY-MM-DDTHH:MM±HH:MM" --where "lat, lon, Place" [--name <slug>]
+lumen profile add --when "YYYY-MM-DDTHH:MM±HH:MM" --where "lat, lon, Place" --name <slug>
 lumen profile list
-lumen profile get <uuid>
-lumen profile delete <uuid>
+lumen profile get <name>
+lumen profile delete <name>
 ```
 
 Rules:
@@ -59,13 +59,13 @@ Rules:
   derives `birthJdUt` (Meeus) — raw flags in, the complete `birth*` set out.
 - No separate `--offset` flag — the offset rides inside `--when`, resolved by the
   agent, never by lumen.
-- `get`/`delete` by **UUID only** (no lookup by name or birthPlace).
+- `get`/`delete`/`chart *` resolve by the unique **name** supplied to `add` (the CLI lookup key). The opaque UUID stays the internal primary key, never supplied by the CLI.
 - Validation (the violated rule is cited in the error): offset −840..+840 minutes
   (`±HH:MM`); year 1800–2100; month 1–12; day valid by pure arithmetic
   (Gregorian leap rule); hour 0–23; minute 0–59; the `--where` latitude −90..90
   and longitude −180..180; the `--where` place non-empty.
 - AXI errors: `VALIDATION_ERROR` (input), `NOT_FOUND` (`get`/`delete` of an
-  unknown UUID), `PROFILE_ERROR` (store failure, e.g. unwritable cwd).
+  unknown name), `PROFILE_ERROR` (store failure, e.g. unwritable cwd).
 - Messages in **English**.
 - **TOON-only** output (no `--json`): centralized policy in `toon.ts` —
   `birthJdUt` at 6 decimals, `birthLat`/`birthLon` at 4, `birthDateTime` echoed

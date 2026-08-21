@@ -8,7 +8,7 @@ export interface ArgsSpec {
 	required?: ReadonlySet<string>;
 	/** Exact positional-argument count the command accepts: 0 (default) or 1. */
 	positionals?: 0 | 1;
-	/** What the positional is called in errors, e.g. "profile id". Defaults to "argument". */
+	/** What the positional is called in errors, e.g. "profile name". Defaults to "argument". */
 	positionalName?: string;
 	/** Flags whose presence indicates true without taking a value argument (e.g. `--interpret`). */
 	booleanFlags?: ReadonlySet<string>;

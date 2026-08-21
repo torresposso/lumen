@@ -65,8 +65,10 @@ export function computePlutoPolarityFact(
 	}
 
 	const aspects = evaluatePlutoAspects(bodies, pluto);
-	const stressfulCount = aspects.filter((a) => a.stress === "stressful").length;
-	const nonstressfulCount = aspects.filter(
+	const _stressfulCount = aspects.filter(
+		(a) => a.stress === "stressful",
+	).length;
+	const _nonstressfulCount = aspects.filter(
 		(a) => a.stress === "nonstressful",
 	).length;
 
@@ -100,8 +102,6 @@ export function computePlutoPolarityFact(
 			signDeg: roundPrecision(pluto.signDeg, 4),
 			house: pluto.house,
 			retrograde: pluto.speed < 0,
-			stressfulCount,
-			nonstressfulCount,
 			aspects,
 			antiscia: plutoAntiscia,
 		},
@@ -112,13 +112,8 @@ export function computePlutoPolarityFact(
 			house: pppProjected.house,
 			active: pppActive,
 			...(separation !== undefined
-				? { separation: roundPrecision(separation, 2) }
+				? { separationFromNorthNode: roundPrecision(separation, 2) }
 				: {}),
-			...(pppActive
-				? {}
-				: {
-						reason: `pluto conjunct north node (separation ${roundPrecision(separation ?? 0, 2)}° <= ${PPP_DEACTIVATION_ORB}°)`,
-					}),
 			aspects: pppAspects,
 			antiscia: pppAntiscia,
 		},

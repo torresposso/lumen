@@ -60,21 +60,21 @@ describe("command surface", () => {
 		expect(PROFILE_ARMS.get).toBe("lumen profile get");
 		expect(PROFILE_ARMS.delete).toBe("lumen profile delete");
 		expect(CHART_COMMAND).toBe("lumen chart");
-		expect(CHART_ARMS.natal).toBe("lumen chart natal <uuid>");
+		expect(CHART_ARMS.natal).toBe("lumen chart natal <name>");
 		expect(CHART_ARMS.synthesis).toBe(
-			'lumen chart synthesis <uuid> --when "YYYY-MM-DDTHH:MM±HH:MM" [--where "lat, lon, Place"]',
+			'lumen chart synthesis <name> --when "YYYY-MM-DDTHH:MM±HH:MM" [--where "lat, lon, Place"]',
 		);
 	});
 
 	test("the canonical example matches the spec §3 example verbatim", () => {
 		expect(PROFILE_ADD_EXAMPLE).toBe(
-			'lumen profile add --when "1981-01-26T00:50-05:00" --where "9.15, -74.75, Magangué, Colombia"',
+			'lumen profile add --when "1981-01-26T00:50-05:00" --where "9.15, -74.75, Magangué, Colombia" --name "erik"',
 		);
 	});
 
 	test("the shared hints match the spec §3 surface", () => {
 		expect(PROFILE_ADD_HINT).toBe(
-			'Run `lumen profile add --when "1981-01-26T00:50-05:00" --where "9.15, -74.75, Magangué, Colombia"`',
+			'Run `lumen profile add --when "1981-01-26T00:50-05:00" --where "9.15, -74.75, Magangué, Colombia" --name "erik"`',
 		);
 		expect(PROFILE_LIST_HINT).toBe(
 			"Run `lumen profile list` to see saved profiles",

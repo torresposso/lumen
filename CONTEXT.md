@@ -13,9 +13,10 @@ pushed.
 
 ## Language
 
-- **Profile** — a stored birth profile: auto-generated UUID `id`, optional
-  descriptive `name` (no lookup), and the flat `birth*` fields. The unit of
-  `profile add | list | get | delete`.
+- **Profile** — a stored birth profile: auto-generated UUID `id` (the internal
+  primary key, never supplied by the CLI), a required, unique descriptive
+  `name` (the CLI lookup key — `get`/`delete`/`chart *` resolve by it), and the
+  flat `birth*` fields. The unit of `profile add | list | get | delete`.
 - **Birth** — the moment and place of a birth as the agent supplied them. In the
   model it is flat: `birthPlace`, `birthDateTime`, `birthLat`, `birthLon` and
   the derived `birthJdUt`. The birth is the profile's identity: `add`
@@ -108,12 +109,14 @@ pushed.
   one internal SQL core): `SqliteProfileStore` — per-project SQLite at
   `./lumen.db` (overridable with `LUMEN_DB`), created lazily only on `add`,
   0600 permissions, dedupe via `UNIQUE INDEX (birth_jd_ut, birth_lat,
-  birth_lon)`, migrations via `PRAGMA user_version` (current schema v4) — and
+  birth_lon)`, migrations via `PRAGMA user_version` (current schema v5) — and
   `InMemoryProfileStore`, a thin wrapper over an injected `bun:sqlite`
   `Database` for tests (same interface, no filesystem side effects). The
   command and the home view type against the port and never create a store —
   the CLI wiring provides one through context. The adapters own profile identity: `add` generates the profile's
-  UUID — the command never supplies one.
+  UUID — the command never supplies either. `getByName`/`removeByName` resolve by
+   the unique `name`; the birth still deduplicates storage via
+   `UNIQUE INDEX (birth_jd_ut, birth_lat, birth_lon)`.
 - **TOON** — the AXI structured-output encoding lumen publishes: display
   precision only (`birthJdUt` 6 decimals, `birthLat`/`birthLon` 4),
   `birthDateTime` echoed as stored (ISO 8601), rounded at output; the DB keeps
@@ -160,15 +163,15 @@ pushed.
   quintile, biquintile).
 - **Transits chart engine** — the calculation of planetary positions at a specific
   target instant (`--when`, optional `--where` for local transit angles) projected against
-  a stored natal profile (`lumen chart transits <uuid> --when ...`), calculating transiting
+  a stored natal profile (`lumen chart transits <name> --when ...`), calculating transiting
   bodies, house placements in the natal chart, inter-chart aspects (tight canon orbs,
   applying/separating status against static natal points with `speed = 0`), and JWGEA evolutionary triggers (transits activating natal Pluto,
   PPP, Nodal Axis, and Skipped Steps).
 - **Progressions chart engine** — the calculation of secondary-progressed planetary positions
-  ("day-for-a-year" symbolic motion) at a target instant (`lumen chart progressions <uuid> --when ...`),
+  ("day-for-a-year" symbolic motion) at a target instant (`lumen chart progressions <name> --when ...`),
   deriving the Progressed Sol-Luna Phase (28-year evolutionary cycle), progressed planet positions,
   house placements in the natal chart, and exact progressed-to-natal aspect contacts (evaluated against static natal points).
-- **Evolutionary Synthesis engine** — the multi-layer synthesis orchestrator (`lumen chart synthesis <uuid> --when ... [--where ...]`)
+- **Evolutionary Synthesis engine** — the multi-layer synthesis orchestrator (`lumen chart synthesis <name> --when ... [--where ...]`)
   and atomic `--interpret` flags combining the 3-Layer Soul Stack (Layer 1: Karmic Root, Layer 2:
   Internal Soul Clock, Layer 3: Cosmic Triggers) and deriving Layer 4 `evolutionaryDynamics` (the
   cross-layer activation vectors mapping active transits directly to natal wounds, skipped steps,

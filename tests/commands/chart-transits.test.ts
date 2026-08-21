@@ -7,7 +7,7 @@ import { chartCommand } from "../../src/commands/chart";
 import type { Profile } from "../../src/domain/model";
 import { InMemoryProfileStore } from "../../src/storage/profile-store";
 
-describe("chartCommand — lumen chart transits <uuid>", () => {
+describe("chartCommand — lumen chart transits <name>", () => {
 	const ephemeris = new CaelusEphemeris();
 	const sampleProfile = {
 		name: "Erick",
@@ -32,11 +32,11 @@ describe("chartCommand — lumen chart transits <uuid>", () => {
 		const profile = ctx.profiles.list()[0] as Profile;
 
 		const res = (await chartCommand(
-			["transits", profile.id, "--when", "2026-08-20T12:00Z"],
+			["transits", profile.name, "--when", "2026-08-20T12:00Z"],
 			ctx,
 		)) as {
 			transits: {
-				natal: { id: string };
+				birth: { id: string };
 				target: { dateTime: string };
 				transitingBodies: { pluto: unknown };
 				aspectsToNatal: unknown;
@@ -45,7 +45,7 @@ describe("chartCommand — lumen chart transits <uuid>", () => {
 		};
 
 		expect(res.transits).toBeDefined();
-		expect(res.transits.natal.id).toBe(profile.id);
+		expect(res.transits.birth.id).toBe(profile.id);
 		expect(res.transits.target.dateTime).toBe("2026-08-20T12:00Z");
 		expect(res.transits.transitingBodies).toBeDefined();
 		expect(res.transits.transitingBodies.pluto).toBeDefined();
@@ -60,7 +60,7 @@ describe("chartCommand — lumen chart transits <uuid>", () => {
 		const res = (await chartCommand(
 			[
 				"transits",
-				profile.id,
+				profile.name,
 				"--when",
 				"2026-08-20T12:00-05:00",
 				"--where",
@@ -71,7 +71,7 @@ describe("chartCommand — lumen chart transits <uuid>", () => {
 			transits: {
 				transitAngles?: { asc: unknown };
 				transitCusps?: unknown[];
-				houseSystem?: string;
+				meta: { houseSystem?: string };
 			};
 		};
 
@@ -79,7 +79,7 @@ describe("chartCommand — lumen chart transits <uuid>", () => {
 		expect(res.transits.transitAngles?.asc).toBeDefined();
 		expect(res.transits.transitCusps).toBeDefined();
 		expect(res.transits.transitCusps?.length).toBe(12);
-		expect(res.transits.houseSystem).toBe("porphyry");
+		expect(res.transits.meta.houseSystem).toBe("porphyry");
 	});
 
 	it("computes transitsInterpretation when --interpret flag is provided", async () => {
@@ -87,7 +87,7 @@ describe("chartCommand — lumen chart transits <uuid>", () => {
 		const profile = ctx.profiles.list()[0] as Profile;
 
 		const res = (await chartCommand(
-			["transits", profile.id, "--when", "2026-08-20T12:00Z", "--interpret"],
+			["transits", profile.name, "--when", "2026-08-20T12:00Z", "--interpret"],
 			ctx,
 		)) as {
 			transitsInterpretation: {
@@ -120,11 +120,11 @@ describe("chartCommand — lumen chart transits <uuid>", () => {
 		);
 	});
 
-	it("throws NOT_FOUND for unknown uuid", async () => {
+	it("throws NOT_FOUND for unknown name", async () => {
 		const ctx = createCtx();
 		expect(
 			chartCommand(
-				["transits", "non-existent-uuid", "--when", "2026-08-20T12:00Z"],
+				["transits", "non-existent-name", "--when", "2026-08-20T12:00Z"],
 				ctx,
 			),
 		).rejects.toThrow(AxiError);

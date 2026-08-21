@@ -8,12 +8,12 @@
 Lumen v2 provides deterministic, non-hallucinatory interpretive synthesis capabilities:
 
 1. **Atomic Interpretations (`--interpret`)**:
-   - `lumen chart natal <uuid> --interpret`: Extracts and structures the core karmic root, evolutionary axis, skipped steps, and soul lots from the natal chart.
-   - `lumen chart transits <uuid> --when "<iso>" [--where "lat, lon, place"] --interpret`: Structures current active triggers, house activations, and out-of-bounds pressure.
-   - `lumen chart progressions <uuid> --when "<iso>" --interpret`: Structures the 28-year Sol-Luna evolutionary season, archetype phase, and progressed triggers.
+   - `lumen chart natal <name> --interpret`: Extracts and structures the core karmic root, evolutionary axis, skipped steps, and soul lots from the natal chart.
+   - `lumen chart transits <name> --when "<iso>" [--where "lat, lon, place"] --interpret`: Structures current active triggers, house activations, and out-of-bounds pressure.
+   - `lumen chart progressions <name> --when "<iso>" --interpret`: Structures the 28-year Sol-Luna evolutionary season, archetype phase, and progressed triggers.
 
 2. **Unified Evolutionary Synthesis (`chart synthesis`)**:
-   - `lumen chart synthesis <uuid> --when "<iso>" [--where "lat, lon, place"]`: Weaves together the 3 layers (Karmic Root, Soul Clock, Cosmic Triggers) plus a 4th automated Cross-Synthesis layer (`evolutionaryDynamics`) that calculates which active transits press against natal wounds or skipped steps and highlights their canonical `resolutionNode`.
+   - `lumen chart synthesis <name> --when "<iso>" [--where "lat, lon, place"]`: Weaves together the 3 layers (Karmic Root, Soul Clock, Cosmic Triggers) plus a 4th automated Cross-Synthesis layer (`evolutionaryDynamics`) that calculates which active transits press against natal wounds or skipped steps and highlights their canonical `resolutionNode`.
 
 All calculations are deterministic using `caelus: "0.24.1"` ephemerides and strict JWGEA canon (Porphyry houses, True Node, tight orbs).
 
@@ -126,10 +126,21 @@ export interface EvolutionarySynthesisOutput {
       jdUt: number;
     };
     karmicRoot: NatalInterpretationOutput["natalInterpretation"]["karmicRoot"];
-    soulClock: ProgressionsInterpretationOutput["progressionsInterpretation"]["solLunaPhase"] & {
+    soulClock: {
+      phase: {
+        name: string;
+        number: number;
+        angle: number;
+        isWaxing: boolean;
+      };
       progressedSun: { sign: string; house: number; degree: number };
       progressedMoon: { sign: string; house: number; degree: number };
-      progressedTriggers: ProgressionsInterpretationOutput["progressionsInterpretation"]["progressedTriggers"];
+      progressedTriggers: Array<{
+        progressedBody: string;
+        natalPoint: string;
+        aspect: string;
+        orb: number;
+      }>;
     };
     cosmicTriggers: {
       activeTransits: TransitsInterpretationOutput["transitsInterpretation"]["activeTriggers"];
@@ -138,21 +149,21 @@ export interface EvolutionarySynthesisOutput {
     evolutionaryDynamics: {
       skippedStepActivations: Array<{
         transitingBody: string;
+        transitingHouse: number;
         skippedPlanet: string;
         aspect: string;
         orb: number;
         resolutionNode: "north" | "south";
-        evolutionaryMandate: string;
+        targetNode: { sign: string; house: number };
       }>;
       plutoNodePressure: Array<{
         transitingBody: string;
+        transitingHouse: number;
         targetPoint: "pluto" | "ppp" | "north_node" | "south_node";
         aspect: string;
         orb: number;
       }>;
-      phaseContextGuidance: string;
     };
-    method: string;
   };
 }
 ```
@@ -160,21 +171,21 @@ export interface EvolutionarySynthesisOutput {
 ## 3. CLI Contract
 
 ```
-lumen profile add --when "YYYY-MM-DDTHH:MM±HH:MM" --where "lat, lon, Place" [--name <slug>]
+lumen profile add --when "YYYY-MM-DDTHH:MM±HH:MM" --where "lat, lon, Place" --name <slug>
 lumen profile list
-lumen profile get <uuid>
-lumen profile delete <uuid>
-lumen chart natal <uuid> [--interpret]
-lumen chart transits <uuid> --when "YYYY-MM-DDTHH:MM±HH:MM" [--where "lat, lon, Place"] [--interpret]
-lumen chart progressions <uuid> --when "YYYY-MM-DDTHH:MM±HH:MM" [--interpret]
-lumen chart synthesis <uuid> --when "YYYY-MM-DDTHH:MM±HH:MM" [--where "lat, lon, Place"]
+lumen profile get <name>
+lumen profile delete <name>
+lumen chart natal <name> [--interpret]
+lumen chart transits <name> --when "YYYY-MM-DDTHH:MM±HH:MM" [--where "lat, lon, Place"] [--interpret]
+lumen chart progressions <name> --when "YYYY-MM-DDTHH:MM±HH:MM" [--interpret]
+lumen chart synthesis <name> --when "YYYY-MM-DDTHH:MM±HH:MM" [--where "lat, lon, Place"]
 ```
 
 ### Invariants:
 1. When `--interpret` is passed to `natal`, `transits`, or `progressions`, it returns `{ natalInterpretation }`, `{ transitsInterpretation }`, or `{ progressionsInterpretation }`.
 2. Without `--interpret`, the atomic commands return their canonical raw TOON blocks (`{ chart }`, `{ transits }`, `{ progressions }`).
 3. `lumen chart synthesis` always requires `--when` and accepts optional `--where`. It returns `{ synthesis }`.
-4. Standard AXI errors apply: `NOT_FOUND` on invalid UUID, `VALIDATION_ERROR` on invalid/missing flags.
+4. Standard AXI errors apply: `NOT_FOUND` on unknown name, `VALIDATION_ERROR` on invalid/missing flags.
 
 ## 4. Canon & Synthesis Logic
 

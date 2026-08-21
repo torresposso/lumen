@@ -28,10 +28,10 @@ export const PROFILE_ARMS = {
 } as const;
 
 export const CHART_ARMS = {
-	natal: `${CHART_COMMAND} natal <uuid>`,
-	transits: `${CHART_COMMAND} transits <uuid> --when "YYYY-MM-DDTHH:MM±HH:MM" [--where "lat, lon, Place"]`,
-	progressions: `${CHART_COMMAND} progressions <uuid> --when "YYYY-MM-DDTHH:MM±HH:MM"`,
-	synthesis: `${CHART_COMMAND} synthesis <uuid> --when "YYYY-MM-DDTHH:MM±HH:MM" [--where "lat, lon, Place"]`,
+	natal: `${CHART_COMMAND} natal <name>`,
+	transits: `${CHART_COMMAND} transits <name> --when "YYYY-MM-DDTHH:MM±HH:MM" [--where "lat, lon, Place"]`,
+	progressions: `${CHART_COMMAND} progressions <name> --when "YYYY-MM-DDTHH:MM±HH:MM"`,
+	synthesis: `${CHART_COMMAND} synthesis <name> --when "YYYY-MM-DDTHH:MM±HH:MM" [--where "lat, lon, Place"]`,
 } as const;
 
 export const ADD_FLAGS = {
@@ -59,7 +59,7 @@ export const INTERPRET_FLAGS = {
 } as const;
 
 /** The canonical `add` example — the single source for every usage and empty-state reference. */
-export const PROFILE_ADD_EXAMPLE = `${PROFILE_ARMS.add} ${ADD_FLAGS.when} "1981-01-26T00:50-05:00" ${ADD_FLAGS.where} "9.15, -74.75, Magangué, Colombia"`;
+export const PROFILE_ADD_EXAMPLE = `${PROFILE_ARMS.add} ${ADD_FLAGS.when} "1981-01-26T00:50-05:00" ${ADD_FLAGS.where} "9.15, -74.75, Magangué, Colombia" ${ADD_FLAGS.name} "erik"`;
 
 /** The empty-state hint pointing an agent at `add` (list arm, top-level home). */
 export const PROFILE_ADD_HINT = `Run \`${PROFILE_ADD_EXAMPLE}\``;
@@ -71,8 +71,8 @@ export const PROFILE_LIST_HINT = `Run \`${PROFILE_ARMS.list}\` to see saved prof
 export const PROFILE_ARM_HELP = {
 	add: `Register a birth (ISO ${ADD_FLAGS.when} + ${ADD_FLAGS.where} coordinates/place)`,
 	list: "List saved profiles",
-	get: "Show one profile by UUID",
-	delete: "Remove one profile by UUID",
+	get: "Show one profile by name",
+	delete: "Remove one profile by name",
 } as const;
 
 export const CHART_ARM_HELP = {

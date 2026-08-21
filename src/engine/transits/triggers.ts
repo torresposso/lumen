@@ -15,7 +15,7 @@ export function computeEvolutionaryTriggers(
 	);
 
 	// 2. PPP contacts (if active)
-	const pppContacts = natalChart.ppp.active
+	const pppContacts = natalChart.evolutionary?.ppp?.active
 		? aspectsToNatal.filter((a) => a.natalPoint.toLowerCase() === "ppp")
 		: [];
 
@@ -28,7 +28,7 @@ export function computeEvolutionaryTriggers(
 
 	// 4. Skipped Step activations
 	const skippedStepActivations: SkippedStepTransitActivation[] = [];
-	const skippedSteps = natalChart.nodalAxis.skippedSteps ?? [];
+	const skippedSteps = natalChart.evolutionary?.skippedSteps ?? [];
 
 	for (const step of skippedSteps) {
 		const stepBody = step.body.toLowerCase();
@@ -44,13 +44,14 @@ export function computeEvolutionaryTriggers(
 				orb: asp.orb,
 				isApplying: asp.isApplying,
 				resolutionNode: step.resolutionNode,
+				transitingNatalHouse: asp.transitingNatalHouse,
 			});
 		}
 	}
 
 	// 5. Dispositor activations
 	const dispositorBodies = new Set<string>();
-	const chains = natalChart.dispositorChains;
+	const chains = natalChart.evolutionary?.dispositorChains;
 	if (chains) {
 		for (const chain of Object.values(chains)) {
 			if (chain?.terminalBodies) {

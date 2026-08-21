@@ -60,8 +60,8 @@ describe("SqliteProfileStore", () => {
 	test("reads are lazy: no file is created until add", () => {
 		expect(existsSync(dbPath)).toBe(false);
 		expect(store.list()).toEqual([]);
-		expect(store.get("missing")).toBeUndefined();
-		expect(store.remove("missing")).toBe(false);
+		expect(store.getByName("missing")).toBeUndefined();
+		expect(store.removeByName("missing")).toBe(false);
 		expect(existsSync(dbPath)).toBe(false);
 	});
 
@@ -77,18 +77,25 @@ describe("SqliteProfileStore", () => {
 
 	test("add and get round-trip the profile", () => {
 		const { profile } = store.add(newProfile());
-		const stored = store.get(profile.id);
+		const stored = store.getByName(profile.name);
 		expect(stored?.name).toBe("erik");
 		expect(stored?.birthPlace).toBe("Tampa, USA");
 		expect(stored?.birthDateTime).toBe("1990-06-10T14:30-04:00");
 		expect(stored?.birthLat).toBe(27.95);
 		expect(stored?.birthLon).toBe(-82.46);
 		expect(stored?.birthJdUt).toBe(2444068.0625);
-		expect(store.get("nope")).toBeUndefined();
+		expect(store.getByName("nope")).toBeUndefined();
 	});
 
 	test("add deduplicates by birth: same birthJdUt+coords returns the existing profile", () => {
 		const first = store.add(newProfile());
+		// 1. Same birth with identical name (idempotent re-add)
+		const same = store.add(newProfile());
+		expect(same.created).toBe(false);
+		expect(same.profile.id).toBe(first.profile.id);
+		expect(same.profile.name).toBe("erik");
+
+		// 2. Same birth with different name (deduplicates on birth, keeps canonical)
 		const second = store.add(
 			newProfile({
 				name: "other",
@@ -121,7 +128,7 @@ describe("SqliteProfileStore", () => {
 	test("list sorts by id and returns full profiles", () => {
 		store.add(
 			newProfile({
-				name: null,
+				name: "alpha",
 				birthLat: 10,
 				birthLon: 10,
 				birthJdUt: 2400000.0,
@@ -129,7 +136,7 @@ describe("SqliteProfileStore", () => {
 		);
 		store.add(
 			newProfile({
-				name: null,
+				name: "beta",
 				birthLat: 20,
 				birthLon: 20,
 				birthJdUt: 2500000.0,
@@ -140,27 +147,45 @@ describe("SqliteProfileStore", () => {
 		const ids = store.list().map((p) => p.id);
 		expect(ids).toHaveLength(2);
 		expect(ids).toEqual([...ids].sort());
-		expect(store.list().every((p) => p.name === null)).toBe(true);
+		expect(
+			store
+				.list()
+				.map((p) => p.name)
+				.sort(),
+		).toEqual(["alpha", "beta"]);
 	});
 
 	test("remove deletes and persists", () => {
 		const { profile } = store.add(newProfile());
-		expect(store.remove(profile.id)).toBe(true);
-		expect(store.remove(profile.id)).toBe(false);
+		expect(store.removeByName(profile.name)).toBe(true);
+		expect(store.removeByName(profile.name)).toBe(false);
 		store.close();
 
 		const reloaded = new SqliteProfileStore(dbPath);
-		expect(reloaded.get(profile.id)).toBeUndefined();
+		expect(reloaded.getByName(profile.name)).toBeUndefined();
 		reloaded.close();
 	});
 
-	test("get and remove resolve unambiguous UUID prefixes symmetrically", () => {
+	test("getByName/removeByName resolve by unique name and add rejects duplicates", () => {
 		const { profile } = store.add(newProfile());
-		const prefix = profile.id.slice(0, 8);
+		expect(store.getByName(profile.name)?.id).toBe(profile.id);
 
-		expect(store.get(prefix)?.id).toBe(profile.id);
-		expect(store.remove(prefix)).toBe(true);
-		expect(store.get(prefix)).toBeUndefined();
+		// A second add with the same name but a different birth is rejected by
+		// the unique-name rule (the birth is not the collision here).
+		expect(() =>
+			store.add(
+				newProfile({
+					name: "erik",
+					birthPlace: "Elsewhere",
+					birthLat: 1,
+					birthLon: 1,
+					birthJdUt: 2412345.0,
+				}),
+			),
+		).toThrowError(expect.objectContaining({ code: "VALIDATION_ERROR" }));
+
+		expect(store.removeByName(profile.name)).toBe(true);
+		expect(store.getByName(profile.name)).toBeUndefined();
 		expect(store.list()).toHaveLength(0);
 	});
 
@@ -225,8 +250,8 @@ describe("InMemoryProfileStore — the in-memory adapter", () => {
 			/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
 		);
 		expect(store.list()).toHaveLength(1);
-		expect(store.get(profile.id)?.name).toBe("erik");
-		expect(store.remove(profile.id)).toBe(true);
+		expect(store.getByName(profile.name)?.name).toBe("erik");
+		expect(store.removeByName(profile.name)).toBe(true);
 		expect(store.list()).toHaveLength(0);
 	});
 
@@ -269,6 +294,12 @@ describe("SqliteProfileStore — hardening (F1/F2/F8/F9)", () => {
 	});
 
 	test("F8: add rejects out-of-range coordinates as VALIDATION_ERROR", () => {
+		expect(() => store.add(newProfile({ name: "   " }))).toThrowError(
+			expect.objectContaining({
+				code: "VALIDATION_ERROR",
+				message: "Invalid profile",
+			}),
+		);
 		expect(() => store.add(newProfile({ birthLat: 91 }))).toThrowError(
 			expect.objectContaining({
 				code: "VALIDATION_ERROR",
@@ -287,7 +318,7 @@ describe("SqliteProfileStore — hardening (F1/F2/F8/F9)", () => {
 	test("F8: validation suggestions cite the violated rule for an agent", () => {
 		let thrown: unknown;
 		try {
-			store.add(newProfile({ birthLat: 91, birthPlace: "  " }));
+			store.add(newProfile({ name: "", birthLat: 91, birthPlace: "  " }));
 		} catch (error) {
 			thrown = error;
 		}
@@ -296,19 +327,19 @@ describe("SqliteProfileStore — hardening (F1/F2/F8/F9)", () => {
 		expect(err.code).toBe("VALIDATION_ERROR");
 		expect(err.suggestions).toEqual(
 			expect.arrayContaining([
+				expect.stringContaining("name"),
 				expect.stringContaining("birthLat"),
 				expect.stringContaining("birthPlace"),
 			]),
 		);
 	});
 
-	test("F9: LIKE wildcards in an id are literal, not patterns", () => {
+	test("F9: getByName matches the exact name only (no prefix/substring)", () => {
 		const { profile } = store.add(newProfile());
-		// Unescaped, '%' would match the whole id as a prefix wildcard; escaped,
-		// it is a literal character that matches nothing.
-		expect(store.get(`${profile.id.slice(0, 8)}%`)).toBeUndefined();
-		expect(store.get(`${profile.id.slice(0, 8)}_`)).toBeUndefined();
-		expect(store.remove(`${profile.id.slice(0, 8)}%`)).toBe(false);
+		// Name lookup is an exact match — prefixes and supersets are not matched.
+		expect(store.getByName("eri")).toBeUndefined();
+		expect(store.getByName("erikx")).toBeUndefined();
+		expect(store.getByName(profile.name)).toBeDefined();
 	});
 
 	test("F2: a raw SQL failure surfaces as PROFILE_ERROR, not a leaked error", () => {
@@ -346,7 +377,7 @@ describe("SqliteProfileStore — hardening (F1/F2/F8/F9)", () => {
 		// All four operations on the open store must throw AxiError with code PROFILE_ERROR
 		for (const op of [
 			() => store.list(),
-			() => store.get(profile.id),
+			() => store.getByName(profile.name),
 			() =>
 				store.add(
 					newProfile({
@@ -355,7 +386,7 @@ describe("SqliteProfileStore — hardening (F1/F2/F8/F9)", () => {
 						birthJdUt: 2400000,
 					}),
 				),
-			() => store.remove(profile.id),
+			() => store.removeByName(profile.name),
 		]) {
 			let thrown: unknown;
 			try {

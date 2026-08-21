@@ -1,11 +1,17 @@
 import { aspectPhase, type BodyId } from "caelus";
 import type { Ephemeris } from "../../adapters/ephemeris";
 import type { Profile } from "../../domain/model";
+import { toonProfile } from "../../domain/toon";
 import type { TransitTargetInput } from "../../domain/transit-input";
 import { computeNatalChart } from "../natal/index";
-import { computeSolLunaPhase, getSolLunaPhaseDetails } from "../natal/phases";
+import { getSolLunaPhaseDetails } from "../natal/phases";
 import { matchClosestAspect, type StressedAspectDef } from "../shared/aspects";
-import { projectPoint, roundPrecision, signOf } from "../shared/geometry";
+import {
+	lonFromSignDeg,
+	projectPoint,
+	roundPrecision,
+	signOf,
+} from "../shared/geometry";
 import { extractNatalPoints } from "../shared/natal-points";
 import type {
 	ProgressedAspect,
@@ -52,11 +58,17 @@ export function computeProgressedChart(
 		natalProfile.birthLon,
 	);
 
-	const natalCusps = natalChart.cusps.map((c) => c.lon);
+	const natalCusps = natalChart.cusps.map((c) =>
+		lonFromSignDeg(c.sign, c.signDeg),
+	);
 	const progressedBodies: Record<string, ProgressedBody> = {};
+	const progressedBodiesForAspects: Record<
+		string,
+		{ lon: number; speed: number; natalHouse: number }
+	> = {};
 
 	for (const [bodyId, body] of Object.entries(pChart.bodies)) {
-		if (!body) continue;
+		if (!body || bodyId === "mean_node") continue;
 		const isOob = ephemeris.outOfBounds(bodyId as BodyId, progressedJd);
 		const normLon = ((body.lon % 360) + 360) % 360;
 		const sign = signOf(normLon);
@@ -64,37 +76,41 @@ export function computeProgressedChart(
 		const natalProj = projectPoint(body.lon, natalCusps);
 
 		progressedBodies[bodyId] = {
-			name: bodyId,
-			lon: roundPrecision(normLon, 4),
 			sign,
 			signDeg,
-			lat: roundPrecision(body.lat, 4),
-			dec: roundPrecision(body.dec, 4),
-			speed: roundPrecision(body.speed, 6),
-			retrograde: body.speed < 0,
 			natalHouse: natalProj.house,
+			retrograde: body.speed < 0,
+			speed: roundPrecision(body.speed, 6),
+			dec: roundPrecision(body.dec, 4),
 			outOfBounds: isOob,
+		};
+
+		progressedBodiesForAspects[bodyId] = {
+			lon: body.lon,
+			speed: body.speed,
+			natalHouse: natalProj.house,
 		};
 	}
 
 	// Sol-Luna Phase in Progressions (28-year evolutionary cycle)
 	const progSun = pChart.bodies.sun;
 	const progMoon = pChart.bodies.moon;
-	const solLunaPhaseName =
+	const solLunaPhase =
 		progSun && progMoon
-			? computeSolLunaPhase(progSun.lon, progMoon.lon)
-			: "New";
-	const angle =
-		progSun && progMoon
-			? (((progMoon.lon - progSun.lon) % 360) + 360) % 360
-			: 0;
+			? getSolLunaPhaseDetails(progSun.lon, progMoon.lon)
+			: {
+					name: "New" as const,
+					number: 1,
+					angle: 0,
+					isWaxing: true,
+				};
 
 	// Natal points dictionary via shared helper
 	const natalPoints = extractNatalPoints(natalChart);
 
 	// Aspects from Progressed Planets to Natal Points (max orb 1.0°)
 	const aspectsToNatal: ProgressedAspect[] = [];
-	for (const [pName, pBody] of Object.entries(progressedBodies)) {
+	for (const [pName, pBody] of Object.entries(progressedBodiesForAspects)) {
 		for (const [nName, nPoint] of Object.entries(natalPoints)) {
 			const match = matchClosestAspect(
 				pBody.lon,
@@ -114,9 +130,9 @@ export function computeProgressedChart(
 					natalPoint: nName,
 					aspect: match.def.name,
 					orb: roundPrecision(match.orb, 4),
-					maxOrb: match.def.orb,
 					isApplying: phase === "applying",
 					stress: match.def.stress,
+					progressedNatalHouse: pBody.natalHouse,
 				});
 			}
 		}
@@ -138,7 +154,7 @@ export function computeProgressedChart(
 			a.natalPoint.toLowerCase() === "south_node",
 	);
 
-	const skippedSteps = natalChart.nodalAxis.skippedSteps ?? [];
+	const skippedSteps = natalChart.evolutionary?.skippedSteps ?? [];
 	const skippedStepsMap = new Map(
 		skippedSteps.map((s) => [s.body.toLowerCase(), s.resolutionNode]),
 	);
@@ -162,20 +178,11 @@ export function computeProgressedChart(
 			ageYears: roundPrecision(ageYears, 2),
 			progressedJdUt: roundPrecision(progressedJd, 6),
 		},
-		natal: {
-			id: natalProfile.id,
-			name: natalProfile.name,
-			birthPlace: natalProfile.birthPlace,
-			birthDateTime: natalProfile.birthDateTime,
-			birthLat: roundPrecision(natalProfile.birthLat, 4),
-			birthLon: roundPrecision(natalProfile.birthLon, 4),
-			birthJdUt: roundPrecision(natalProfile.birthJdUt, 6),
-		},
-		zodiac: "tropical",
-		solLunaPhase: {
-			phase: solLunaPhaseName,
-			angle: roundPrecision(angle, 2),
-			description: `28-year secondary progression Sol-Luna cycle (${solLunaPhaseName} phase)`,
+		birth: toonProfile(natalProfile),
+		meta: {
+			zodiac: "tropical",
+			ephemeris: "caelus: 0.24.1",
+			solLunaPhase,
 		},
 		progressedBodies,
 		aspectsToNatal,
@@ -185,8 +192,6 @@ export function computeProgressedChart(
 			nodalContacts,
 			skippedStepActivations,
 		},
-		method:
-			"JWGEA Secondary Progressions (Day-for-a-Year, Tropical year 365.24219d, 1° max orbs)",
 	};
 }
 
@@ -199,9 +204,7 @@ export function extractProgressionsInterpretation(
 	const progSun = progressions.progressedBodies.sun;
 	const progMoon = progressions.progressedBodies.moon;
 
-	const sunLon = progSun?.lon ?? 0;
-	const moonLon = progMoon?.lon ?? 0;
-	const phaseDetails = getSolLunaPhaseDetails(sunLon, moonLon);
+	const phaseDetails = progressions.meta.solLunaPhase;
 
 	const progressedSun = {
 		sign: progSun?.sign ?? "unknown",
@@ -230,22 +233,14 @@ export function extractProgressionsInterpretation(
 				ageYears: progressions.target.ageYears,
 				progressedJdUt: progressions.target.progressedJdUt,
 			},
-			natal: {
-				id: progressions.natal.id,
-				name: progressions.natal.name ?? null,
-				birthPlace: progressions.natal.birthPlace,
-				birthDateTime: progressions.natal.birthDateTime,
-				birthLat: progressions.natal.birthLat,
-				birthLon: progressions.natal.birthLon,
-				birthJdUt: progressions.natal.birthJdUt,
-			},
+			natal: progressions.birth,
 			solLunaPhase: {
-				phaseNumber: phaseDetails.phaseNumber,
-				phaseName: phaseDetails.phaseName,
-				archetype: phaseDetails.archetype,
-				sunMoonAngle: phaseDetails.sunMoonAngle,
+				phaseNumber: phaseDetails.number,
+				phaseName: phaseDetails.name,
+				archetype: phaseDetails.name,
+				sunMoonAngle: phaseDetails.angle,
 				isWaxing: phaseDetails.isWaxing,
-				description: phaseDetails.description,
+				description: `28-year progressed Sol-Luna ${phaseDetails.name} Phase`,
 			},
 			progressedSun,
 			progressedMoon,

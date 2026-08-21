@@ -7,7 +7,7 @@ import { chartCommand } from "../../src/commands/chart";
 import type { Profile } from "../../src/domain/model";
 import { InMemoryProfileStore } from "../../src/storage/profile-store";
 
-describe("chartCommand — lumen chart progressions <uuid>", () => {
+describe("chartCommand — lumen chart progressions <name>", () => {
 	const ephemeris = new CaelusEphemeris();
 	const sampleProfile = {
 		name: "Erick",
@@ -32,12 +32,13 @@ describe("chartCommand — lumen chart progressions <uuid>", () => {
 		const profile = ctx.profiles.list()[0] as Profile;
 
 		const res = (await chartCommand(
-			["progressions", profile.id, "--when", "2026-08-20T12:00-05:00"],
+			["progressions", profile.name, "--when", "2026-08-20T12:00-05:00"],
 			ctx,
 		)) as {
 			progressions: {
+				birth: { id: string };
 				target: { ageYears: number };
-				solLunaPhase: { phase: string };
+				meta: { solLunaPhase: { name: string; number: number } };
 				progressedBodies: { sun: unknown; moon: unknown };
 				aspectsToNatal: unknown;
 				evolutionaryTriggers: unknown;
@@ -45,9 +46,10 @@ describe("chartCommand — lumen chart progressions <uuid>", () => {
 		};
 
 		expect(res.progressions).toBeDefined();
+		expect(res.progressions.birth.id).toBe(profile.id);
 		expect(res.progressions.target.ageYears).toBeCloseTo(45.56, 1);
-		expect(res.progressions.solLunaPhase).toBeDefined();
-		expect(typeof res.progressions.solLunaPhase.phase).toBe("string");
+		expect(res.progressions.meta.solLunaPhase).toBeDefined();
+		expect(typeof res.progressions.meta.solLunaPhase.name).toBe("string");
 		expect(res.progressions.progressedBodies).toBeDefined();
 		expect(res.progressions.progressedBodies.sun).toBeDefined();
 		expect(res.progressions.progressedBodies.moon).toBeDefined();
@@ -62,7 +64,7 @@ describe("chartCommand — lumen chart progressions <uuid>", () => {
 		const res = (await chartCommand(
 			[
 				"progressions",
-				profile.id,
+				profile.name,
 				"--when",
 				"2026-08-20T12:00-05:00",
 				"--interpret",
@@ -106,13 +108,13 @@ describe("chartCommand — lumen chart progressions <uuid>", () => {
 		).toBe(true);
 	});
 
-	it("throws NOT_FOUND for unknown uuid", async () => {
+	it("throws NOT_FOUND for unknown name", async () => {
 		const ctx = createCtx();
 		expect(
 			chartCommand(
 				[
 					"progressions",
-					"non-existent-uuid",
+					"non-existent-name",
 					"--when",
 					"2026-08-20T12:00-05:00",
 				],

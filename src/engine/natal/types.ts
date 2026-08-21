@@ -2,6 +2,7 @@ import type { ToonProfile } from "../../domain/toon";
 import type { AspectStress, StressedAspectDef } from "../shared/aspects";
 import type { ProjectedEclipticPoint } from "../shared/geometry";
 import type { DispositorStep } from "../shared/rulers";
+import type { SolLunaPhaseOutput } from "./phases";
 
 export type {
 	AspectStress,
@@ -17,6 +18,7 @@ export interface AspectProjection {
 	orb: number;
 	phase: "applying" | "separating" | "exact";
 	strength: number;
+	stress?: AspectStress;
 }
 
 export interface DeclinationAspectProjection {
@@ -27,36 +29,28 @@ export interface DeclinationAspectProjection {
 }
 
 export interface ChartBodyProjection {
-	lon: number;
 	sign: string;
 	signDeg: number;
 	house: number;
 	retrograde: boolean;
 	speed: number;
-	lat: number;
-	dist: number | null;
-	ra: number;
 	dec: number;
 	outOfBounds: boolean;
 	dignities: string[];
 }
 
 export interface AngleProjection {
-	lon: number;
 	sign: string;
 	signDeg: number;
+	lon?: number;
 }
 
 export interface CuspProjection {
-	lon: number;
-	sign: string;
-	signDeg: number;
-}
-
-export interface HouseRulerRow {
 	house: number;
 	sign: string;
+	signDeg: number;
 	ruler: string;
+	lon?: number;
 }
 
 export interface EclipticGeometryProjection {
@@ -70,29 +64,7 @@ export interface EclipticGeometryProjection {
 	cusps: CuspProjection[];
 	aspects: AspectProjection[];
 	declinationAspects: DeclinationAspectProjection[];
-	houseRulers: HouseRulerRow[];
-	phase?: string;
-}
-
-export interface PlutoAspectProjection {
-	body: string;
-	aspect: string;
-	orb: number;
-	stress: AspectStress;
-	phase?: "applying" | "separating" | "exact";
-}
-
-export interface PPPAspectProjection {
-	body: string;
-	aspect: string;
-	orb: number;
-}
-
-export interface NodeAspectProjection {
-	body: string;
-	aspect: string;
-	orb: number;
-	stress: "stressful" | "nonstressful";
+	phase?: SolLunaPhaseOutput;
 }
 
 export type DispositorTerminalType =
@@ -144,36 +116,14 @@ export interface ShadowAntisciaProjection {
 	contraAntiscion: ProjectedEclipticPoint;
 }
 
-export interface SoulPlutoFact {
-	sign: string;
-	lon: number;
-	house: number;
-	signDeg: number;
-	retrograde: boolean;
-	stressfulCount: number;
-	nonstressfulCount: number;
-	aspects: PlutoAspectProjection[];
-	antiscia?: ShadowAntisciaProjection;
-}
-
 export interface PPPFact {
 	sign: string;
-	lon: number;
-	house: number;
 	signDeg: number;
+	house: number;
 	active: boolean;
-	separation?: number;
-	reason?: string;
-	aspects: PPPAspectProjection[];
+	separationFromNorthNode?: number;
+	aspects: Array<{ body: string; aspect: string; orb: number }>;
 	antiscia?: ShadowAntisciaProjection;
-}
-
-export interface PlutoPolarityOutput {
-	pluto: SoulPlutoFact;
-	ppp: PPPFact;
-	midpoint?: ProjectedEclipticPoint;
-	antiMidpoint?: ProjectedEclipticPoint;
-	dispositorChain: DispositorChainOutput;
 }
 
 export type NodeMotionStatus = "retrograde" | "direct" | "stationary";
@@ -188,12 +138,13 @@ export interface NodalRulerPlacement {
 
 export interface NodalPointFact {
 	sign: string;
-	lon: number;
 	signDeg: number;
 	house: number;
+	speed: number;
+	dec: number;
+	outOfBounds: boolean;
 	ruler?: string;
 	rulerPlacement?: NodalRulerPlacement;
-	aspects: NodeAspectProjection[];
 	antiscia?: ShadowAntisciaProjection;
 }
 
@@ -201,16 +152,15 @@ export interface NodalAxisFact {
 	north: NodalPointFact;
 	south: NodalPointFact;
 	motion: NodeMotionStatus;
-	skippedSteps: SkippedStepProjection[];
 }
 
 export interface EclipseFact {
-	tMax: number;
 	type: string;
-	lon: number;
 	sign: string;
 	signDeg: number;
 	house: number;
+	tMax: number;
+	daysBeforeBirth: number;
 }
 
 export interface PrenatalEclipsesFact {
@@ -221,12 +171,12 @@ export interface PrenatalEclipsesFact {
 export interface AspectPattern {
 	type: string;
 	bodies: string[];
-	apex?: string | null;
-	sign?: string | null;
-	house?: number | null;
+	orb?: number;
 	element?: string;
 	modality?: string;
-	orb?: number;
+	apex?: string;
+	sign?: string;
+	house?: number;
 }
 
 export interface SoulLotsProjection {
@@ -240,10 +190,41 @@ export interface SoulLotsProjection {
 	isDay: boolean;
 }
 
+export interface TrueLilithFact {
+	sign: string;
+	signDeg: number;
+	house: number;
+	speed: number;
+	dec: number;
+	outOfBounds: boolean;
+}
+
+export interface EvolutionaryCoreFact {
+	ppp: PPPFact;
+	plutoNorthNodeMidpoint: {
+		near: ProjectedEclipticPoint;
+		anti: ProjectedEclipticPoint;
+	};
+	nodalAxis: NodalAxisFact;
+	skippedSteps: SkippedStepProjection[];
+	dispositorChains: {
+		pluto: DispositorChainOutput;
+		southNodeRuler?: DispositorChainOutput;
+		northNodeRuler?: DispositorChainOutput;
+	};
+	prenatalEclipses: PrenatalEclipsesFact;
+	trueLilith: TrueLilithFact;
+	soulLots: SoulLotsProjection;
+}
+
 export interface NatalChartOutput {
 	birth: ToonProfile;
-	houseSystem: "porphyry";
-	zodiac: "tropical";
+	meta: {
+		houseSystem: "porphyry";
+		zodiac: "tropical";
+		ephemeris: string;
+		solLunaPhase: SolLunaPhaseOutput;
+	};
 	bodies: Record<string, ChartBodyProjection>;
 	angles: {
 		asc: AngleProjection;
@@ -254,29 +235,9 @@ export interface NatalChartOutput {
 	cusps: CuspProjection[];
 	aspects: AspectProjection[];
 	declinationAspects?: DeclinationAspectProjection[];
-	pluto: SoulPlutoFact;
-	ppp: PPPFact;
-	midpoint?: ProjectedEclipticPoint;
-	antiMidpoint?: ProjectedEclipticPoint;
-	nodalAxis: NodalAxisFact;
-	phase?: string;
-	dispositorChains: {
-		pluto: DispositorChainOutput;
-		southNodeRuler?: DispositorChainOutput;
-		northNodeRuler?: DispositorChainOutput;
-	};
-	prenatalEclipses: PrenatalEclipsesFact;
-	lots: SoulLotsProjection;
 	patterns: AspectPattern[];
 	signature: AstrologicalSignature;
-	houseRulers: HouseRulerRow[];
-	counts: {
-		plutoAspects: number;
-		nodeAspects: number;
-		skippedSteps: number;
-		eclipses: number;
-	};
-	method: string;
+	evolutionary: EvolutionaryCoreFact;
 }
 
 export interface NatalInterpretationOutput {

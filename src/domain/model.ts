@@ -20,14 +20,15 @@ export interface BirthInput {
 	birthJdUt: number;
 }
 
-/** What the store persists for a new profile: an optional `name` plus the complete birth. */
+/** What the store persists for a new profile: a required, unique `name` plus the complete birth. */
 export type NewProfile = {
-	name: string | null;
+	name: string;
 } & BirthInput;
 
 /**
- * A stored birth profile. The birth is the identity unit: `add` deduplicates
- * on `birthJdUt + birthLat + birthLon` and generates the UUID.
+ * A stored birth profile. The birth is the storage-identity unit: `add`
+ * deduplicates on `birthJdUt + birthLat + birthLon` and generates the UUID.
+ * The `name` is the required, unique CLI lookup key.
  */
 export interface Profile extends NewProfile {
 	id: string;

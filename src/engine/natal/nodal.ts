@@ -124,8 +124,6 @@ export function computeNodalAxisFact(
 	const southRulerPlacement = computeNodalRulerPlacement(southRulerId, bodies);
 
 	const skippedSteps = detectSkippedSteps(bodies, northNode.lon);
-	const northAspects = evaluateNodeAspects(bodies, northNode.lon);
-	const southAspects = evaluateNodeAspects(bodies, southNodeLon);
 
 	const southDispositor = southRulerId
 		? buildDispositorChain(bodies, southRulerId)
@@ -141,27 +139,29 @@ export function computeNodalAxisFact(
 		nodalAxis: {
 			north: {
 				sign: northNode.sign,
-				lon: roundPrecision(northNode.lon, 4),
 				signDeg: roundPrecision(northNode.signDeg, 4),
 				house: northNode.house,
+				speed: roundPrecision(northNode.speed, 6),
+				dec: roundPrecision(northNode.dec ?? 0, 4),
+				outOfBounds: Math.abs(northNode.dec ?? 0) > 23.44,
 				ruler: northRulerId,
 				rulerPlacement: northRulerPlacement,
-				aspects: northAspects,
 				antiscia: northAntiscia,
 			},
 			south: {
 				sign: southNodeProjected.sign,
-				lon: roundPrecision(southNodeProjected.lon, 4),
 				signDeg: roundPrecision(southNodeProjected.signDeg, 4),
 				house: southNodeProjected.house,
+				speed: roundPrecision(northNode.speed, 6),
+				dec: roundPrecision(-(northNode.dec ?? 0), 4),
+				outOfBounds: Math.abs(northNode.dec ?? 0) > 23.44,
 				ruler: southRulerId,
 				rulerPlacement: southRulerPlacement,
-				aspects: southAspects,
 				antiscia: southAntiscia,
 			},
 			motion,
-			skippedSteps,
 		},
+		skippedSteps,
 		dispositorChains: {
 			southNodeRuler: southDispositor,
 			northNodeRuler: northDispositor,

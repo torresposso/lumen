@@ -11,8 +11,8 @@ const ADD_SPEC: ArgsSpec = {
 const ID_SPEC: ArgsSpec = {
 	known: new Set(),
 	positionals: 1,
-	positionalName: "profile id",
-	positionalHint: "Use the UUID printed by `lumen profile add`",
+	positionalName: "profile name",
+	positionalHint: "Use the name passed to `lumen profile add`",
 };
 
 function code(error: unknown): string {
@@ -116,7 +116,7 @@ describe("parseArgs", () => {
 		const ok = parseArgs(["abc"], ID_SPEC, "lumen profile get");
 		expect(ok.positionals).toEqual(["abc"]);
 		expect(() => parseArgs([], ID_SPEC, "lumen profile get")).toThrow(
-			/requires a profile id/,
+			/requires a profile name/,
 		);
 		expect(() => parseArgs(["a", "b"], ID_SPEC, "lumen profile get")).toThrow(
 			/Unexpected argument: b/,
@@ -129,7 +129,7 @@ describe("parseArgs", () => {
 			expect.unreachable();
 		} catch (error) {
 			expect(suggestions(error).join(" ")).toContain(
-				"Use the UUID printed by `lumen profile add`",
+				"Use the name passed to `lumen profile add`",
 			);
 		}
 	});

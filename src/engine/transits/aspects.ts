@@ -121,7 +121,10 @@ export function isOuterBody(body: string): boolean {
 }
 
 export function computeTransitAspects(
-	transitingBodies: Record<string, { lon: number; speed?: number }>,
+	transitingBodies: Record<
+		string,
+		{ lon: number; speed?: number; natalHouse: number }
+	>,
 	natalPoints: Record<string, { lon: number; speed?: number }>,
 ): TransitAspect[] {
 	const aspects: TransitAspect[] = [];
@@ -155,9 +158,9 @@ export function computeTransitAspects(
 						natalPoint: nName,
 						aspect: def.name,
 						orb: roundPrecision(orb, 4),
-						maxOrb,
 						isApplying: phase === "applying" || phase === "exact",
 						stress: def.stress,
+						transitingNatalHouse: tBody.natalHouse,
 					});
 				}
 			}

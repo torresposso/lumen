@@ -63,9 +63,8 @@ describe("Soul astrology calculations (JWGEA canon)", () => {
 		});
 
 		const chart = computeNatalChart(baseProfile, ephemeris);
-		expect(chart.ppp.active).toBe(false);
-		expect(chart.ppp.separation).toBe(2);
-		expect(chart.ppp.reason).toContain("pluto conjunct north node");
+		expect(chart.evolutionary.ppp.active).toBe(false);
+		expect(chart.evolutionary.ppp.separationFromNorthNode).toBe(2);
 	});
 
 	test("keeps PPP active when Pluto is separated from North Node by more than 3 degrees", () => {
@@ -113,8 +112,8 @@ describe("Soul astrology calculations (JWGEA canon)", () => {
 		});
 
 		const chart = computeNatalChart(baseProfile, ephemeris);
-		expect(chart.ppp.active).toBe(true);
-		expect(chart.ppp.separation).toBe(4);
+		expect(chart.evolutionary.ppp.active).toBe(true);
+		expect(chart.evolutionary.ppp.separationFromNorthNode).toBe(4);
 	});
 
 	test("computeSoulLots calculates Hermetic Lots of Fortune and Spirit for diurnal and nocturnal charts", () => {
@@ -215,16 +214,15 @@ describe("Soul astrology calculations (JWGEA canon)", () => {
 		});
 
 		const chart = computeNatalChart(baseProfile, ephemeris);
-		expect(chart.pluto.antiscia).toBeDefined();
-		expect(chart.pluto.antiscia?.antiscion.lon).toBe(80);
-		expect(chart.pluto.antiscia?.antiscion.sign).toBe("Gemini");
-		expect(chart.pluto.antiscia?.contraAntiscion.lon).toBe(260);
-
-		expect(chart.ppp.antiscia).toBeDefined();
-		expect(chart.nodalAxis.north.antiscia).toBeDefined();
-		expect(chart.nodalAxis.north.antiscia?.antiscion.lon).toBe(140);
-		expect(chart.nodalAxis.north.antiscia?.antiscion.sign).toBe("Leo");
-		expect(chart.nodalAxis.south.antiscia).toBeDefined();
+		expect(chart.evolutionary.ppp.antiscia).toBeDefined();
+		expect(chart.evolutionary.nodalAxis.north.antiscia).toBeDefined();
+		expect(chart.evolutionary.nodalAxis.north.antiscia?.antiscion.lon).toBe(
+			140,
+		);
+		expect(chart.evolutionary.nodalAxis.north.antiscia?.antiscion.sign).toBe(
+			"Leo",
+		);
+		expect(chart.evolutionary.nodalAxis.south.antiscia).toBeDefined();
 	});
 
 	test("computePrenatalEclipses finds solar eclipse in expanded window (>180 days)", () => {

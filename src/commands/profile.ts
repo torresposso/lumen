@@ -15,16 +15,16 @@ import { parseBirthInput } from "../domain/birth-input";
 import { toonProfile } from "../domain/toon";
 
 const profileUsage = [
-	`${PROFILE_ADD_EXAMPLE} [${ADD_FLAGS.name} slug]`,
+	PROFILE_ADD_EXAMPLE,
 	PROFILE_ARMS.list,
-	`${PROFILE_ARMS.get} <uuid>`,
-	`${PROFILE_ARMS.delete} <uuid>`,
+	`${PROFILE_ARMS.get} <name>`,
+	`${PROFILE_ARMS.delete} <name>`,
 	"",
 	"Manage local birth profiles.",
 ].join("\n");
 
 const profileAddUsage = [
-	`${PROFILE_ARMS.add} ${ADD_FLAGS.when} "YYYY-MM-DDTHH:MM±HH:MM" ${ADD_FLAGS.where} "lat, lon, Place, Country" [${ADD_FLAGS.name} slug]`,
+	`${PROFILE_ARMS.add} ${ADD_FLAGS.when} "YYYY-MM-DDTHH:MM±HH:MM" ${ADD_FLAGS.where} "lat, lon, Place, Country" ${ADD_FLAGS.name} <slug>`,
 	"",
 	"Register a birth profile. The agent resolves coordinates and the UTC",
 	`offset, formats them into ${ADD_FLAGS.when} and ${ADD_FLAGS.where}, and calls lumen; lumen`,
@@ -33,7 +33,7 @@ const profileAddUsage = [
 	"Flags:",
 	`  ${ADD_FLAGS.when}    ISO 8601 datetime with UTC offset, e.g. 1990-06-10T14:30-04:00 or ...Z (required)`,
 	`  ${ADD_FLAGS.where}   Coordinates then the place: "lat, lon, Place" (required); the place may contain commas`,
-	`  ${ADD_FLAGS.name}    Optional descriptive slug (no lookup)`,
+	`  ${ADD_FLAGS.name}    Required unique slug — the CLI lookup key`,
 	"",
 	"Adding the same birth twice (same birthJdUt + coordinates) returns the existing",
 	"profile unchanged.",
@@ -46,36 +46,36 @@ const profileListUsage = [
 ].join("\n");
 
 const profileGetUsage = [
-	`${PROFILE_ARMS.get} <uuid>`,
+	`${PROFILE_ARMS.get} <name>`,
 	"",
-	"Shows one profile by its UUID.",
+	"Shows one profile by its unique name.",
 ].join("\n");
 
 const profileDeleteUsage = [
-	`${PROFILE_ARMS.delete} <uuid>`,
+	`${PROFILE_ARMS.delete} <name>`,
 	"",
-	"Deletes one profile by its UUID. Deleting an unknown profile raises NOT_FOUND.",
+	"Deletes one profile by its unique name. Deleting an unknown profile raises NOT_FOUND.",
 ].join("\n");
 
 /** `profile add` — flags required, no positionals. */
 const ADD_SPEC: ArgsSpec = {
 	known: new Set(Object.values(ADD_FLAGS)),
-	required: new Set([ADD_FLAGS.when, ADD_FLAGS.where]),
+	required: new Set([ADD_FLAGS.when, ADD_FLAGS.where, ADD_FLAGS.name]),
 	positionals: 0,
 	rules: {
-		[ADD_FLAGS.name]: { trim: true, emptyAsNull: true },
+		[ADD_FLAGS.name]: { trim: true, nonEmpty: true },
 	},
 };
 
 /** `profile list` — no flags, no positionals. */
 const LIST_SPEC: ArgsSpec = { known: new Set(), positionals: 0 };
 
-/** `profile get | delete` — no flags, exactly one positional id. */
-const ID_SPEC: ArgsSpec = {
+/** `profile get | delete` — no flags, exactly one positional name. */
+const NAME_SPEC: ArgsSpec = {
 	known: new Set(),
 	positionals: 1,
-	positionalName: "profile id",
-	positionalHint: "Use the UUID printed by `lumen profile add`",
+	positionalName: "profile name",
+	positionalHint: "Use the name passed to `lumen profile add`",
 };
 
 export const profileCommand = createSubcommandGroup<CliContext>({
@@ -90,7 +90,7 @@ export const profileCommand = createSubcommandGroup<CliContext>({
 				const { profiles } = context;
 				const when = parsed.flags.get(ADD_FLAGS.when) as string;
 				const where = parsed.flags.get(ADD_FLAGS.where) as string;
-				const name = parsed.flags.get(ADD_FLAGS.name) ?? null;
+				const name = parsed.flags.get(ADD_FLAGS.name) as string;
 
 				// One seam: the raw flags in, the complete birth (birthJdUt derived)
 				// out — the store generates the profile's UUID. The flag labels come
@@ -122,15 +122,15 @@ export const profileCommand = createSubcommandGroup<CliContext>({
 		},
 
 		get: {
-			spec: ID_SPEC,
+			spec: NAME_SPEC,
 			summary: PROFILE_ARM_HELP.get,
 			usage: profileGetUsage,
 			run: (parsed, context) => {
 				const { profiles } = context;
-				const id = parsed.positionals[0] as string;
-				const profile = profiles.get(id);
+				const name = parsed.positionals[0] as string;
+				const profile = profiles.getByName(name);
 				if (profile === undefined) {
-					throw new AxiError(`Unknown profile: ${id}`, "NOT_FOUND", [
+					throw new AxiError(`Unknown profile: ${name}`, "NOT_FOUND", [
 						PROFILE_LIST_HINT,
 					]);
 				}
@@ -139,19 +139,19 @@ export const profileCommand = createSubcommandGroup<CliContext>({
 		},
 
 		delete: {
-			spec: ID_SPEC,
+			spec: NAME_SPEC,
 			summary: PROFILE_ARM_HELP.delete,
 			usage: profileDeleteUsage,
 			run: (parsed, context) => {
 				const { profiles } = context;
-				const id = parsed.positionals[0] as string;
-				const removed = profiles.remove(id);
+				const name = parsed.positionals[0] as string;
+				const removed = profiles.removeByName(name);
 				if (!removed) {
-					throw new AxiError(`Unknown profile: ${id}`, "NOT_FOUND", [
+					throw new AxiError(`Unknown profile: ${name}`, "NOT_FOUND", [
 						PROFILE_LIST_HINT,
 					]);
 				}
-				return { profile: id, status: "deleted" };
+				return { name, status: "deleted" };
 			},
 		},
 	},

@@ -86,9 +86,10 @@ Already enforced, not reviewable:
    index exist. `add` is the range-guard seam: it rejects out-of-range or
    non-finite `birth*` values as `VALIDATION_ERROR` before any SQL runs.
    Non-`AxiError` SQL failures are wrapped in a `PROFILE_ERROR` (the port
-   never leaks a raw driver error); UUID-prefix resolution escapes `%` / `_`
-   so a user-supplied id cannot act as a LIKE wildcard. Reads against a
-   missing DB return empty / not-found without creating files.
+   never leaks a raw driver error); the CLI resolves profiles by their unique
+   `name` (`WHERE name = ?`, exact match — no LIKE wildcard), via
+   `getByName`/`removeByName`. Reads against a missing DB return empty /
+   not-found without creating files.
    `InMemoryProfileStore` is the second adapter behind the port — a thin
    wrapper over an injected in-memory `bun:sqlite` `Database` for tests, no
    filesystem side effects. Both adapters share one internal SQL core; neither
@@ -96,10 +97,13 @@ Already enforced, not reviewable:
 
 ## Data & identity
 
-10. **The birth is the identity.** Dedupe on `birthJdUt + birthLat + birthLon`
-    via a `UNIQUE INDEX` + `ON CONFLICT`; `id` is an opaque auto-generated UUID;
-    `get`/`delete` accept a UUID only. `name`/`birthPlace` are display metadata
-    — never identity, never lookup keys (ADR-0003).
+10. **The birth is the storage identity; the name is the CLI identity.**
+    Dedupe on `birthJdUt + birthLat + birthLon` via a `UNIQUE INDEX` +
+    `ON CONFLICT`; `id` is an opaque auto-generated UUID (the internal primary
+    key, never supplied by the CLI). `getByName`/`removeByName` resolve by the
+    unique `name` (the CLI lookup key); `add` rejects a duplicate `name` with
+    `VALIDATION_ERROR`. `birthPlace` is display metadata — never identity, never
+    a lookup key (ADR-0003).
 11. **The published output is a policy, not data.** The DB keeps full float64
     precision. The TOON shape an agent parses — which fields, in what order, at
     what precision (`birthJdUt` 6 decimals, `birthLat`/`birthLon` 4) — lives in

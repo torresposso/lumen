@@ -43,6 +43,12 @@ export function signOf(lon: number): string {
 	return sign;
 }
 
+export function lonFromSignDeg(sign: string, signDeg: number): number {
+	const idx = SIGNS.indexOf(sign as (typeof SIGNS)[number]);
+	if (idx === -1) return signDeg;
+	return normalizeLongitude(idx * 30 + signDeg);
+}
+
 export function roundPrecision(val: number, digits = 4): number {
 	return Number(val.toFixed(digits));
 }

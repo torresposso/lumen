@@ -7,7 +7,7 @@ import { chartCommand } from "../../src/commands/chart";
 import type { Profile } from "../../src/domain/model";
 import { InMemoryProfileStore } from "../../src/storage/profile-store";
 
-describe("chartCommand — lumen chart synthesis <uuid>", () => {
+describe("chartCommand — lumen chart synthesis <name>", () => {
 	const ephemeris = new CaelusEphemeris();
 	const sampleProfile = {
 		name: "Erick",
@@ -32,7 +32,7 @@ describe("chartCommand — lumen chart synthesis <uuid>", () => {
 		const profile = ctx.profiles.list()[0] as Profile;
 
 		const res = (await chartCommand(
-			["synthesis", profile.id, "--when", "2026-08-20T12:00-05:00"],
+			["synthesis", profile.name, "--when", "2026-08-20T12:00-05:00"],
 			ctx,
 		)) as {
 			synthesis: {
@@ -63,12 +63,6 @@ describe("chartCommand — lumen chart synthesis <uuid>", () => {
 		expect(
 			Array.isArray(res.synthesis.evolutionaryDynamics.plutoNodePressure),
 		).toBe(true);
-		expect(typeof res.synthesis.evolutionaryDynamics.phaseContextGuidance).toBe(
-			"string",
-		);
-		expect(res.synthesis.method).toBe(
-			"JWGEA 3-Layer Soul Stack Evolutionary Synthesis",
-		);
 	});
 
 	it("computes synthesis with optional --where", async () => {
@@ -78,7 +72,7 @@ describe("chartCommand — lumen chart synthesis <uuid>", () => {
 		const res = (await chartCommand(
 			[
 				"synthesis",
-				profile.id,
+				profile.name,
 				"--when",
 				"2026-08-20T12:00-05:00",
 				"--where",
@@ -94,16 +88,11 @@ describe("chartCommand — lumen chart synthesis <uuid>", () => {
 		expect(res.synthesis.targetMoment.where).toBe("New York, NY");
 	});
 
-	it("throws NOT_FOUND for unknown uuid", async () => {
+	it("throws NOT_FOUND for unknown name", async () => {
 		const ctx = createCtx();
 		expect(
 			chartCommand(
-				[
-					"synthesis",
-					"00000000-0000-0000-0000-000000000000",
-					"--when",
-					"2026-08-20T12:00-05:00",
-				],
+				["synthesis", "ghost", "--when", "2026-08-20T12:00-05:00"],
 				ctx,
 			),
 		).rejects.toThrow(AxiError);
@@ -113,12 +102,12 @@ describe("chartCommand — lumen chart synthesis <uuid>", () => {
 		const ctx = createCtx();
 		const profile = ctx.profiles.list()[0] as Profile;
 
-		expect(chartCommand(["synthesis", profile.id], ctx)).rejects.toThrow(
+		expect(chartCommand(["synthesis", profile.name], ctx)).rejects.toThrow(
 			AxiError,
 		);
 	});
 
-	it("throws VALIDATION_ERROR when missing positional uuid", async () => {
+	it("throws VALIDATION_ERROR when missing positional name", async () => {
 		const ctx = createCtx();
 
 		expect(

@@ -35,8 +35,10 @@ export function computePrenatalEclipses(
 			);
 		}
 		const point = projectPoint(targetBody.lon, cusps, 4);
+		const daysBeforeBirth = roundPrecision(birthJdUt - tMax, 2);
 		return {
 			tMax: roundPrecision(tMax, 4),
+			daysBeforeBirth,
 			type,
 			lon: point.lon,
 			sign: point.sign,

@@ -5,7 +5,7 @@
 
 ## 1. Product
 
-`lumen chart natal <uuid>` reads a v2 birth profile by UUID from the local profile store and calculates its astrological natal chart and JWGEA evolutionary mechanics using exact `caelus: "0.24.1"` ephemerides.
+`lumen chart natal <name>` reads a v2 birth profile by its unique name from the local profile store and calculates its astrological natal chart and JWGEA evolutionary mechanics using exact `caelus: "0.24.1"` ephemerides.
 
 The calculation is pure: it uses the profile's stored `birthJdUt`, `birthLat`, and `birthLon`. No external world facts, timezones, or geocoding are resolved at runtime.
 
@@ -17,65 +17,181 @@ A single root object with key `chart`:
 export interface NatalChartOutput {
   birth: {
     id: string;
-    name?: string | null;
+    name: string;
     birthPlace: string;
     birthDateTime: string;
     birthLat: number;
     birthLon: number;
     birthJdUt: number;
   };
-  houseSystem: "porphyry";
-  zodiac: "tropical";
-  bodies: Record<string, ChartBody>;
+  meta: {
+    houseSystem: "porphyry";
+    zodiac: "tropical";
+    ephemeris: string;
+    solLunaPhase: {
+      name: "New" | "Crescent" | "First Quarter" | "Gibbous" | "Full" | "Disseminating" | "Last Quarter" | "Balsamic";
+      number: number;
+      angle: number;
+      isWaxing: boolean;
+    };
+  };
+  bodies: Record<string, {
+    sign: string;
+    signDeg: number;
+    house: number;
+    retrograde: boolean;
+    speed: number;
+    dec: number;
+    outOfBounds: boolean;
+    dignities: string[];
+  }>;
   angles: {
     asc: AnglePoint;
     mc: AnglePoint;
     vertex: AnglePoint;
     eastPoint: AnglePoint;
   };
-  cusps: HouseCusp[];
-  aspects: ChartAspect[];
-  declinationAspects?: DeclinationAspect[];
-  pluto: PlutoEvolutionaryFact;
-  ppp: PPPEvolutionaryFact;
-  midpoint?: PointPosition;
-  antiMidpoint?: PointPosition;
-  nodalAxis: NodalAxisFact;
-  phase?: string;
-  dispositorChains: DispositorChains;
-  prenatalEclipses: PrenatalEclipses;
-  lots: SoulLotsProjection;
-  patterns: AspectPattern[];
-  signature: AstrologicalSignature;
-  houseRulers: HouseRuler[];
-  counts: ChartCounts;
-  method: string;
+  cusps: Array<{
+    house: number;
+    sign: string;
+    signDeg: number;
+    ruler: string;
+  }>;
+  aspects: Array<{
+    a: string;
+    b: string;
+    aspect: string;
+    orb: number;
+    phase: "applying" | "separating" | "exact";
+    strength: number;
+    stress?: "stressful" | "nonstressful";
+  }>;
+  declinationAspects?: Array<{
+    a: string;
+    b: string;
+    aspect: string;
+    orb: number;
+  }>;
+  patterns: Array<{
+    type: string;
+    bodies: string[];
+    orb?: number;
+    element?: string;
+    modality?: string;
+    apex?: string;
+    sign?: string;
+    house?: number;
+  }>;
+  signature: {
+    elements: { fire: number; earth: number; air: number; water: number };
+    modalities: { cardinal: number; fixed: number; mutable: number };
+    hemispheres: { eastern: number; western: number; northern: number; southern: number };
+    quadrants: { q1: number; q2: number; q3: number; q4: number };
+  };
+  evolutionary: {
+    ppp: {
+      sign: string;
+      signDeg: number;
+      house: number;
+      active: boolean;
+      separationFromNorthNode?: number;
+      aspects: Array<{ body: string; aspect: string; orb: number }>;
+      antiscia?: {
+        antiscion: ProjectedPoint;
+        contraAntiscion: ProjectedPoint;
+      };
+    };
+    plutoNorthNodeMidpoint: {
+      near: ProjectedPoint;
+      anti: ProjectedPoint;
+    };
+    nodalAxis: {
+      motion: "retrograde" | "direct" | "stationary";
+      north: {
+        sign: string;
+        signDeg: number;
+        house: number;
+        speed: number;
+        dec: number;
+        outOfBounds: boolean;
+        ruler: string;
+        rulerPlacement?: { body: string; sign: string; signDeg: number; house: number; motion: string };
+        antiscia?: { antiscion: ProjectedPoint; contraAntiscion: ProjectedPoint };
+      };
+      south: {
+        sign: string;
+        signDeg: number;
+        house: number;
+        speed: number;
+        dec: number;
+        outOfBounds: boolean;
+        ruler: string;
+        rulerPlacement?: { body: string; sign: string; signDeg: number; house: number; motion: string };
+        antiscia?: { antiscion: ProjectedPoint; contraAntiscion: ProjectedPoint };
+      };
+    };
+    skippedSteps: Array<{
+      body: string;
+      aspect: string;
+      orb: number;
+      resolutionNode: "north" | "south";
+    }>;
+    dispositorChains: {
+      pluto: DispositorChain;
+      southNodeRuler?: DispositorChain;
+      northNodeRuler?: DispositorChain;
+    };
+    prenatalEclipses: {
+      solar?: { type: string; sign: string; signDeg: number; house: number; tMax: number; daysBeforeBirth: number };
+      lunar?: { type: string; sign: string; signDeg: number; house: number; tMax: number; daysBeforeBirth: number };
+    };
+    trueLilith: {
+      sign: string;
+      signDeg: number;
+      house: number;
+      speed: number;
+      dec: number;
+      outOfBounds: boolean;
+    };
+    soulLots: {
+      isDay: boolean;
+      fortune: ProjectedPoint;
+      spirit: ProjectedPoint;
+      eros: ProjectedPoint;
+      necessity: ProjectedPoint;
+      courage: ProjectedPoint;
+      victory: ProjectedPoint;
+      nemesis: ProjectedPoint;
+    };
+  };
 }
 ```
 
 ## 3. CLI Contract
 
 ```
-lumen profile add --when "YYYY-MM-DDTHH:MM±HH:MM" --where "lat, lon, Place" [--name <slug>]
+lumen profile add --when "YYYY-MM-DDTHH:MM±HH:MM" --where "lat, lon, Place" --name <slug>
 lumen profile list
-lumen profile get <uuid>
-lumen profile delete <uuid>
-lumen chart natal <uuid>
+lumen profile get <name>
+lumen profile delete <name>
+lumen chart natal <name>
 ```
 
 Rules:
-- `lumen chart natal <uuid>` accepts exactly one positional UUID (or unique prefix).
+- `lumen chart natal <name>` accepts exactly one positional name (the unique `name` supplied to `lumen profile add`).
 - No inline flags (`--when`, `--where`, `--house-system` are rejected).
-- Returns AXI `NOT_FOUND` if the UUID does not match any profile.
+- Returns AXI `NOT_FOUND` if the name does not match any profile.
 - Output is rendered deterministically in TOON format with 2-space indentation.
 
 ## 4. Astrological Calculation Canon
 
 - **Houses**: Porphyry (`housesPorphyry(asc, mc)`), angle-derived, computed at all latitudes.
-- **Node**: True North Node (`true_node`).
-- **Aspect Orbs**: Standard canon orbs for major geometric aspects and Pluto/PPP evolutionary aspects.
-- **PPP Deactivation**: Deactivated (`active: false`) when Pluto is conjunct the True North Node with separation `<= 3.0°`.
-- **Method Disclosure**: Standard JWGEA canon disclosure string.
+- **Bodies & Points**: `bodies` contains physical planetary bodies (Sun through Pluto and Chiron). Non-physical points are partitioned: True North Node & South Node in `nodalAxis`, True Lilith in `evolutionary.trueLilith`.
+- **Astronomical Coordinates**: `bodies` holds exact `sign`, `signDeg`, `house`, `retrograde`, `speed`, `dec`, `outOfBounds`, `dignities` (pruning raw `lat`, `ra`, `dist`, and redundant absolute `lon`).
+- **Aspects**: Unified single list of aspect geometries with `stress` categorization for JWGEA points and `phase` (`applying`/`separating`/`exact`).
+- **PPP Deactivation**: Deactivated (`active: false`) when Pluto is conjunct the True North Node with separation `<= 3.0°`. Expressed factually via `active` boolean and `separationFromNorthNode`.
+- **Eclipses**: Prenatal Solar and Lunar eclipses projected into natal houses with `daysBeforeBirth` temporal distance.
+- **Soul Lots**: The 7 Hermetic Lots computed via day/night sect and projected into natal houses.
 
 ## 5. Ephemeris Seam
 

@@ -12,7 +12,7 @@ const TEST_TRANSITS_SPEC: ArgsSpec = {
 	known: new Set([TRANSIT_FLAGS.when, TRANSIT_FLAGS.where]),
 	required: new Set([TRANSIT_FLAGS.when]),
 	positionals: 1,
-	positionalName: "profile id",
+	positionalName: "profile name",
 	rules: {
 		[TRANSIT_FLAGS.when]: { trim: true, nonEmpty: true },
 		[TRANSIT_FLAGS.where]: { trim: true, nonEmpty: true },
@@ -22,14 +22,14 @@ const TEST_TRANSITS_SPEC: ArgsSpec = {
 describe("chart transits CLI surface & args", () => {
 	it("exposes surface constants for chart transits", () => {
 		expect(CHART_ARMS.transits).toBe(
-			'lumen chart transits <uuid> --when "YYYY-MM-DDTHH:MM±HH:MM" [--where "lat, lon, Place"]',
+			'lumen chart transits <name> --when "YYYY-MM-DDTHH:MM±HH:MM" [--where "lat, lon, Place"]',
 		);
 		expect(CHART_ARM_HELP.transits).toContain("planetary transits");
 		expect(TRANSIT_FLAGS.when).toBe("--when");
 		expect(TRANSIT_FLAGS.where).toBe("--where");
 	});
 
-	it("fails parsing when positional UUID is missing", () => {
+	it("fails parsing when positional name is missing", () => {
 		expect(() =>
 			parseArgs(
 				["--when", "2026-08-20T12:00Z"],

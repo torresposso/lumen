@@ -29,13 +29,17 @@ export function detectAspectPatterns(rawChart: Chart): AspectPattern[] {
 	const patterns: AspectPattern[] = [];
 
 	for (const pattern of detected) {
-		const base = {
+		const base: AspectPattern = {
+			type: pattern.kind,
 			bodies: [...pattern.bodies].sort(),
-			apex: pattern.apex ?? null,
-			sign: pattern.sign ?? null,
-			house: pattern.house ?? null,
-			orb:
-				pattern.orb !== undefined ? Number(pattern.orb.toFixed(4)) : undefined,
+			...(pattern.apex ? { apex: pattern.apex } : {}),
+			...(pattern.sign ? { sign: pattern.sign } : {}),
+			...(pattern.house !== undefined && pattern.house !== null
+				? { house: pattern.house }
+				: {}),
+			...(pattern.orb !== undefined
+				? { orb: Number(pattern.orb.toFixed(4)) }
+				: {}),
 		};
 
 		switch (pattern.kind) {
@@ -46,7 +50,7 @@ export function detectAspectPatterns(rawChart: Chart): AspectPattern[] {
 				patterns.push({
 					...base,
 					type: "grand_trine",
-					element: sign ? element(sign) : undefined,
+					...(sign ? { element: element(sign) } : {}),
 				});
 				break;
 			}
@@ -57,7 +61,7 @@ export function detectAspectPatterns(rawChart: Chart): AspectPattern[] {
 				patterns.push({
 					...base,
 					type: "t_square",
-					modality: apexSign ? modality(apexSign) : undefined,
+					...(apexSign ? { modality: modality(apexSign) } : {}),
 				});
 				break;
 			}
@@ -77,8 +81,8 @@ export function detectAspectPatterns(rawChart: Chart): AspectPattern[] {
 				patterns.push({
 					...base,
 					type: "stellium",
-					element: pattern.sign ? element(pattern.sign) : undefined,
-					modality: pattern.sign ? modality(pattern.sign) : undefined,
+					...(pattern.sign ? { element: element(pattern.sign) } : {}),
+					...(pattern.sign ? { modality: modality(pattern.sign) } : {}),
 				});
 				break;
 			case "stellium_house":

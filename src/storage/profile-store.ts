@@ -21,7 +21,7 @@ export function defaultDbFile(): string {
 
 interface ProfileRow {
 	id: string;
-	name: string | null;
+	name: string;
 	birth_place: string;
 	birth_date_time: string;
 	birth_lat: number;
@@ -45,12 +45,11 @@ function toProfile(row: ProfileRow): Profile {
 	};
 }
 
-function escapeLike(pattern: string): string {
-	return pattern.replace(/[\\%_]/g, (c) => `\\${c}`);
-}
-
 function assertValidProfile(profile: NewProfile): void {
 	const issues: string[] = [];
+	if (typeof profile.name !== "string" || profile.name.trim() === "") {
+		issues.push("name must not be empty");
+	}
 	if (
 		typeof profile.birthPlace !== "string" ||
 		profile.birthPlace.trim() === ""
@@ -127,43 +126,65 @@ class ProfileDb implements ProfileStore {
 		});
 	}
 
-	private resolveId(id: string): string | undefined {
-		const exact = this.db
-			.prepare("SELECT id FROM profiles WHERE id = ?")
-			.get(id) as { id: string } | null;
-		if (exact) return exact.id;
-
-		const prefixMatches = this.db
-			.prepare("SELECT id FROM profiles WHERE id LIKE ? ESCAPE '\\'")
-			.all(`${escapeLike(id)}%`) as { id: string }[];
-		if (prefixMatches.length === 1 && prefixMatches[0]) {
-			return prefixMatches[0].id;
-		}
-		return undefined;
+	private getById(id: string): Profile | undefined {
+		const row = this.db
+			.prepare("SELECT * FROM profiles WHERE id = ?")
+			.get(id) as ProfileRow | null;
+		return row ? toProfile(row) : undefined;
 	}
 
-	get(id: string): Profile | undefined {
+	getByName(name: string): Profile | undefined {
 		return wrapStoreError(() => {
-			const resolvedId = this.resolveId(id);
-			if (!resolvedId) return undefined;
 			const row = this.db
-				.prepare("SELECT * FROM profiles WHERE id = ?")
-				.get(resolvedId) as ProfileRow | null;
+				.prepare("SELECT * FROM profiles WHERE name = ?")
+				.get(name) as ProfileRow | null;
 			return row ? toProfile(row) : undefined;
 		});
 	}
 
 	/**
-	 * Inserts a profile, generating its UUID, and deduplicating on the birth: a
-	 * profile with the same `birthJdUt + birthLat + birthLon` already stored
-	 * wins and is returned unchanged (the new name/birthPlace are discarded —
-	 * the birth is the identity). Inserted timestamps come from the injected
-	 * clock.
+	 * Inserts a profile, generating its UUID, enforcing a unique `name` (the CLI
+	 * identity) and deduplicating on the birth: a profile with the same
+	 * `birthJdUt + birthLat + birthLon` already stored wins and is returned
+	 * unchanged (the new name/birthPlace are discarded — the birth is the
+	 * storage identity). Inserted timestamps come from the injected clock.
 	 */
 	add(profile: NewProfile): AddResult {
 		return wrapStoreError(() => {
 			assertValidProfile(profile);
 			const nowIso = this.now().toISOString();
+
+			// 1. Storage deduplication: if the exact birth already exists, return it unchanged.
+			// This makes adding an existing birth (even with the same name) fully idempotent.
+			const existingBirth = this.db
+				.prepare(
+					"SELECT * FROM profiles WHERE birth_jd_ut = ? AND birth_lat = ? AND birth_lon = ?",
+				)
+				.get(
+					profile.birthJdUt,
+					profile.birthLat,
+					profile.birthLon,
+				) as ProfileRow | null;
+
+			if (existingBirth !== null) {
+				return { profile: toProfile(existingBirth), created: false };
+			}
+
+			// 2. CLI lookup key identity: reject duplicate names for different births.
+			const clash = this.db
+				.prepare("SELECT id FROM profiles WHERE name = ?")
+				.get(profile.name);
+			if (clash !== null) {
+				throw new AxiError(
+					`Profile name already exists: ${profile.name}`,
+					"VALIDATION_ERROR",
+					[
+						"Choose a unique name",
+						"Run `lumen profile list` to see existing names",
+					],
+				);
+			}
+
 			const id = randomUUID();
 			const result = this.db
 				.prepare(
@@ -186,7 +207,7 @@ class ProfileDb implements ProfileStore {
 				);
 
 			if (result.changes > 0) {
-				const inserted = this.get(id);
+				const inserted = this.getById(id);
 				if (!inserted) {
 					throw new AxiError(
 						"Inserted profile not found after insert",
@@ -197,7 +218,7 @@ class ProfileDb implements ProfileStore {
 				return { profile: inserted, created: true };
 			}
 
-			// Duplicate birth — return the existing profile, unchanged.
+			// Fallback if concurrency raced the insert
 			const row = this.db
 				.prepare(
 					"SELECT * FROM profiles WHERE birth_jd_ut = ? AND birth_lat = ? AND birth_lon = ?",
@@ -218,12 +239,10 @@ class ProfileDb implements ProfileStore {
 		});
 	}
 
-	remove(id: string): boolean {
+	removeByName(name: string): boolean {
 		return wrapStoreError(() => {
-			const resolvedId = this.resolveId(id);
-			if (!resolvedId) return false;
 			return (
-				this.db.prepare("DELETE FROM profiles WHERE id = ?").run(resolvedId)
+				this.db.prepare("DELETE FROM profiles WHERE name = ?").run(name)
 					.changes > 0
 			);
 		});
@@ -307,18 +326,18 @@ export class SqliteProfileStore implements ProfileStore {
 		return this.open().list();
 	}
 
-	get(id: string): Profile | undefined {
+	getByName(name: string): Profile | undefined {
 		if (!this.fileExists()) return undefined;
-		return this.open().get(id);
+		return this.open().getByName(name);
 	}
 
 	add(profile: NewProfile): AddResult {
 		return this.open().add(profile);
 	}
 
-	remove(id: string): boolean {
+	removeByName(name: string): boolean {
 		if (!this.fileExists()) return false;
-		return this.open().remove(id);
+		return this.open().removeByName(name);
 	}
 
 	close(): void {
@@ -360,9 +379,9 @@ export class InMemoryProfileStore implements ProfileStore {
 		return this.core.list();
 	}
 
-	get(id: string): Profile | undefined {
+	getByName(name: string): Profile | undefined {
 		this.assertOpen();
-		return this.core.get(id);
+		return this.core.getByName(name);
 	}
 
 	add(profile: NewProfile): AddResult {
@@ -370,9 +389,9 @@ export class InMemoryProfileStore implements ProfileStore {
 		return this.core.add(profile);
 	}
 
-	remove(id: string): boolean {
+	removeByName(name: string): boolean {
 		this.assertOpen();
-		return this.core.remove(id);
+		return this.core.removeByName(name);
 	}
 
 	close(): void {

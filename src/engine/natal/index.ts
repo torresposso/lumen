@@ -2,11 +2,7 @@ import type { BodyId, Chart, Position } from "caelus";
 import type { Ephemeris } from "../../adapters/ephemeris";
 import type { Profile } from "../../domain/model";
 import { toonProfile } from "../../domain/toon";
-import {
-	formatEclipticDegree,
-	projectPoint,
-	roundPrecision,
-} from "../shared/geometry";
+import { projectPoint, roundPrecision } from "../shared/geometry";
 import { SIGN_RULERS } from "../shared/rulers";
 import { computePrenatalEclipses } from "./eclipses";
 import { computeNodalAxisFact } from "./nodal";
@@ -14,7 +10,7 @@ import {
 	calculateAstrologicalSignature,
 	detectAspectPatterns,
 } from "./patterns";
-import { computeSolLunaPhase } from "./phases";
+import { getSolLunaPhaseDetails } from "./phases";
 import { computePlutoPolarityFact } from "./pluto-polarity";
 import { computeSoulLots } from "./soul-lots";
 import type {
@@ -24,12 +20,16 @@ import type {
 	CuspProjection,
 	DeclinationAspectProjection,
 	EclipticGeometryProjection,
-	HouseRulerRow,
 	NatalChartOutput,
 	NatalInterpretationOutput,
 } from "./types";
 
-export { computeSolLunaPhase, type SolLunaPhaseName } from "./phases";
+export {
+	computeSolLunaPhase,
+	getSolLunaPhaseDetails,
+	type SolLunaPhaseName,
+	type SolLunaPhaseOutput,
+} from "./phases";
 export { computeSoulLots } from "./soul-lots";
 export type {
 	NatalChartOutput,
@@ -62,22 +62,24 @@ function projectBodies(
 	const result: Record<string, ChartBodyProjection> = {};
 
 	for (const [id, body] of Object.entries(rawBodies)) {
-		if (!body) continue;
+		if (
+			!body ||
+			id === "true_node" ||
+			id === "true_lilith" ||
+			id === "mean_node"
+		)
+			continue;
 		const point = projectPoint(body.lon, cusps, 4);
 		const oob =
 			ephemeris && jdUt !== undefined
 				? ephemeris.outOfBounds(id as BodyId, jdUt)
 				: Math.abs(body.dec) > 23.44;
 		result[id] = {
-			lon: point.lon,
 			sign: point.sign,
 			signDeg: point.signDeg,
 			house: point.house,
 			retrograde: body.speed < 0,
 			speed: roundPrecision(body.speed, 6),
-			lat: roundPrecision(body.lat, 4),
-			dist: body.dist !== null ? roundPrecision(body.dist, 4) : null,
-			ra: roundPrecision(body.ra, 4),
 			dec: roundPrecision(body.dec, 4),
 			outOfBounds: oob,
 			dignities: body.dignities ?? [],
@@ -99,7 +101,7 @@ function projectAngles(angles: Chart["angles"]): {
 } {
 	const project = (val: number | { lon: number }): AngleProjection => {
 		const pt = projectPoint(angleLon(val));
-		return { lon: pt.lon, sign: pt.sign, signDeg: pt.signDeg };
+		return { sign: pt.sign, signDeg: pt.signDeg };
 	};
 
 	return {
@@ -111,18 +113,15 @@ function projectAngles(angles: Chart["angles"]): {
 }
 
 function projectCusps(rawCusps: number[]): CuspProjection[] {
-	return rawCusps.map((cuspLon) => {
+	return rawCusps.map((cuspLon, idx) => {
 		const pt = projectPoint(cuspLon);
-		return { lon: pt.lon, sign: pt.sign, signDeg: pt.signDeg };
+		return {
+			house: idx + 1,
+			sign: pt.sign,
+			signDeg: pt.signDeg,
+			ruler: SIGN_RULERS[pt.sign] ?? "unknown",
+		};
 	});
-}
-
-function computeHouseRulers(cusps: CuspProjection[]): HouseRulerRow[] {
-	return cusps.map((c, idx) => ({
-		house: idx + 1,
-		sign: c.sign,
-		ruler: SIGN_RULERS[c.sign] ?? "unknown",
-	}));
 }
 
 function computeAspects(
@@ -145,14 +144,24 @@ function computeAspects(
 	};
 
 	const aspects = ephemeris.aspects(bodyMap, orbs);
-	return aspects.map((a) => ({
-		a: a.a,
-		b: a.b,
-		aspect: a.aspect,
-		orb: roundPrecision(a.orb, 2),
-		phase: a.phase,
-		strength: roundPrecision(a.strength, 3),
-	}));
+	return aspects.map((a) => {
+		const isStressful =
+			a.aspect === "conjunction" ||
+			a.aspect === "square" ||
+			a.aspect === "opposition" ||
+			a.aspect === "semisquare" ||
+			a.aspect === "sesquiquadrate" ||
+			a.aspect === "quincunx";
+		return {
+			a: a.a,
+			b: a.b,
+			aspect: a.aspect,
+			orb: roundPrecision(a.orb, 2),
+			phase: a.phase,
+			strength: roundPrecision(a.strength, 3),
+			stress: isStressful ? "stressful" : "nonstressful",
+		};
+	});
 }
 
 export function projectEclipticGeometry(
@@ -197,11 +206,10 @@ export function projectEclipticGeometry(
 			});
 	}
 
-	const houseRulers = computeHouseRulers(cusps);
 	const sun = rawChart.bodies.sun;
 	const moon = rawChart.bodies.moon;
 	const phase =
-		sun && moon ? computeSolLunaPhase(sun.lon, moon.lon) : undefined;
+		sun && moon ? getSolLunaPhaseDetails(sun.lon, moon.lon) : undefined;
 
 	return {
 		bodies,
@@ -209,7 +217,6 @@ export function projectEclipticGeometry(
 		cusps,
 		aspects,
 		declinationAspects,
-		houseRulers,
 		phase,
 	};
 }
@@ -240,10 +247,6 @@ function computeRawChart(
 	return { ...raw, bodies };
 }
 
-function describeEvoCriteria(): string {
-	return "JWGEA canon; orbs PLUTO_ASPECTS: 10° conjunction/opposition, 8° square/trine, 6° sextile, 3° semisextile/semisquare/sesquiquadrate/quincunx, 2° septile/quintile/biquintile; ppp: major aspects only (orb 5°); skipped: squares to the nodal axis (orb 5°); ppp inactive when pluto conjunct the north node (orb 3°)";
-}
-
 function computeMeasurements(profile: Profile, ephemeris: Ephemeris) {
 	const rawChart = computeRawChart(
 		profile.birthJdUt,
@@ -265,48 +268,84 @@ function synthesizeEvolutionaryCanon(
 	measurements: ReturnType<typeof computeMeasurements>,
 	ephemeris: Ephemeris,
 ) {
-	const { rawChart, bodies } = measurements;
+	const { rawChart } = measurements;
+	const cuspLons = rawChart.cusps;
 	const northNodeLon = rawChart.bodies.true_node?.lon;
-	const soul = computePlutoPolarityFact(bodies, rawChart.cusps, northNodeLon);
-	const nodal = computeNodalAxisFact(bodies, rawChart.cusps);
+
+	// Build full bodies record for internal soul/nodal evaluations
+	const allBodies: Record<
+		string,
+		{
+			lon: number;
+			sign: string;
+			signDeg: number;
+			house: number;
+			speed: number;
+			dec?: number;
+		}
+	> = {};
+	for (const [id, b] of Object.entries(rawChart.bodies)) {
+		if (!b) continue;
+		const pt = projectPoint(b.lon, cuspLons);
+		allBodies[id] = {
+			lon: b.lon,
+			sign: pt.sign,
+			signDeg: pt.signDeg,
+			house: pt.house,
+			speed: b.speed,
+			dec: b.dec,
+		};
+	}
+
+	const soul = computePlutoPolarityFact(allBodies, cuspLons, northNodeLon);
+	const nodal = computeNodalAxisFact(allBodies, cuspLons);
 	const prenatalEclipses = computePrenatalEclipses(
 		ephemeris,
 		profile.birthJdUt,
 		profile.birthLat,
 		profile.birthLon,
-		rawChart.cusps,
+		cuspLons,
 	);
-	const lots = computeSoulLots(rawChart, rawChart.cusps);
+	const lots = computeSoulLots(rawChart, cuspLons);
 	const patterns = detectAspectPatterns(rawChart);
 	const signature = calculateAstrologicalSignature(rawChart);
 
-	const counts = {
-		plutoAspects: soul.pluto.aspects.length,
-		nodeAspects:
-			nodal.nodalAxis.north.aspects.length +
-			nodal.nodalAxis.south.aspects.length,
-		skippedSteps: nodal.nodalAxis.skippedSteps.length,
-		eclipses:
-			(prenatalEclipses.solar ? 1 : 0) + (prenatalEclipses.lunar ? 1 : 0),
+	const lilithRaw = rawChart.bodies.true_lilith;
+	const lilithPt = lilithRaw
+		? projectPoint(lilithRaw.lon, cuspLons)
+		: { sign: "unknown", signDeg: 0, house: 1 };
+	const lilithOob =
+		ephemeris && profile.birthJdUt !== undefined
+			? ephemeris.outOfBounds("true_lilith" as BodyId, profile.birthJdUt)
+			: Math.abs(lilithRaw?.dec ?? 0) > 23.44;
+
+	const trueLilith = {
+		sign: lilithPt.sign,
+		signDeg: roundPrecision(lilithPt.signDeg, 4),
+		house: lilithPt.house,
+		speed: roundPrecision(lilithRaw?.speed ?? 0, 6),
+		dec: roundPrecision(lilithRaw?.dec ?? 0, 4),
+		outOfBounds: lilithOob,
 	};
 
 	return {
-		pluto: soul.pluto,
 		ppp: soul.ppp,
-		midpoint: soul.midpoint,
-		antiMidpoint: soul.antiMidpoint,
+		plutoNorthNodeMidpoint: {
+			near: soul.midpoint ?? projectPoint(0),
+			anti: soul.antiMidpoint ?? projectPoint(180),
+		},
 		nodalAxis: nodal.nodalAxis,
+		skippedSteps: nodal.skippedSteps,
 		dispositorChains: {
 			pluto: soul.dispositorChain,
 			southNodeRuler: nodal.dispositorChains.southNodeRuler,
 			northNodeRuler: nodal.dispositorChains.northNodeRuler,
 		},
 		prenatalEclipses,
-		lots,
+		trueLilith,
+		soulLots: lots,
 		patterns,
 		signature,
-		counts,
-		method: describeEvoCriteria(),
 	};
 }
 
@@ -323,8 +362,17 @@ export function computeNatalChart(
 
 	return {
 		birth: toonProfile(profile),
-		houseSystem: "porphyry",
-		zodiac: "tropical",
+		meta: {
+			houseSystem: "porphyry",
+			zodiac: "tropical",
+			ephemeris: "caelus: 0.24.1",
+			solLunaPhase: measurements.phase ?? {
+				name: "Balsamic",
+				number: 8,
+				angle: 0,
+				isWaxing: false,
+			},
+		},
 		bodies: measurements.bodies,
 		angles: measurements.angles,
 		cusps: measurements.cusps,
@@ -332,28 +380,18 @@ export function computeNatalChart(
 		...(measurements.declinationAspects.length > 0
 			? { declinationAspects: measurements.declinationAspects }
 			: {}),
-		pluto: evo.pluto,
-		ppp: evo.ppp,
-		...(evo.midpoint ? { midpoint: evo.midpoint } : {}),
-		...(evo.antiMidpoint ? { antiMidpoint: evo.antiMidpoint } : {}),
-		nodalAxis: evo.nodalAxis,
-		...(measurements.phase ? { phase: measurements.phase } : {}),
-		dispositorChains: {
-			pluto: evo.dispositorChains.pluto,
-			...(evo.dispositorChains.southNodeRuler
-				? { southNodeRuler: evo.dispositorChains.southNodeRuler }
-				: {}),
-			...(evo.dispositorChains.northNodeRuler
-				? { northNodeRuler: evo.dispositorChains.northNodeRuler }
-				: {}),
-		},
-		prenatalEclipses: evo.prenatalEclipses,
-		lots: evo.lots,
 		patterns: evo.patterns,
 		signature: evo.signature,
-		houseRulers: measurements.houseRulers,
-		counts: evo.counts,
-		method: evo.method,
+		evolutionary: {
+			ppp: evo.ppp,
+			plutoNorthNodeMidpoint: evo.plutoNorthNodeMidpoint,
+			nodalAxis: evo.nodalAxis,
+			skippedSteps: evo.skippedSteps,
+			dispositorChains: evo.dispositorChains,
+			prenatalEclipses: evo.prenatalEclipses,
+			trueLilith: evo.trueLilith,
+			soulLots: evo.soulLots,
+		},
 	};
 }
 
@@ -363,10 +401,10 @@ export function computeNatalChart(
 export function extractNatalInterpretation(
 	chart: NatalChartOutput,
 ): NatalInterpretationOutput {
-	const pluto = chart.pluto;
-	const ppp = chart.ppp;
-	const north = chart.nodalAxis.north;
-	const south = chart.nodalAxis.south;
+	const pluto = chart.bodies.pluto;
+	const ppp = chart.evolutionary.ppp;
+	const north = chart.evolutionary.nodalAxis.north;
+	const south = chart.evolutionary.nodalAxis.south;
 
 	// Nodal rulers locations
 	const northRuler = north.ruler ?? "unknown";
@@ -384,7 +422,7 @@ export function extractNatalInterpretation(
 	};
 
 	// Skipped steps
-	const skippedSteps = chart.nodalAxis.skippedSteps.map((step) => {
+	const skippedSteps = chart.evolutionary.skippedSteps.map((step) => {
 		const stepBody = chart.bodies[step.body];
 		return {
 			planet: step.body,
@@ -398,7 +436,7 @@ export function extractNatalInterpretation(
 	// Dispositor dynamics
 	const finalDispositors: string[] = [];
 	const dominantLoop: string[] = [];
-	for (const chain of Object.values(chart.dispositorChains)) {
+	for (const chain of Object.values(chart.evolutionary.dispositorChains)) {
 		if (!chain) continue;
 		if (chain.terminalType === "final_dispositor") {
 			for (const b of chain.terminalBodies) {
@@ -421,34 +459,28 @@ export function extractNatalInterpretation(
 	// Prenatal eclipses
 	const prenatalEclipses = {
 		solar: {
-			sign: chart.prenatalEclipses.solar?.sign ?? "unknown",
-			house: chart.prenatalEclipses.solar?.house ?? 1,
-			formatted:
-				chart.prenatalEclipses.solar?.lon !== undefined
-					? formatEclipticDegree(chart.prenatalEclipses.solar.lon)
-					: "unknown",
+			sign: chart.evolutionary.prenatalEclipses.solar?.sign ?? "unknown",
+			house: chart.evolutionary.prenatalEclipses.solar?.house ?? 1,
+			formatted: `${chart.evolutionary.prenatalEclipses.solar?.signDeg ?? 0}° ${chart.evolutionary.prenatalEclipses.solar?.sign ?? ""}`,
 		},
 		lunar: {
-			sign: chart.prenatalEclipses.lunar?.sign ?? "unknown",
-			house: chart.prenatalEclipses.lunar?.house ?? 1,
-			formatted:
-				chart.prenatalEclipses.lunar?.lon !== undefined
-					? formatEclipticDegree(chart.prenatalEclipses.lunar.lon)
-					: "unknown",
+			sign: chart.evolutionary.prenatalEclipses.lunar?.sign ?? "unknown",
+			house: chart.evolutionary.prenatalEclipses.lunar?.house ?? 1,
+			formatted: `${chart.evolutionary.prenatalEclipses.lunar?.signDeg ?? 0}° ${chart.evolutionary.prenatalEclipses.lunar?.sign ?? ""}`,
 		},
 	};
 
 	// Soul lots
 	const soulLots = {
 		lotOfFortune: {
-			sign: chart.lots.fortune.sign,
-			house: chart.lots.fortune.house,
-			formatted: formatEclipticDegree(chart.lots.fortune.lon),
+			sign: chart.evolutionary.soulLots.fortune.sign,
+			house: chart.evolutionary.soulLots.fortune.house,
+			formatted: `${chart.evolutionary.soulLots.fortune.signDeg}° ${chart.evolutionary.soulLots.fortune.sign}`,
 		},
 		lotOfSpirit: {
-			sign: chart.lots.spirit.sign,
-			house: chart.lots.spirit.house,
-			formatted: formatEclipticDegree(chart.lots.spirit.lon),
+			sign: chart.evolutionary.soulLots.spirit.sign,
+			house: chart.evolutionary.soulLots.spirit.house,
+			formatted: `${chart.evolutionary.soulLots.spirit.signDeg}° ${chart.evolutionary.soulLots.spirit.sign}`,
 		},
 	};
 
@@ -457,10 +489,10 @@ export function extractNatalInterpretation(
 			profile: chart.birth,
 			karmicRoot: {
 				pluto: {
-					sign: pluto.sign,
-					house: pluto.house,
-					degree: pluto.signDeg,
-					isRetrograde: pluto.retrograde,
+					sign: pluto?.sign ?? "unknown",
+					house: pluto?.house ?? 1,
+					degree: pluto?.signDeg ?? 0,
+					isRetrograde: pluto?.retrograde ?? false,
 					polarityPoint: {
 						sign: ppp.sign,
 						house: ppp.house,

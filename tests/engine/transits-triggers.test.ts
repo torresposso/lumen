@@ -5,33 +5,48 @@ import type { TransitAspect } from "../../src/engine/transits/types";
 
 describe("transits evolutionary triggers (JWGEA)", () => {
 	const dummyNatal: Partial<NatalChartOutput> = {
-		pluto: {
-			lon: 200,
-			sign: "libra",
-			signDeg: 20,
-			house: 8,
-			retrograde: false,
-			stressfulCount: 0,
-			nonstressfulCount: 0,
-			aspects: [],
+		bodies: {
+			pluto: {
+				sign: "libra",
+				signDeg: 20,
+				house: 8,
+				retrograde: false,
+				speed: 0.01,
+				dec: 0,
+				outOfBounds: false,
+				dignities: [],
+			},
 		},
-		ppp: {
-			lon: 20,
-			sign: "aries",
-			signDeg: 20,
-			house: 2,
-			active: true,
-			aspects: [],
-		},
-		nodalAxis: {
-			motion: "retrograde",
-			north: { lon: 100, sign: "cancer", signDeg: 10, house: 5, aspects: [] },
-			south: {
-				lon: 280,
-				sign: "capricorn",
-				signDeg: 10,
-				house: 11,
+		evolutionary: {
+			ppp: {
+				sign: "aries",
+				signDeg: 20,
+				house: 2,
+				active: true,
 				aspects: [],
+			},
+			plutoNorthNodeMidpoint: {
+				near: { lon: 150, sign: "virgo", signDeg: 0, house: 6 },
+				anti: { lon: 330, sign: "pisces", signDeg: 0, house: 12 },
+			},
+			nodalAxis: {
+				motion: "retrograde",
+				north: {
+					sign: "cancer",
+					signDeg: 10,
+					house: 5,
+					speed: -0.05,
+					dec: 0,
+					outOfBounds: false,
+				},
+				south: {
+					sign: "capricorn",
+					signDeg: 10,
+					house: 11,
+					speed: -0.05,
+					dec: 0,
+					outOfBounds: false,
+				},
 			},
 			skippedSteps: [
 				{
@@ -41,14 +56,23 @@ describe("transits evolutionary triggers (JWGEA)", () => {
 					aspect: "square",
 				},
 			],
-		},
-
-		dispositorChains: {
-			pluto: {
-				steps: [],
-				terminalType: "final_dispositor",
-				terminalBodies: ["sun"],
+			dispositorChains: {
+				pluto: {
+					steps: [],
+					terminalType: "final_dispositor",
+					terminalBodies: ["sun"],
+				},
 			},
+			prenatalEclipses: {},
+			trueLilith: {
+				sign: "aries",
+				signDeg: 0,
+				house: 1,
+				speed: 0,
+				dec: 0,
+				outOfBounds: false,
+			},
+			soulLots: {} as never,
 		},
 	};
 

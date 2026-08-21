@@ -48,8 +48,8 @@ describe("computeEvolutionarySynthesis", () => {
 
 		// 3. Soul Clock
 		expect(s.soulClock).toBeDefined();
-		expect(s.soulClock.phaseNumber).toBeGreaterThanOrEqual(1);
-		expect(s.soulClock.phaseName).toBeDefined();
+		expect(s.soulClock.phase.number).toBeGreaterThanOrEqual(1);
+		expect(s.soulClock.phase.name).toBeDefined();
 		expect(s.soulClock.progressedSun).toBeDefined();
 		expect(s.soulClock.progressedMoon).toBeDefined();
 		expect(Array.isArray(s.soulClock.progressedTriggers)).toBe(true);
@@ -65,16 +65,9 @@ describe("computeEvolutionarySynthesis", () => {
 			true,
 		);
 		expect(Array.isArray(s.evolutionaryDynamics.plutoNodePressure)).toBe(true);
-		expect(typeof s.evolutionaryDynamics.phaseContextGuidance).toBe("string");
-		expect(s.evolutionaryDynamics.phaseContextGuidance).toContain(
-			s.soulClock.phaseName,
-		);
-
-		// 6. Method Signature
-		expect(s.method).toBe("JWGEA 3-Layer Soul Stack Evolutionary Synthesis");
 	});
 
-	it("formats evolutionaryMandate correctly when skipped steps are activated", () => {
+	it("computes targetNode correctly when skipped steps are activated", () => {
 		const result = computeEvolutionarySynthesis(
 			sampleProfile,
 			{
@@ -86,9 +79,8 @@ describe("computeEvolutionarySynthesis", () => {
 
 		for (const act of result.synthesis.evolutionaryDynamics
 			.skippedStepActivations) {
-			expect(act.evolutionaryMandate).toMatch(
-				/^Integration through (North|South) Node in \w+ House \d+$/,
-			);
+			expect(act.targetNode.sign).toBeDefined();
+			expect(act.targetNode.house).toBeGreaterThanOrEqual(1);
 			expect(act.resolutionNode).toMatch(/^(north|south)$/);
 		}
 

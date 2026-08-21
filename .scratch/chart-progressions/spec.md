@@ -5,7 +5,7 @@
 
 ## 1. Product
 
-`lumen chart progressions <uuid> --when "YYYY-MM-DDTHH:MM±HH:MM"` reads a v2 birth profile by UUID from the local profile store and calculates secondary-progressed planetary positions, the 28-year Progressed Sol-Luna Phase, progressed house placements in the natal chart, and aspects from progressed planets to the natal chart using exact `caelus: "0.24.1"` ephemerides.
+`lumen chart progressions <name> --when "YYYY-MM-DDTHH:MM±HH:MM"` reads a v2 birth profile by its unique name from the local profile store and calculates secondary-progressed planetary positions, the 28-year Progressed Sol-Luna Phase, progressed house placements in the natal chart, and aspects from progressed planets to the natal chart using exact `caelus: "0.24.1"` ephemerides.
 
 The calculation is deterministic:
 - `--when` is required: ISO 8601 datetime with explicit UTC offset (`YYYY-MM-DDTHH:MM±HH:MM` or `…Z`).
@@ -23,22 +23,34 @@ export interface ProgressedChartOutput {
     ageYears: number;
     progressedJdUt: number;
   };
-  natal: {
+  birth: {
     id: string;
-    name?: string | null;
+    name: string;
     birthPlace: string;
     birthDateTime: string;
     birthLat: number;
     birthLon: number;
     birthJdUt: number;
   };
-  zodiac: "tropical";
-  solLunaPhase: {
-    phase: string;
-    angle: number;
-    description: string;
+  meta: {
+    zodiac: "tropical";
+    ephemeris: string;
+    solLunaPhase: {
+      name: "New" | "Crescent" | "First Quarter" | "Gibbous" | "Full" | "Disseminating" | "Last Quarter" | "Balsamic";
+      number: number;
+      angle: number;
+      isWaxing: boolean;
+    };
   };
-  progressedBodies: Record<string, ProgressedBody>;
+  progressedBodies: Record<string, {
+    sign: string;
+    signDeg: number;
+    natalHouse: number;
+    retrograde: boolean;
+    speed: number;
+    dec: number;
+    outOfBounds: boolean;
+  }>;
   aspectsToNatal: ProgressedAspect[];
   evolutionaryTriggers: {
     plutoContacts: ProgressedAspect[];
@@ -46,20 +58,6 @@ export interface ProgressedChartOutput {
     nodalContacts: ProgressedAspect[];
     skippedStepActivations: ProgressedSkippedStepActivation[];
   };
-  method: string;
-}
-
-export interface ProgressedBody {
-  name: string;
-  lon: number;
-  lat: number;
-  dec: number;
-  speed: number;
-  retrograde: boolean;
-  sign: string;
-  signDeg: number;
-  natalHouse: number;
-  outOfBounds: boolean;
 }
 
 export interface ProgressedAspect {
@@ -67,33 +65,39 @@ export interface ProgressedAspect {
   natalPoint: string;
   aspect: string;
   orb: number;
-  maxOrb: number;
   isApplying: boolean;
   stress: "stressful" | "nonstressful";
+  progressedNatalHouse: number;
 }
 
-export interface ProgressedSkippedStepActivation extends ProgressedAspect {
+export interface ProgressedSkippedStepActivation {
+  progressedBody: string;
   skippedStepBody: string;
+  aspect: string;
+  orb: number;
+  isApplying: boolean;
   resolutionNode: "north" | "south";
+  stress: "stressful" | "nonstressful";
+  progressedNatalHouse: number;
 }
 ```
 
 ## 3. CLI Contract
 
 ```
-lumen profile add --when "YYYY-MM-DDTHH:MM±HH:MM" --where "lat, lon, Place" [--name <slug>]
+lumen profile add --when "YYYY-MM-DDTHH:MM±HH:MM" --where "lat, lon, Place" --name <slug>
 lumen profile list
-lumen profile get <uuid>
-lumen profile delete <uuid>
-lumen chart natal <uuid>
-lumen chart transits <uuid> --when "YYYY-MM-DDTHH:MM±HH:MM" [--where "lat, lon, Place"]
-lumen chart progressions <uuid> --when "YYYY-MM-DDTHH:MM±HH:MM"
+lumen profile get <name>
+lumen profile delete <name>
+lumen chart natal <name>
+lumen chart transits <name> --when "YYYY-MM-DDTHH:MM±HH:MM" [--where "lat, lon, Place"]
+lumen chart progressions <name> --when "YYYY-MM-DDTHH:MM±HH:MM"
 ```
 
 Rules:
-- Accepts exactly one positional UUID (or unique prefix).
+- Accepts exactly one positional name (the unique `name` supplied to `lumen profile add`).
 - Requires `--when` (fails with `VALIDATION_ERROR` if missing or malformed).
-- Returns AXI `NOT_FOUND` if the UUID does not match any profile.
+- Returns AXI `NOT_FOUND` if the name does not match any profile.
 - Output is rendered deterministically in TOON format with 2-space indentation.
 
 ## 4. Astrological Calculation Canon

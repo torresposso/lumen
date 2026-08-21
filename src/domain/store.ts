@@ -17,10 +17,10 @@ export interface AddResult {
 export interface ProfileStore {
 	/** Every saved profile, ordered by id. */
 	list(): Profile[];
-	/** One profile by its UUID; `undefined` when unknown. */
-	get(id: string): Profile | undefined;
-	/** Inserts a profile (generating its UUID), deduplicating on the birth. */
+	/** One profile by its unique name; `undefined` when unknown. */
+	getByName(name: string): Profile | undefined;
+	/** Inserts a profile (generating its UUID), deduplicating on the birth and enforcing a unique name. */
 	add(profile: NewProfile): AddResult;
-	/** Removes one profile by UUID; false when unknown. */
-	remove(id: string): boolean;
+	/** Removes one profile by its unique name; false when unknown. */
+	removeByName(name: string): boolean;
 }

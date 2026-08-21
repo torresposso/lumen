@@ -48,7 +48,7 @@ describe("profileCommand — lumen profile add | list | get | delete", () => {
 			"27.9506, -82.4572, Tampa, Florida, USA",
 		];
 
-		const res1 = (await profileCommand(args, {
+		const res1 = (await profileCommand([...args, "--name", "first-person"], {
 			profiles: store,
 			ephemeris,
 		})) as { status: string; id: string };
@@ -110,7 +110,7 @@ describe("profileCommand — lumen profile add | list | get | delete", () => {
 			birthJdUt: 2450005.041667,
 		});
 
-		const result = (await profileCommand(["get", profile.id], {
+		const result = (await profileCommand(["get", profile.name], {
 			profiles: store,
 			ephemeris,
 		})) as ToonProfile;
@@ -124,7 +124,7 @@ describe("profileCommand — lumen profile add | list | get | delete", () => {
 		const store = new InMemoryProfileStore(new Database(":memory:"));
 		let error: unknown;
 		try {
-			await profileCommand(["get", "unknown-uuid"], {
+			await profileCommand(["get", "unknown-name"], {
 				profiles: store,
 				ephemeris,
 			});
@@ -149,20 +149,20 @@ describe("profileCommand — lumen profile add | list | get | delete", () => {
 			birthJdUt: 2450005.041667,
 		});
 
-		const result = await profileCommand(["delete", profile.id], {
+		const result = await profileCommand(["delete", profile.name], {
 			profiles: store,
 			ephemeris,
 		});
 
-		expect(result).toEqual({ profile: profile.id, status: "deleted" });
-		expect(store.get(profile.id)).toBeUndefined();
+		expect(result).toEqual({ name: profile.name, status: "deleted" });
+		expect(store.getByName(profile.name)).toBeUndefined();
 	});
 
 	test("profile delete throws NOT_FOUND for unknown id", async () => {
 		const store = new InMemoryProfileStore(new Database(":memory:"));
 		let error: unknown;
 		try {
-			await profileCommand(["delete", "unknown-uuid"], {
+			await profileCommand(["delete", "unknown-name"], {
 				profiles: store,
 				ephemeris,
 			});

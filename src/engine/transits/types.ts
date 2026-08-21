@@ -12,7 +12,7 @@ export interface TransitTargetOutput {
 
 export interface TransitNatalOutput {
 	id: string;
-	name?: string | null;
+	name: string;
 	birthPlace: string;
 	birthDateTime: string;
 	birthLat: number;
@@ -21,16 +21,13 @@ export interface TransitNatalOutput {
 }
 
 export interface TransitBody {
-	name: string;
-	lon: number;
 	sign: string;
 	signDeg: number;
-	lat: number;
-	dec: number;
-	speed: number;
-	retrograde: boolean;
 	natalHouse: number;
 	localHouse?: number;
+	retrograde: boolean;
+	speed: number;
+	dec: number;
 	outOfBounds: boolean;
 }
 
@@ -39,9 +36,9 @@ export interface TransitAspect {
 	natalPoint: string;
 	aspect: string;
 	orb: number;
-	maxOrb: number;
 	isApplying: boolean;
 	stress: AspectStress;
+	transitingNatalHouse: number;
 }
 
 export interface SkippedStepTransitActivation {
@@ -51,6 +48,7 @@ export interface SkippedStepTransitActivation {
 	orb: number;
 	isApplying: boolean;
 	resolutionNode: "north" | "south";
+	transitingNatalHouse: number;
 }
 
 export interface TransitEvolutionaryTriggers {
@@ -63,9 +61,12 @@ export interface TransitEvolutionaryTriggers {
 
 export interface TransitChartOutput {
 	target: TransitTargetOutput;
-	natal: TransitNatalOutput;
-	zodiac: "tropical";
-	houseSystem?: "porphyry";
+	birth: ToonProfile;
+	meta: {
+		houseSystem?: "porphyry";
+		zodiac: "tropical";
+		ephemeris: string;
+	};
 	transitingBodies: Record<string, TransitBody>;
 	transitAngles?: {
 		asc: AngleProjection;
@@ -77,7 +78,6 @@ export interface TransitChartOutput {
 	aspectsToNatal: TransitAspect[];
 	evolutionaryTriggers: TransitEvolutionaryTriggers;
 	outOfBounds: string[];
-	method: string;
 }
 
 export interface TransitsInterpretationOutput {

@@ -1,12 +1,18 @@
 import type { BodyId } from "caelus";
 import type { Ephemeris } from "../../adapters/ephemeris";
 import type { Profile } from "../../domain/model";
+import { toonProfile } from "../../domain/toon";
 import type { TransitTargetInput } from "../../domain/transit-input";
 import { computeNatalChart } from "../natal/index";
 import type { AngleProjection, CuspProjection } from "../natal/types";
-
-import { projectPoint, roundPrecision, signOf } from "../shared/geometry";
+import {
+	lonFromSignDeg,
+	projectPoint,
+	roundPrecision,
+	signOf,
+} from "../shared/geometry";
 import { extractNatalPoints } from "../shared/natal-points";
+import { SIGN_RULERS } from "../shared/rulers";
 import { computeTransitAspects } from "./aspects";
 import { computeEvolutionaryTriggers } from "./triggers";
 import type {
@@ -36,10 +42,16 @@ export function computeTransitChart(
 	}
 
 	const transitingBodies: Record<string, TransitBody> = {};
-	const natalCusps = natalChart.cusps.map((c) => c.lon);
+	const transitingBodiesForAspects: Record<
+		string,
+		{ lon: number; speed?: number; natalHouse: number }
+	> = {};
+	const natalCusps = natalChart.cusps.map((c) =>
+		lonFromSignDeg(c.sign, c.signDeg),
+	);
 
 	for (const [bodyId, body] of Object.entries(tChart.bodies)) {
-		if (!body) continue;
+		if (!body || bodyId === "mean_node") continue;
 		const isOob = ephemeris.outOfBounds(bodyId as BodyId, targetJd);
 		const normLon = ((body.lon % 360) + 360) % 360;
 		const sign = signOf(normLon);
@@ -52,17 +64,20 @@ export function computeTransitChart(
 		}
 
 		transitingBodies[bodyId] = {
-			name: bodyId,
-			lon: roundPrecision(normLon, 4),
 			sign,
 			signDeg,
-			lat: roundPrecision(body.lat, 4),
-			dec: roundPrecision(body.dec, 4),
-			speed: roundPrecision(body.speed, 6),
-			retrograde: body.speed < 0,
 			natalHouse: natalHouseProj.house,
 			localHouse: localHouseProj?.house,
+			retrograde: body.speed < 0,
+			speed: roundPrecision(body.speed, 6),
+			dec: roundPrecision(body.dec, 4),
 			outOfBounds: isOob,
+		};
+
+		transitingBodiesForAspects[bodyId] = {
+			lon: body.lon,
+			speed: body.speed,
+			natalHouse: natalHouseProj.house,
 		};
 	}
 
@@ -70,7 +85,10 @@ export function computeTransitChart(
 	const natalPoints = extractNatalPoints(natalChart);
 
 	// Compute inter-chart aspects
-	const aspectsToNatal = computeTransitAspects(transitingBodies, natalPoints);
+	const aspectsToNatal = computeTransitAspects(
+		transitingBodiesForAspects,
+		natalPoints,
+	);
 
 	// Compute evolutionary triggers
 	const evolutionaryTriggers = computeEvolutionaryTriggers(
@@ -97,33 +115,32 @@ export function computeTransitChart(
 		const angles = tChart.angles;
 		transitAngles = {
 			asc: {
-				lon: roundPrecision(angles.asc, 4),
 				sign: signOf(angles.asc),
 				signDeg: roundPrecision(angles.asc % 30, 4),
 			},
 			mc: {
-				lon: roundPrecision(angles.mc, 4),
 				sign: signOf(angles.mc),
 				signDeg: roundPrecision(angles.mc % 30, 4),
 			},
 			vertex: {
-				lon: roundPrecision(angles.vertex, 4),
 				sign: signOf(angles.vertex),
 				signDeg: roundPrecision(angles.vertex % 30, 4),
 			},
 			eastPoint: {
-				lon: roundPrecision(angles.eastPoint, 4),
 				sign: signOf(angles.eastPoint),
 				signDeg: roundPrecision(angles.eastPoint % 30, 4),
 			},
 		};
 
-		transitCuspsOutput = tChart.cusps.map((cLon, idx) => ({
-			house: idx + 1,
-			lon: roundPrecision(cLon, 4),
-			sign: signOf(cLon),
-			signDeg: roundPrecision(cLon % 30, 4),
-		}));
+		transitCuspsOutput = tChart.cusps.map((cLon, idx) => {
+			const sign = signOf(cLon);
+			return {
+				house: idx + 1,
+				sign,
+				signDeg: roundPrecision(cLon % 30, 4),
+				ruler: SIGN_RULERS[sign] ?? "unknown",
+			};
+		});
 	}
 
 	return {
@@ -134,25 +151,18 @@ export function computeTransitChart(
 			lat: target.lat !== undefined ? roundPrecision(target.lat, 4) : undefined,
 			lon: target.lon !== undefined ? roundPrecision(target.lon, 4) : undefined,
 		},
-		natal: {
-			id: natalProfile.id,
-			name: natalProfile.name,
-			birthPlace: natalProfile.birthPlace,
-			birthDateTime: natalProfile.birthDateTime,
-			birthLat: roundPrecision(natalProfile.birthLat, 4),
-			birthLon: roundPrecision(natalProfile.birthLon, 4),
-			birthJdUt: roundPrecision(natalProfile.birthJdUt, 6),
+		birth: toonProfile(natalProfile),
+		meta: {
+			houseSystem: transitCusps ? "porphyry" : undefined,
+			zodiac: "tropical",
+			ephemeris: "caelus: 0.24.1",
 		},
-		zodiac: "tropical",
-		houseSystem: transitCusps ? "porphyry" : undefined,
 		transitingBodies,
 		transitAngles,
 		transitCusps: transitCuspsOutput,
 		aspectsToNatal,
 		evolutionaryTriggers,
 		outOfBounds,
-		method:
-			"JWGEA Transit Engine (Porphyry cusps / True Node / Tight Evolutionary Orbs)",
 	};
 }
 
@@ -170,14 +180,14 @@ export function extractTransitsInterpretation(
 			aspect: asp.aspect,
 			orb: asp.orb,
 			isApplying: asp.isApplying,
-			transitingHouse: tBody?.natalHouse ?? 1,
+			transitingHouse: tBody?.natalHouse ?? asp.transitingNatalHouse,
 		};
 	});
 
-	const outOfBoundsTransits = Object.values(transits.transitingBodies)
-		.filter((b) => b.outOfBounds)
-		.map((b) => ({
-			planet: b.name,
+	const outOfBoundsTransits = Object.entries(transits.transitingBodies)
+		.filter(([_, b]) => b.outOfBounds)
+		.map(([name, b]) => ({
+			planet: name,
 			declination: b.dec,
 			status: (b.dec >= 0 ? "out_of_bounds_north" : "out_of_bounds_south") as
 				| "out_of_bounds_north"
@@ -200,15 +210,7 @@ export function extractTransitsInterpretation(
 				jdUt: transits.target.jdUt,
 				...(coordinates ? { coordinates } : {}),
 			},
-			natal: {
-				id: transits.natal.id,
-				name: transits.natal.name ?? null,
-				birthPlace: transits.natal.birthPlace,
-				birthDateTime: transits.natal.birthDateTime,
-				birthLat: transits.natal.birthLat,
-				birthLon: transits.natal.birthLon,
-				birthJdUt: transits.natal.birthJdUt,
-			},
+			natal: transits.birth,
 			activeTriggers,
 			outOfBoundsTransits,
 		},

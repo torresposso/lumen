@@ -1,4 +1,5 @@
 import type { ToonProfile } from "../../domain/toon";
+import type { SolLunaPhaseOutput } from "../natal/phases";
 import type { AspectStress } from "../shared/aspects";
 
 export interface ProgressedTargetOutput {
@@ -8,32 +9,13 @@ export interface ProgressedTargetOutput {
 	progressedJdUt: number;
 }
 
-export interface ProgressedNatalOutput {
-	id: string;
-	name?: string | null;
-	birthPlace: string;
-	birthDateTime: string;
-	birthLat: number;
-	birthLon: number;
-	birthJdUt: number;
-}
-
-export interface ProgressedSolLunaPhase {
-	phase: string;
-	angle: number;
-	description: string;
-}
-
 export interface ProgressedBody {
-	name: string;
-	lon: number;
 	sign: string;
 	signDeg: number;
-	lat: number;
-	dec: number;
-	speed: number;
-	retrograde: boolean;
 	natalHouse: number;
+	retrograde: boolean;
+	speed: number;
+	dec: number;
 	outOfBounds: boolean;
 }
 
@@ -42,14 +24,20 @@ export interface ProgressedAspect {
 	natalPoint: string;
 	aspect: string;
 	orb: number;
-	maxOrb: number;
 	isApplying: boolean;
 	stress: AspectStress;
+	progressedNatalHouse: number;
 }
 
-export interface ProgressedSkippedStepActivation extends ProgressedAspect {
+export interface ProgressedSkippedStepActivation {
+	progressedBody: string;
 	skippedStepBody: string;
+	aspect: string;
+	orb: number;
+	isApplying: boolean;
 	resolutionNode: "north" | "south";
+	stress: AspectStress;
+	progressedNatalHouse: number;
 }
 
 export interface ProgressedEvolutionaryTriggers {
@@ -61,13 +49,15 @@ export interface ProgressedEvolutionaryTriggers {
 
 export interface ProgressedChartOutput {
 	target: ProgressedTargetOutput;
-	natal: ProgressedNatalOutput;
-	zodiac: "tropical";
-	solLunaPhase: ProgressedSolLunaPhase;
+	birth: ToonProfile;
+	meta: {
+		zodiac: "tropical";
+		ephemeris: string;
+		solLunaPhase: SolLunaPhaseOutput;
+	};
 	progressedBodies: Record<string, ProgressedBody>;
 	aspectsToNatal: ProgressedAspect[];
 	evolutionaryTriggers: ProgressedEvolutionaryTriggers;
-	method: string;
 }
 
 export interface ProgressionsInterpretationOutput {

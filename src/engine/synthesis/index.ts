@@ -77,16 +77,18 @@ export function computeEvolutionarySynthesis(
 				resNodeKey === "north"
 					? natalInterp.natalInterpretation.karmicRoot.nodalAxis.northNode
 					: natalInterp.natalInterpretation.karmicRoot.nodalAxis.southNode;
-			const nodeLabel = resNodeKey === "north" ? "North Node" : "South Node";
-			const mandate = `Integration through ${nodeLabel} in ${targetNodeInfo.sign} House ${targetNodeInfo.house}`;
 
 			skippedStepActivations.push({
 				transitingBody: trigger.transitingBody,
+				transitingHouse: trigger.transitingHouse,
 				skippedPlanet: step.planet,
 				aspect: trigger.aspect,
 				orb: trigger.orb,
 				resolutionNode: resNodeKey,
-				evolutionaryMandate: mandate,
+				targetNode: {
+					sign: targetNodeInfo.sign,
+					house: targetNodeInfo.house,
+				},
 			});
 		}
 	}
@@ -104,7 +106,7 @@ export function computeEvolutionarySynthesis(
 
 		if (ptLower === "pluto") {
 			targetPoint = "pluto";
-		} else if (ptLower === "ppp" && natalChart.ppp.active) {
+		} else if (ptLower === "ppp" && natalChart.evolutionary.ppp.active) {
 			targetPoint = "ppp";
 		} else if (ptLower === "true_node" || ptLower === "north_node") {
 			targetPoint = "north_node";
@@ -115,16 +117,13 @@ export function computeEvolutionarySynthesis(
 		if (targetPoint) {
 			plutoNodePressure.push({
 				transitingBody: trigger.transitingBody,
+				transitingHouse: trigger.transitingHouse,
 				targetPoint,
 				aspect: trigger.aspect,
 				orb: trigger.orb,
 			});
 		}
 	}
-
-	// 3. Phase Context Guidance
-	const solLuna = progressionsInterp.progressionsInterpretation.solLunaPhase;
-	const phaseContextGuidance = `${solLuna.phaseName} Phase: ${solLuna.description}`;
 
 	const pInterp = progressionsInterp.progressionsInterpretation;
 	const tInterp = transitsInterp.transitsInterpretation;
@@ -139,7 +138,12 @@ export function computeEvolutionarySynthesis(
 			},
 			karmicRoot: natalInterp.natalInterpretation.karmicRoot,
 			soulClock: {
-				...pInterp.solLunaPhase,
+				phase: {
+					name: pInterp.solLunaPhase.phaseName,
+					number: pInterp.solLunaPhase.phaseNumber,
+					angle: pInterp.solLunaPhase.sunMoonAngle,
+					isWaxing: pInterp.solLunaPhase.isWaxing,
+				},
 				progressedSun: pInterp.progressedSun,
 				progressedMoon: pInterp.progressedMoon,
 				progressedTriggers: pInterp.progressedTriggers,
@@ -151,9 +155,7 @@ export function computeEvolutionarySynthesis(
 			evolutionaryDynamics: {
 				skippedStepActivations,
 				plutoNodePressure,
-				phaseContextGuidance,
 			},
-			method: SYNTHESIS_METHOD,
 		},
 	};
 }

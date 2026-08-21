@@ -65,8 +65,8 @@ const NATAL_SPEC: ArgsSpec = {
 	known: new Set([INTERPRET_FLAGS.interpret]),
 	booleanFlags: new Set([INTERPRET_FLAGS.interpret]),
 	positionals: 1,
-	positionalName: "profile id",
-	positionalHint: "Use the UUID printed by `lumen profile add`",
+	positionalName: "profile name",
+	positionalHint: "Use the name passed to `lumen profile add`",
 };
 
 const TRANSITS_SPEC: ArgsSpec = {
@@ -78,8 +78,8 @@ const TRANSITS_SPEC: ArgsSpec = {
 	booleanFlags: new Set([INTERPRET_FLAGS.interpret]),
 	required: new Set([TRANSIT_FLAGS.when]),
 	positionals: 1,
-	positionalName: "profile id",
-	positionalHint: "Use the UUID printed by `lumen profile add`",
+	positionalName: "profile name",
+	positionalHint: "Use the name passed to `lumen profile add`",
 	rules: {
 		[TRANSIT_FLAGS.when]: { trim: true, nonEmpty: true },
 		[TRANSIT_FLAGS.where]: { trim: true, nonEmpty: true },
@@ -91,8 +91,8 @@ const PROGRESSIONS_SPEC: ArgsSpec = {
 	booleanFlags: new Set([INTERPRET_FLAGS.interpret]),
 	required: new Set([PROGRESSION_FLAGS.when]),
 	positionals: 1,
-	positionalName: "profile id",
-	positionalHint: "Use the UUID printed by `lumen profile add`",
+	positionalName: "profile name",
+	positionalHint: "Use the name passed to `lumen profile add`",
 	rules: {
 		[PROGRESSION_FLAGS.when]: { trim: true, nonEmpty: true },
 	},
@@ -102,8 +102,8 @@ const SYNTHESIS_SPEC: ArgsSpec = {
 	known: new Set([SYNTHESIS_FLAGS.when, SYNTHESIS_FLAGS.where]),
 	required: new Set([SYNTHESIS_FLAGS.when]),
 	positionals: 1,
-	positionalName: "profile id",
-	positionalHint: "Use the UUID printed by `lumen profile add`",
+	positionalName: "profile name",
+	positionalHint: "Use the name passed to `lumen profile add`",
 	rules: {
 		[SYNTHESIS_FLAGS.when]: { trim: true, nonEmpty: true },
 		[SYNTHESIS_FLAGS.where]: { trim: true, nonEmpty: true },
@@ -121,10 +121,10 @@ export const chartCommand = createSubcommandGroup<CliContext>({
 			usage: chartNatalUsage,
 			run: (parsed, context) => {
 				const { profiles, ephemeris } = context;
-				const id = parsed.positionals[0] as string;
-				const profile = profiles.get(id);
+				const name = parsed.positionals[0] as string;
+				const profile = profiles.getByName(name);
 				if (!profile) {
-					throw new AxiError(`Profile not found: ${id}`, "NOT_FOUND", [
+					throw new AxiError(`Unknown profile: ${name}`, "NOT_FOUND", [
 						PROFILE_LIST_HINT,
 					]);
 				}
@@ -143,10 +143,10 @@ export const chartCommand = createSubcommandGroup<CliContext>({
 			usage: chartTransitsUsage,
 			run: (parsed, context) => {
 				const { profiles, ephemeris } = context;
-				const id = parsed.positionals[0] as string;
-				const profile = profiles.get(id);
+				const name = parsed.positionals[0] as string;
+				const profile = profiles.getByName(name);
 				if (!profile) {
-					throw new AxiError(`Profile not found: ${id}`, "NOT_FOUND", [
+					throw new AxiError(`Profile not found: ${name}`, "NOT_FOUND", [
 						PROFILE_LIST_HINT,
 					]);
 				}
@@ -170,10 +170,10 @@ export const chartCommand = createSubcommandGroup<CliContext>({
 			usage: chartProgressionsUsage,
 			run: (parsed, context) => {
 				const { profiles, ephemeris } = context;
-				const id = parsed.positionals[0] as string;
-				const profile = profiles.get(id);
+				const name = parsed.positionals[0] as string;
+				const profile = profiles.getByName(name);
 				if (!profile) {
-					throw new AxiError(`Profile not found: ${id}`, "NOT_FOUND", [
+					throw new AxiError(`Profile not found: ${name}`, "NOT_FOUND", [
 						PROFILE_LIST_HINT,
 					]);
 				}
@@ -200,10 +200,10 @@ export const chartCommand = createSubcommandGroup<CliContext>({
 			usage: chartSynthesisUsage,
 			run: (parsed, context) => {
 				const { profiles, ephemeris } = context;
-				const id = parsed.positionals[0] as string;
-				const profile = profiles.get(id);
+				const name = parsed.positionals[0] as string;
+				const profile = profiles.getByName(name);
 				if (!profile) {
-					throw new AxiError(`Profile not found: ${id}`, "NOT_FOUND", [
+					throw new AxiError(`Profile not found: ${name}`, "NOT_FOUND", [
 						PROFILE_LIST_HINT,
 					]);
 				}
